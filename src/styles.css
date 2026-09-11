@@ -1,0 +1,242 @@
+@import "tailwindcss";
+@import "@fontsource-variable/literata";
+@import "@fontsource-variable/literata/wght-italic.css";
+@import "@fontsource-variable/source-sans-3";
+@import "@fontsource-variable/source-sans-3/wght-italic.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Reduced motion: keep opacity feedback, drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-property: opacity, color, background-color, border-color !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Tokens (docs/DESIGN.md). Semantic roles only; components never see a hex. */
+@theme inline {
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+  --font-mono: var(--font-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-link: var(--link);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-code: var(--code);
+  /* Two radii: `rounded` for controls, `rounded-lg` for surfaces. Nothing rounder. */
+  --radius-sm: calc(var(--radius) - 1px);
+  --radius: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-surface);
+  --radius-xl: var(--radius-surface);
+  --radius-2xl: var(--radius-surface);
+  --radius-3xl: var(--radius-surface);
+}
+
+:root {
+  --font-sans: "Source Sans 3 Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Literata Variable", Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+  --radius: 0.25rem;
+  --radius-surface: 0.5rem;
+
+  /* Paper and ink. `--brand-*` may be overridden from lms.config.ts (see BrandStyle). */
+  --ink: #1e1c19;
+  --paper: #f6f4ef;
+  --brand-primary: #2f6f6d;
+  --brand-primary-foreground: #f6f4ef;
+  --brand-link: #255a58;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #fdfcf9;
+  --card-foreground: var(--ink);
+  --popover: #fdfcf9;
+  --popover-foreground: var(--ink);
+  --muted: --alpha(var(--ink) / 5%);
+  --muted-foreground: #6b665e;
+  --accent: --alpha(var(--ink) / 5%);
+  --accent-foreground: var(--ink);
+  --border: --alpha(var(--ink) / 12%);
+  --input: --alpha(var(--ink) / 18%);
+  --primary: var(--brand-primary);
+  --primary-foreground: var(--brand-primary-foreground);
+  --ring: var(--brand-primary);
+  --secondary: --alpha(var(--ink) / 6%);
+  --secondary-foreground: var(--ink);
+  --link: var(--brand-link);
+  --success: #587a5a;
+  --success-foreground: #3f5c41;
+  --warning: #b8862d;
+  --warning-foreground: #7f5a17;
+  --destructive: #a34a3e;
+  --destructive-foreground: #8a3a30;
+  --info: #4b6a8a;
+  --info-foreground: #3c5670;
+  --code: --alpha(var(--ink) / 5%);
+}
+
+.dark {
+  --ink: #e9e5dc;
+  --paper: #161514;
+  --brand-primary: #7fb5b2;
+  --brand-primary-foreground: #161514;
+  --brand-link: #8fc3c0;
+
+  --card: #1e1c1a;
+  --popover: #1e1c1a;
+  --muted: --alpha(var(--ink) / 6%);
+  --muted-foreground: #a39d92;
+  --accent: --alpha(var(--ink) / 6%);
+  --border: --alpha(var(--ink) / 10%);
+  --input: --alpha(var(--ink) / 16%);
+  --secondary: --alpha(var(--ink) / 7%);
+  --success: #8bab8c;
+  --success-foreground: #a9c4aa;
+  --warning: #d1a655;
+  --warning-foreground: #e2c07d;
+  --destructive: #c8776b;
+  --destructive-foreground: #dc9c92;
+  --info: #93accb;
+  --info-foreground: #adc1da;
+  --code: --alpha(var(--ink) / 6%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  h1 {
+    @apply font-serif font-medium tracking-normal;
+    text-wrap: balance;
+  }
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold tracking-tight;
+    text-wrap: balance;
+  }
+  a {
+    @apply text-link underline-offset-[3px] hover:underline;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+  ::selection {
+    background: --alpha(var(--primary) / 25%);
+  }
+}
+
+/* Lesson prose, rendered from sanitised Markdown (src/lib/markdown.ts). Literata, book measure. */
+@utility prose {
+  @apply max-w-[68ch] font-serif text-[1.0625rem] leading-[1.65];
+  & > * + * {
+    margin-top: 1em;
+  }
+  & h2,
+  & h3,
+  & h4 {
+    @apply font-serif font-medium tracking-normal;
+    margin-top: 1.8em;
+    line-height: 1.25;
+  }
+  & h2 {
+    font-size: 1.5em;
+  }
+  & h3 {
+    font-size: 1.25em;
+  }
+  & h4 {
+    font-size: 1.0625em;
+  }
+  & ul,
+  & ol {
+    padding-left: 1.4em;
+  }
+  & ul {
+    list-style: disc;
+  }
+  & ol {
+    list-style: decimal;
+  }
+  & li + li {
+    margin-top: 0.35em;
+  }
+  & blockquote {
+    @apply border-l-2 border-primary pl-4 text-muted-foreground;
+  }
+  & code {
+    @apply rounded bg-code px-1 py-0.5 font-mono text-[0.875em];
+  }
+  & pre {
+    @apply overflow-x-auto rounded-lg bg-code p-4 font-mono text-[0.875em] leading-relaxed;
+  }
+  & pre code {
+    @apply bg-transparent p-0;
+  }
+  & hr {
+    @apply my-8 border-t;
+  }
+  & img {
+    @apply rounded-lg;
+  }
+  & table {
+    @apply w-full text-[0.9375em];
+    border-collapse: collapse;
+  }
+  & th,
+  & td {
+    @apply border-b px-2 py-1.5 text-left align-top;
+  }
+  & th {
+    @apply font-semibold;
+  }
+}
