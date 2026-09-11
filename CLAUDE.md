@@ -11,7 +11,8 @@ document and the code disagree, the code is right and the document gets fixed.
 
 - **Every write goes through `src/server/mutations/*`**, starting with `requireUser()` /
   `requireRole()` / `requireCourseTeacher()` from `src/server/auth/authz.ts`, and appends an
-  `audit_log` row. Loaders, queries and components never write.
+  `audit_log` row (the one exception is a person's own `lesson_progress`, written every ~10 s of
+  playback). Loaders, queries and components never write.
 - **Identity is mirrored, never owned.** `person` and `entitlement` rows with `source = 'external'`
   are written only by the OIDC callback, `syncEntitlements()` and the webhook handler. No sign-up,
   no passwords, no role UI. Admin grants are `source = 'admin'` and never overwrite external rows.
@@ -22,6 +23,10 @@ document and the code disagree, the code is right and the document gets fixed.
   `.env`, `lms.config.ts` or the database. Test: would a second organisation have to edit a `.ts`
   file to run their fork? Then it is misplaced. Lock reasons are i18n'd from the rule _type_.
 - **Files are private.** Only `/api/files/$fileId` hands out signed URLs (≤ 5 min) after an access check.
+- **Assignments and quizzes are reached through the lesson block that embeds them**:
+  `requireContainerAccess()` in `src/server/access/container.ts` is the only gate.
+- **Mail is queued, never sent inline**: mutations `enqueue()`; `scripts/notify.ts` (the tick, run by
+  `scripts/serve.mjs` or cron) sends immediate items and the daily digest.
 - **Locale resolution order is fixed**: `?lang` → cookie → IdP `locale` claim → `Accept-Language` → config default.
 
 ## Hard rules
@@ -56,6 +61,7 @@ pnpm db:migrate && pnpm db:seed   # migrations + demo course, cohort, three mock
 pnpm dev                          # http://localhost:3003
 pnpm typecheck · pnpm lint · pnpm fmt · pnpm test · pnpm e2e
 pnpm db:generate                  # new migration after editing src/db/schema.ts
+pnpm notify                       # one notification tick (FORCE_DIGEST=true to send the digest now)
 ```
 
 ## Layout
@@ -74,7 +80,7 @@ dev/mock-idp/          oidc-provider + mock entitlement source     drizzle/  tes
 - API routes: `createFileRoute("/api/x")({ server: { handlers: { GET, POST } } })`. Server functions
   use `.validator(zodSchema)`; read the request with `getRequest()` from `@tanstack/react-start/server`.
   The root `beforeLoad` also runs on the client, so it calls the `getSession` server fn.
-- `src/db/*`, `src/config/*` and `scripts/*` run under Node's native TypeScript: relative imports
+- `src/db/*`, `src/config/*`, `src/server/services/{notifications,email}` and `scripts/*` run under Node's native TypeScript: relative imports
   with `.ts` extensions, no `~/` alias, no `enum`, no parameter properties.
 - `DATABASE_URL=pglite://memory` opens an in-memory PGlite (tests); anything else is `pg`.
 - Server-only modules (`authz.ts`, `oidc.ts`, `src/db`, services) are imported only from server

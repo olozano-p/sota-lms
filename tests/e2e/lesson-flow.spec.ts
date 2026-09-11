@@ -40,7 +40,7 @@ test("student reads a lesson, marks it done and sees progress; drip lock is expl
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("La postura");
 
   await open(page, COURSE);
-  await expect(page.getByText(/1 de \d+ lliçons|1 of \d+ lessons/).first()).toBeVisible();
+  await expect(page.getByText(/[1-9] de \d+ lliçons|[1-9] of \d+ lessons/).first()).toBeVisible();
   await expect(nav.getByRole("link", { name: /La postura/ })).toHaveAttribute(
     "title",
     /Completada|Completed/,

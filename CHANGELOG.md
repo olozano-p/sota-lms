@@ -21,5 +21,14 @@ All notable changes to Lodrö are documented here. The format follows
 - Authoring: `/teach` with course creation (admins) and teacher assignment, structure editor with
   drag-sort for chapters, lessons and blocks, autosave on blur, publish toggles, Markdown preview,
   presigned uploads with configurable limits, Vimeo URL resolution. Every write is audited.
+- Assignments: text and/or file submissions with resubmission and history, teacher review with
+  feedback (reviewed / returned), submission list with status filter.
+- Quizzes and forms: builder with four question types, attempts with auto-grading of choice
+  questions, optional pass mark, answers revealed after submission, results with per-option counts.
+- Cohorts: teacher editor with members (manual by email or automatic from `cohort` entitlements)
+  and a release schedule per chapter or lesson; member page with the calendar.
+- Notifications over SMTP (console transport in dev): submission received → teachers, feedback
+  returned → student (immediate), chapter released → cohort; daily digest at a configured hour;
+  per-person opt-out column; `scripts/notify.ts` tick run by the production server or cron.
 - Playwright smoke suite: SSO redirect and sign-out, lesson flow with progress and drip lock,
-  authoring with upload.
+  authoring with upload, assignment submission and review, quiz attempt and results.
