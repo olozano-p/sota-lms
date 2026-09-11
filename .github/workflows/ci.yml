@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: lodro
+          POSTGRES_PASSWORD: lodro
+          POSTGRES_DB: lodro
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U lodro" --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --prod --audit-level high
+        continue-on-error: true
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm fmt:check
+      - run: pnpm test
+      - name: Migration dry-run
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: postgres://lodro:lodro@localhost:5432/lodro
+      - name: Drizzle schema is in sync with migrations
+        run: |
+          pnpm db:generate
+          git diff --exit-code -- drizzle || (echo "Run pnpm db:generate and commit the migration" && exit 1)
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: docker compose up -d --build
+      - run: pnpm e2e
+      - if: always()
+        run: docker compose logs app mock-idp
+      - if: always()
+        run: docker compose down -v
