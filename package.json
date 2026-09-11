@@ -13,6 +13,7 @@
     "db:migrate": "node src/db/migrate.ts",
     "db:seed": "node scripts/seed.ts",
     "mock-idp": "node dev/mock-idp/server.mjs",
+    "notify": "node scripts/notify.ts",
     "lint": "oxlint",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",

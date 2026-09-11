@@ -1,0 +1,207 @@
+/**
+ * Notification queue (docs/spec.md §7): feedback goes out at once, everything else in a daily
+ * digest at `notifications.digestHour`. Plain-Node safe: the tick runs from `scripts/notify.ts`
+ * (cron or the production server's interval) as well as inline after a mutation.
+ */
+import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
+import { db, type DbOrTx } from "../../db/index.ts";
+import {
+  chapter,
+  cohort,
+  cohortMember,
+  cohortRelease,
+  course,
+  lesson,
+  notification,
+  person,
+} from "../../db/schema.ts";
+import { lmsConfig } from "../../config/index.ts";
+import { env } from "../../config/env.ts";
+import { isLocale } from "../../i18n/locale.ts";
+import { dateInZone } from "../../lib/dates.ts";
+import { sendMail } from "./email/mailer.ts";
+import {
+  renderDigest,
+  renderNotification,
+  type NotificationKind,
+  type NotificationPayload,
+} from "./email/templates.ts";
+
+export async function enqueue(
+  tx: DbOrTx,
+  personId: string,
+  kind: NotificationKind,
+  payload: NotificationPayload,
+  immediate = false,
+): Promise<void> {
+  if (!lmsConfig.notifications.enabled) return;
+  await tx.insert(notification).values({ personId, kind, payload, immediate });
+}
+
+async function recipient(personId: string) {
+  const [p] = await db
+    .select({ email: person.email, locale: person.locale, optOut: person.emailOptOut })
+    .from(person)
+    .where(eq(person.id, personId))
+    .limit(1);
+  return p ?? null;
+}
+
+const localeOf = (v: string | null) => (isLocale(v) ? v : lmsConfig.locales.default);
+
+/** Sends every immediate notification that is still pending. Safe to call often. */
+export async function sendImmediate(): Promise<number> {
+  const pending = await db
+    .select()
+    .from(notification)
+    .where(and(isNull(notification.sentAt), eq(notification.immediate, true)))
+    .limit(100);
+  let sent = 0;
+  for (const n of pending) {
+    const to = await recipient(n.personId);
+    try {
+      if (to && !to.optOut) {
+        const mail = renderNotification(
+          n.kind as NotificationKind,
+          n.payload as NotificationPayload,
+          localeOf(to.locale),
+          lmsConfig.brand.name,
+        );
+        await sendMail({ to: to.email, ...mail });
+      }
+      await db.update(notification).set({ sentAt: new Date() }).where(eq(notification.id, n.id));
+      sent++;
+    } catch (e) {
+      await db
+        .update(notification)
+        .set({ error: (e as Error).message })
+        .where(eq(notification.id, n.id));
+    }
+  }
+  return sent;
+}
+
+/** One digest per person with pending non-immediate notifications. */
+export async function sendDigests(): Promise<number> {
+  const pending = await db
+    .select()
+    .from(notification)
+    .where(and(isNull(notification.sentAt), eq(notification.immediate, false)))
+    .limit(2000);
+  const byPerson = new Map<string, typeof pending>();
+  for (const n of pending) byPerson.set(n.personId, [...(byPerson.get(n.personId) ?? []), n]);
+  let sent = 0;
+  for (const [personId, items] of byPerson) {
+    const to = await recipient(personId);
+    try {
+      if (to && !to.optOut) {
+        const mail = renderDigest(
+          items.map((i) => ({
+            kind: i.kind as NotificationKind,
+            payload: i.payload as NotificationPayload,
+          })),
+          localeOf(to.locale),
+          lmsConfig.brand.name,
+          `${env.appUrl}/courses`,
+        );
+        await sendMail({ to: to.email, ...mail });
+      }
+      await db
+        .update(notification)
+        .set({ sentAt: new Date() })
+        .where(
+          inArray(
+            notification.id,
+            items.map((i) => i.id),
+          ),
+        );
+      sent++;
+    } catch (e) {
+      await db
+        .update(notification)
+        .set({ error: (e as Error).message })
+        .where(
+          inArray(
+            notification.id,
+            items.map((i) => i.id),
+          ),
+        );
+    }
+  }
+  return sent;
+}
+
+/** Releases whose time has come and that were never announced → one digest item per member. */
+export async function enqueueReleased(now = new Date()): Promise<number> {
+  const due = await db
+    .select({
+      id: cohortRelease.id,
+      cohortId: cohortRelease.cohortId,
+      chapterTitle: chapter.title,
+      lessonTitle: lesson.title,
+      lessonSlug: lesson.slug,
+      courseTitle: course.title,
+      courseSlug: course.slug,
+    })
+    .from(cohortRelease)
+    .innerJoin(cohort, eq(cohort.id, cohortRelease.cohortId))
+    .innerJoin(course, eq(course.id, cohort.courseId))
+    .leftJoin(chapter, eq(chapter.id, cohortRelease.chapterId))
+    .leftJoin(lesson, eq(lesson.id, cohortRelease.lessonId))
+    .where(and(lte(cohortRelease.releaseAt, now), isNull(cohortRelease.notifiedAt)));
+  let count = 0;
+  for (const r of due) {
+    const members = await db
+      .select({ personId: cohortMember.personId })
+      .from(cohortMember)
+      .where(and(eq(cohortMember.cohortId, r.cohortId), eq(cohortMember.role, "student")));
+    await db.transaction(async (tx) => {
+      for (const m of members) {
+        await enqueue(tx, m.personId, "chapter_released", {
+          courseTitle: r.courseTitle,
+          subject: r.chapterTitle ?? r.lessonTitle ?? "",
+          url: r.lessonSlug
+            ? `${env.appUrl}/courses/${r.courseSlug}/${r.lessonSlug}`
+            : `${env.appUrl}/courses/${r.courseSlug}`,
+        });
+      }
+      await tx.update(cohortRelease).set({ notifiedAt: now }).where(eq(cohortRelease.id, r.id));
+    });
+    count += members.length;
+  }
+  return count;
+}
+
+/**
+ * The periodic tick: announce due releases, send immediate mail, and once a day (at the
+ * configured hour in the deployment's zone) the digests. Idempotent within the hour.
+ */
+export async function tick(
+  now = new Date(),
+): Promise<{ released: number; immediate: number; digests: number }> {
+  const released = await enqueueReleased(now);
+  const immediate = await sendImmediate();
+  let digests = 0;
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: lmsConfig.timeZone,
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(now),
+  );
+  if (hour === lmsConfig.notifications.digestHour || process.env.FORCE_DIGEST === "true") {
+    const today = dateInZone(now, lmsConfig.timeZone);
+    const [already] = await db
+      .select({ n: sql<number>`count(*)`.mapWith(Number) })
+      .from(notification)
+      .where(
+        and(
+          eq(notification.immediate, false),
+          sql`${notification.sentAt} is not null`,
+          sql`(${notification.sentAt} at time zone ${lmsConfig.timeZone})::date = ${today}::date`,
+        ),
+      );
+    if (!already?.n || process.env.FORCE_DIGEST === "true") digests = await sendDigests();
+  }
+  return { released, immediate, digests };
+}

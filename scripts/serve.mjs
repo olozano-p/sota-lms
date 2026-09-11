@@ -1,6 +1,7 @@
 // Minimal production server: bridges node:http to the Web-fetch handler that
 // `vite build` emits for TanStack Start. Serves static client assets first.
 import http from "node:http";
+import { spawn } from "node:child_process";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { Readable } from "node:stream";
@@ -8,6 +9,21 @@ import { Readable } from "node:stream";
 const handler = (await import("../dist/server/server.js")).default;
 const clientDir = join(process.cwd(), "dist", "client");
 const port = Number(process.env.PORT ?? 3003);
+
+// Notification tick every 15 minutes in a child process (plain Node runs the .ts directly).
+// Set NOTIFY_INTERVAL_MS=0 to disable when cron runs scripts/notify.ts instead.
+const notifyEvery = Number(process.env.NOTIFY_INTERVAL_MS ?? 15 * 60 * 1000);
+if (notifyEvery > 0) {
+  const runTick = () => {
+    const child = spawn(process.execPath, ["scripts/notify.ts"], {
+      stdio: "inherit",
+      env: process.env,
+    });
+    child.on("error", (e) => console.error("notify tick failed:", e.message));
+  };
+  setTimeout(runTick, 30_000);
+  setInterval(runTick, notifyEvery);
+}
 
 const mime = {
   ".js": "text/javascript",
