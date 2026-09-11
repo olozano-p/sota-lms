@@ -1,0 +1,21 @@
+#!/bin/sh
+# Enforces the commit-message convention from CLAUDE.md § Git workflow: one line,
+# a gitmoji, a space, then a capitalized English subject — on every branch, main included.
+# Bypass for exceptional cases: `git commit --no-verify`.
+set -e
+
+subject=$(head -n1 "$1")
+
+# fixup!/squash! commits get autosquashed away.
+case "$subject" in
+  "fixup! "*|"squash! "*) exit 0 ;;
+esac
+
+# Gitmoji shape: leading non-ASCII (the emoji), a space, then a capital letter.
+# Byte-wise check in the C locale so it works with any sh/grep.
+if printf '%s' "$subject" | LC_ALL=C grep -qE '^[^ -~]+ [A-Z]'; then
+  exit 0
+fi
+
+echo "commit-msg: \"$subject\" does not match the gitmoji format: <emoji> <Capitalized subject> — e.g. \"✨ Add drip release to cohorts\" (CLAUDE.md § Git workflow)." >&2
+exit 1

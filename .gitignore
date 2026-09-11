@@ -1,0 +1,17 @@
+node_modules
+.output
+.nitro
+.tanstack
+dist
+src/routeTree.gen.ts
+.env
+.env.*
+!.env.example
+
+# Local data of the docker volumes when bind-mounted, Playwright artefacts
+data
+test-results
+playwright-report
+
+.claude/settings.local.json
+.DS_Store

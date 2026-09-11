@@ -1,0 +1,32 @@
+#!/bin/sh
+# Local mirror of the CI gates (.github/workflows/ci.yml) so failures surface
+# before the push, not in the pipeline. Runs only on the files staged for this
+# commit — untracked local files (e.g. .claude/, .agents/) are CI-invisible and
+# must not block a commit. CI remains the authoritative check; bypass in an
+# emergency with `git commit --no-verify`.
+set -e
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+# --no-error-on-unmatched-pattern: a commit touching no lintable/formattable
+# files (docs, SQL, hooks) must not fail on "no files found".
+echo "pre-commit: oxlint"
+echo "$staged" | tr '\n' '\0' | xargs -0 pnpm exec oxlint --no-error-on-unmatched-pattern
+
+echo "pre-commit: oxfmt --check"
+if ! echo "$staged" | tr '\n' '\0' | xargs -0 pnpm exec oxfmt --check --no-error-on-unmatched-pattern; then
+  echo ""
+  echo "Formatting issues found. Fix with: pnpm fmt" >&2
+  exit 1
+fi
+
+# CI typechecks after a full build (which generates routeTree.gen.ts); that is
+# too slow per-commit. Run tsc only when a TS file is staged and the generated
+# file already exists — otherwise CI covers it.
+if [ -f src/routeTree.gen.ts ] && echo "$staged" | grep -qE '\.(ts|tsx)$'; then
+  echo "pre-commit: tsc --noEmit"
+  pnpm run --silent typecheck
+fi
