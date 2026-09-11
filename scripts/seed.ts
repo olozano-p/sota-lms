@@ -1,0 +1,488 @@
+/**
+ * Demo data so a fresh checkout has something to click: a published course with every block type,
+ * a cohort with a drip schedule, an assignment, a quiz and mirror rows for the mock IdP users.
+ * Idempotent (keyed by slug / idp_sub) — safe to run on every boot of the dev stack.
+ *
+ *   pnpm db:seed
+ *
+ * Runs under plain Node: relative imports with .ts extensions, no alias. Fixtures use
+ * `@example.invalid`; nothing here names a real organisation.
+ */
+import { and, eq } from "drizzle-orm";
+import { db } from "../src/db/index.ts";
+import {
+  assignment,
+  chapter,
+  cohort,
+  cohortMember,
+  cohortRelease,
+  course,
+  courseTeacher,
+  entitlement,
+  lesson,
+  lessonBlock,
+  person,
+  question,
+  questionOption,
+  quiz,
+  type BlockType,
+  type EntitlementScope,
+} from "../src/db/schema.ts";
+
+const PEOPLE = [
+  {
+    idpSub: "mock-student",
+    email: "student@example.invalid",
+    name: "Aina Estudiant",
+    locale: "ca",
+    roles: ["student"],
+  },
+  {
+    idpSub: "mock-delayed",
+    email: "delayed@example.invalid",
+    name: "Pau Pacient",
+    locale: "es",
+    roles: ["student"],
+  },
+  {
+    idpSub: "mock-teacher",
+    email: "teacher@example.invalid",
+    name: "Marta Mestra",
+    locale: "ca",
+    roles: ["teacher"],
+  },
+  {
+    idpSub: "mock-admin",
+    email: "admin@example.invalid",
+    name: "Oriol Administrador",
+    locale: "en",
+    roles: ["admin"],
+  },
+];
+
+const COURSE_SLUG = "introduccio-a-la-contemplacio";
+const COHORT_SLUG = "tardor-2026";
+
+async function upsertPeople() {
+  const ids: Record<string, string> = {};
+  for (const p of PEOPLE) {
+    const [row] = await db
+      .insert(person)
+      .values(p)
+      .onConflictDoUpdate({
+        target: person.idpSub,
+        set: { email: p.email, name: p.name, locale: p.locale, roles: p.roles },
+      })
+      .returning({ id: person.id });
+    ids[p.idpSub] = row!.id;
+  }
+  return ids;
+}
+
+async function upsertCourse() {
+  const existing = await db
+    .select({ id: course.id })
+    .from(course)
+    .where(eq(course.slug, COURSE_SLUG))
+    .limit(1);
+  if (existing[0]) return existing[0].id;
+  const [c] = await db
+    .insert(course)
+    .values({
+      slug: COURSE_SLUG,
+      title: "Introducció a la contemplació",
+      subtitle: "Un curs de sis setmanes per asseure's i mirar",
+      descriptionMd:
+        "Un recorregut per les pràctiques bàsiques d'atenció i presència. Cada capítol combina una lliçó en vídeo, una lectura curta i una pràctica guiada en àudio.\n\nNo cal cap experiència prèvia.",
+      language: "ca",
+      status: "published",
+      endedAt: "2026-07-31",
+      sort: 1,
+    })
+    .returning({ id: course.id });
+  return c!.id;
+}
+
+async function seedContent(courseId: string) {
+  const hasChapters = await db
+    .select({ id: chapter.id })
+    .from(chapter)
+    .where(eq(chapter.courseId, courseId))
+    .limit(1);
+  if (hasChapters[0]) return;
+
+  const [asg] = await db
+    .insert(assignment)
+    .values({
+      courseId,
+      title: "Diari de pràctica",
+      instructionsMd:
+        "Durant una setmana, anota cada dia tres línies sobre la teva pràctica. Puja el diari com a text o com a PDF.",
+      submissionType: "both",
+      allowResubmit: true,
+    })
+    .returning({ id: assignment.id });
+
+  const [qz] = await db
+    .insert(quiz)
+    .values({
+      courseId,
+      title: "Repàs del primer capítol",
+      introMd: "Quatre preguntes curtes per fixar les idees. Es pot repetir.",
+      kind: "quiz",
+      showAnswersAfterSubmit: true,
+      passThreshold: null,
+    })
+    .returning({ id: quiz.id });
+
+  const [q1] = await db
+    .insert(question)
+    .values({
+      quizId: qz!.id,
+      sort: 1,
+      type: "single_choice",
+      promptMd: "Quina és la postura recomanada per començar?",
+      required: true,
+    })
+    .returning({ id: question.id });
+  await db.insert(questionOption).values([
+    { questionId: q1!.id, sort: 1, label: "Estirat al terra", isCorrect: false },
+    { questionId: q1!.id, sort: 2, label: "Assegut, esquena recta però relaxada", isCorrect: true },
+    { questionId: q1!.id, sort: 3, label: "Dret, caminant", isCorrect: false },
+  ]);
+  const [q2] = await db
+    .insert(question)
+    .values({
+      quizId: qz!.id,
+      sort: 2,
+      type: "multi_choice",
+      promptMd: "Quins d'aquests són suports habituals de l'atenció?",
+      required: true,
+    })
+    .returning({ id: question.id });
+  await db.insert(questionOption).values([
+    { questionId: q2!.id, sort: 1, label: "La respiració", isCorrect: true },
+    { questionId: q2!.id, sort: 2, label: "Els sons", isCorrect: true },
+    { questionId: q2!.id, sort: 3, label: "La llista de tasques", isCorrect: false },
+  ]);
+  await db.insert(question).values([
+    {
+      quizId: qz!.id,
+      sort: 3,
+      type: "short_text",
+      promptMd: "En una paraula: què has notat avui?",
+      required: false,
+    },
+    {
+      quizId: qz!.id,
+      sort: 4,
+      type: "long_text",
+      promptMd: "Descriu breument una dificultat que hagis trobat en asseure't.",
+      required: false,
+    },
+  ]);
+
+  interface SeedLesson {
+    slug: string;
+    title: string;
+    summary: string;
+    estimatedMinutes: number;
+    status?: "draft" | "published";
+    blocks: { type: BlockType; payload: Record<string, unknown> }[];
+  }
+  const chapters: { slug: string; title: string; descriptionMd: string; lessons: SeedLesson[] }[] =
+    [
+      {
+        slug: "asseure-s",
+        title: "Asseure's",
+        descriptionMd: "Postura, respiració i les primeres instruccions.",
+        lessons: [
+          {
+            slug: "benvinguda",
+            title: "Benvinguda",
+            summary: "Què farem i com aprofitar el curs.",
+            estimatedMinutes: 8,
+            blocks: [
+              {
+                type: "text",
+                payload: {
+                  md: "## Benvinguda\n\nAquest curs és una invitació a aturar-se. No cal creure res ni aconseguir res: només **asseure's i mirar**.\n\nCada lliçó té un vídeo curt, una lectura i, sovint, una pràctica guiada. Ves al teu ritme.",
+                },
+              },
+              {
+                type: "video",
+                payload: {
+                  provider: "vimeo",
+                  external_id: "76979871",
+                  title: "Benvinguda al curs",
+                  duration_s: 180,
+                  thumbnail_url: null,
+                },
+              },
+            ],
+          },
+          {
+            slug: "la-postura",
+            title: "La postura",
+            summary: "Set punts per asseure's amb estabilitat.",
+            estimatedMinutes: 15,
+            blocks: [
+              {
+                type: "text",
+                payload: {
+                  md: "## Els set punts\n\n1. Cames creuades o en una cadira, peus a terra.\n2. Esquena recta, sense rigidesa.\n3. Mans a la falda.\n4. Espatlles relaxades.\n5. Barbeta lleugerament enretirada.\n6. Boca tancada, mandíbula solta.\n7. Mirada baixa o ulls tancats.",
+                },
+              },
+              {
+                type: "audio",
+                payload: {
+                  file_key: "seed/practica-postura.mp3",
+                  title: "Pràctica guiada: la postura (10 min)",
+                  duration_s: 600,
+                },
+              },
+              {
+                type: "file",
+                payload: {
+                  file_key: "seed/postura.pdf",
+                  title: "Full de la postura (PDF)",
+                  mime: "application/pdf",
+                  size: 240_000,
+                },
+              },
+            ],
+          },
+          {
+            slug: "repas",
+            title: "Repàs",
+            summary: "Un qüestionari breu.",
+            estimatedMinutes: 5,
+            blocks: [{ type: "quiz", payload: { quiz_id: qz!.id } }],
+          },
+        ],
+      },
+      {
+        slug: "l-atencio",
+        title: "L'atenció",
+        descriptionMd: "Suports de l'atenció i com tornar quan la ment marxa.",
+        lessons: [
+          {
+            slug: "la-respiracio",
+            title: "La respiració com a suport",
+            summary: "Tornar a la respiració, una vegada i una altra.",
+            estimatedMinutes: 20,
+            blocks: [
+              {
+                type: "video",
+                payload: {
+                  provider: "vimeo",
+                  external_id: "76979871",
+                  title: "La respiració",
+                  duration_s: 540,
+                  thumbnail_url: null,
+                },
+              },
+              {
+                type: "text",
+                payload: {
+                  md: "La respiració és un suport perquè sempre hi és. Quan notis que la ment ha marxat, **ja has tornat**: aquell instant de notar-ho és la pràctica.",
+                },
+              },
+              {
+                type: "embed",
+                payload: {
+                  url: "https://docs.google.com/document/d/e/2PACX-1vT_example/pub?embedded=true",
+                  title: "Lectura complementària",
+                },
+              },
+            ],
+          },
+          {
+            slug: "diari",
+            title: "El diari de pràctica",
+            summary: "Una setmana d'anotacions.",
+            estimatedMinutes: 10,
+            blocks: [
+              {
+                type: "text",
+                payload: {
+                  md: "Escriure tres línies cada dia ajuda a veure el que se'ns escapa quan només practiquem.",
+                },
+              },
+              { type: "assignment", payload: { assignment_id: asg!.id } },
+            ],
+          },
+        ],
+      },
+      {
+        slug: "obrir-se",
+        title: "Obrir-se",
+        descriptionMd: "Encara en preparació.",
+        lessons: [
+          {
+            slug: "els-sons",
+            title: "Els sons",
+            summary: "Escoltar sense triar.",
+            estimatedMinutes: 12,
+            status: "draft",
+            blocks: [{ type: "text", payload: { md: "Esborrany." } }],
+          },
+        ],
+      },
+    ];
+
+  const releases: { chapterId: string; days: number }[] = [];
+  let ci = 0;
+  for (const ch of chapters) {
+    ci++;
+    const [c] = await db
+      .insert(chapter)
+      .values({
+        courseId,
+        slug: ch.slug,
+        title: ch.title,
+        descriptionMd: ch.descriptionMd,
+        sort: ci,
+      })
+      .returning({ id: chapter.id });
+    releases.push({ chapterId: c!.id, days: (ci - 1) * 7 });
+    let li = 0;
+    for (const ls of ch.lessons) {
+      li++;
+      const [l] = await db
+        .insert(lesson)
+        .values({
+          chapterId: c!.id,
+          slug: ls.slug,
+          title: ls.title,
+          summary: ls.summary,
+          sort: li,
+          status: ls.status ?? "published",
+          estimatedMinutes: ls.estimatedMinutes,
+        })
+        .returning({ id: lesson.id });
+      let bi = 0;
+      for (const b of ls.blocks) {
+        bi++;
+        await db
+          .insert(lessonBlock)
+          .values({ lessonId: l!.id, sort: bi, type: b.type, payload: b.payload });
+      }
+    }
+  }
+  return releases;
+}
+
+async function seedCohort(
+  courseId: string,
+  ids: Record<string, string>,
+  releases: { chapterId: string; days: number }[] | undefined,
+) {
+  const existing = await db
+    .select({ id: cohort.id })
+    .from(cohort)
+    .where(eq(cohort.slug, COHORT_SLUG))
+    .limit(1);
+  if (existing[0]) return;
+  const start = new Date();
+  start.setUTCDate(start.getUTCDate() - 7);
+  const startsAt = start.toISOString().slice(0, 10);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 42);
+  const [co] = await db
+    .insert(cohort)
+    .values({
+      courseId,
+      slug: COHORT_SLUG,
+      title: "Grup de tardor 2026",
+      startsAt,
+      endsAt: end.toISOString().slice(0, 10),
+      status: "active",
+    })
+    .returning({ id: cohort.id });
+  await db.insert(cohortMember).values([
+    { cohortId: co!.id, personId: ids["mock-student"]!, role: "student" },
+    { cohortId: co!.id, personId: ids["mock-teacher"]!, role: "teacher" },
+  ]);
+  for (const r of releases ?? []) {
+    const at = new Date(start);
+    at.setUTCDate(at.getUTCDate() + r.days);
+    await db
+      .insert(cohortRelease)
+      .values({ cohortId: co!.id, chapterId: r.chapterId, releaseAt: at });
+  }
+}
+
+async function main() {
+  const ids = await upsertPeople();
+  const courseId = await upsertCourse();
+  await db
+    .insert(courseTeacher)
+    .values({ courseId, personId: ids["mock-teacher"]! })
+    .onConflictDoNothing();
+  const releases = await seedContent(courseId);
+  await seedCohort(courseId, ids, releases);
+  // Mirror of what the mock entitlement source returns, so the catalogue is populated before the
+  // first login refreshes it.
+  const grants: {
+    sub: string;
+    scope: EntitlementScope;
+    ref: string | null;
+    rule: string;
+    until: string | null;
+  }[] = [
+    {
+      sub: "mock-student",
+      scope: "course",
+      ref: COURSE_SLUG,
+      rule: "immediate",
+      until: null,
+    },
+    {
+      sub: "mock-student",
+      scope: "cohort",
+      ref: COHORT_SLUG,
+      rule: "immediate",
+      until: null,
+    },
+    {
+      sub: "mock-delayed",
+      scope: "all_courses",
+      ref: null,
+      rule: "delayed",
+      until: "2027-12-31",
+    },
+    {
+      sub: "mock-teacher",
+      scope: "all_courses",
+      ref: null,
+      rule: "immediate",
+      until: null,
+    },
+    { sub: "mock-admin", scope: "all_courses", ref: null, rule: "immediate", until: null },
+  ];
+  // Same shape `syncEntitlements` uses: replace the external rows for a person in one go.
+  for (const sub of new Set(grants.map((g) => g.sub))) {
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(entitlement)
+        .where(and(eq(entitlement.personId, ids[sub]!), eq(entitlement.source, "external")));
+      await tx.insert(entitlement).values(
+        grants
+          .filter((g) => g.sub === sub)
+          .map((g) => ({
+            personId: ids[sub]!,
+            scope: g.scope,
+            ref: g.ref,
+            rule: g.rule,
+            until: g.until,
+            source: "external" as const,
+          })),
+      );
+    });
+  }
+  console.log(`seeded: course ${COURSE_SLUG}, cohort ${COHORT_SLUG}, ${PEOPLE.length} people`);
+}
+
+await main();
+process.exit(0);
