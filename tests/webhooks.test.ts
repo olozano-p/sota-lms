@@ -3,7 +3,15 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db/index.ts";
 import { runMigrations } from "../src/db/migrate.ts";
-import { entitlement, person, session, webhookEvent } from "../src/db/schema.ts";
+import {
+  cohort,
+  cohortMember,
+  course,
+  entitlement,
+  person,
+  session,
+  webhookEvent,
+} from "../src/db/schema.ts";
 import { handleEntitlementWebhook, signWebhook } from "../src/server/access/entitlements.ts";
 
 const SECRET = "test-webhook-secret";
@@ -144,5 +152,34 @@ describe("processing", () => {
     });
     await handle(promoted, headers(promoted));
     expect(await db.select().from(session).where(eq(session.personId, p!.id))).toHaveLength(0);
+  });
+  it("places the person in a cohort named by a cohort-scoped entitlement", async () => {
+    const [c] = await db
+      .insert(course)
+      .values({ slug: "c-webhook", title: "C", language: "en" })
+      .returning({ id: course.id });
+    await db.insert(cohort).values({ courseId: c!.id, slug: "group-a", title: "Group A" });
+    const body = payload({
+      sub: "u-4",
+      email: "four@example.invalid",
+      name: "Four",
+      entitlements: [{ scope: "cohort", ref: "group-a", rule: "immediate", until: null }],
+    });
+    expect((await handle(body, headers(body))).status).toBe(200);
+    const [p] = await db.select().from(person).where(eq(person.idpSub, "u-4"));
+    const members = await db.select().from(cohortMember).where(eq(cohortMember.personId, p!.id));
+    expect(members).toHaveLength(1);
+    expect(members[0]?.role).toBe("student");
+    // A repeat is idempotent.
+    const again = payload({
+      sub: "u-4",
+      email: "four@example.invalid",
+      name: "Four",
+      entitlements: [{ scope: "cohort", ref: "group-a", rule: "immediate", until: null }],
+    });
+    await handle(again, headers(again));
+    expect(
+      await db.select().from(cohortMember).where(eq(cohortMember.personId, p!.id)),
+    ).toHaveLength(1);
   });
 });

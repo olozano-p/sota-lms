@@ -4,10 +4,10 @@
  * `entitlement` rows with `source = 'external'`, together with the OIDC callback.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, type DbOrTx } from "~/db";
-import { entitlement, person, session, webhookEvent } from "~/db/schema";
+import { cohort, cohortMember, entitlement, person, session, webhookEvent } from "~/db/schema";
 import { env } from "~/config/env";
 import { isLocale } from "~/i18n/locale";
 
@@ -86,6 +86,23 @@ export async function applyEntitlementPayload(
         syncedAt: now,
       })),
     );
+  }
+
+  // A `cohort` entitlement is also a placement: the person joins the group as a student.
+  const cohortRefs = payload.entitlements
+    .filter((e) => e.scope === "cohort" && e.ref)
+    .map((e) => e.ref!);
+  if (cohortRefs.length) {
+    const groups = await tx
+      .select({ id: cohort.id })
+      .from(cohort)
+      .where(inArray(cohort.slug, cohortRefs));
+    if (groups.length) {
+      await tx
+        .insert(cohortMember)
+        .values(groups.map((g) => ({ cohortId: g.id, personId, role: "student" as const })))
+        .onConflictDoNothing();
+    }
   }
 
   const sessions = await tx
