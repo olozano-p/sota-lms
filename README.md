@@ -6,12 +6,37 @@ progress. Lodrö is a **relying party**: your identity provider says who someone
 system says what they may access, and Lodrö delivers the lessons. It never handles sign-up,
 passwords or payments.
 
+<p align="center">
+  <img src="docs/screenshots/syllabus.png" alt="Course page: syllabus rail with lesson states, progress rule and a single Continue button" width="800">
+</p>
+
 **Stack** — TanStack Start (React 19, Router, Query, Form) on Vite · PostgreSQL 16 + Drizzle ·
 OIDC via `openid-client` · S3-compatible storage · SMTP · Vimeo behind a provider interface ·
 Tailwind v4 with hand-written primitives · vitest + Playwright. MIT licence.
 
 Spec: `docs/spec.md` · Decisions: `docs/decisions/` · Visual rules: `docs/DESIGN.md` ·
 Agent rules: `CLAUDE.md`.
+
+## What it does
+
+- **Courses → chapters → lessons**, each lesson a stack of blocks: Markdown text, video (Vimeo),
+  audio, files, allow-listed embeds, an assignment or a quiz.
+- **Access decided by one pure function** from the entitlements your system pushes or the LMS
+  pulls, the course and lesson publish state, and the cohort's release schedule. Locked lessons
+  say why and when.
+- **Cohorts** with drip release by chapter or lesson, automatic placement from a `cohort`
+  entitlement, and a member page with the calendar.
+- **Assignments** (text and/or file, resubmission, teacher review with feedback) and **quizzes
+  or forms** (four question types, auto-grading, optional pass mark, results per option).
+- **Progress** per lesson, media resume, "continue where you left off".
+- **Teacher editor** with drag-sort, autosave, uploads straight to object storage, Vimeo lookup.
+- **Admin** area: people, entitlements with local grants, webhook log, audit log.
+- **Notifications** by email: feedback at once, the rest in a daily digest.
+- **Three locales** shipped (ca, es, en); dark theme; keyboard navigation in the player.
+
+| Lesson player                                 | Editor                                        |
+| --------------------------------------------- | --------------------------------------------- |
+| ![Lesson player](docs/screenshots/lesson.png) | ![Course editor](docs/screenshots/editor.png) |
 
 ## Run it locally
 

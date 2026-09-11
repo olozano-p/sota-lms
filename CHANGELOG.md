@@ -32,3 +32,7 @@ All notable changes to Lodrö are documented here. The format follows
   per-person opt-out column; `scripts/notify.ts` tick run by the production server or cron.
 - Playwright smoke suite: SSO redirect and sign-out, lesson flow with progress and drip lock,
   authoring with upload, assignment submission and review, quiz attempt and results.
+- Hardening: Content-Security-Policy with a per-request nonce (`frame-src` built from the enabled
+  video providers and the embed allowlist), `nosniff`, referrer and permissions policies, HSTS on
+  HTTPS, in-process rate limiting on `/auth/*` and `/api/*`.
+- Deployment: production compose file, nginx sample, rsync + pm2 alternative, `docs/deploy.md`.
