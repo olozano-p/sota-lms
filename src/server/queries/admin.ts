@@ -20,7 +20,7 @@ export const listPeople = createServerFn({ method: "GET" })
         lastSeenAt: person.lastSeenAt,
         entitlementsSyncedAt: person.entitlementsSyncedAt,
         entitlementCount:
-          sql<number>`(select count(*) from ${entitlement} where ${entitlement.personId} = ${person.id})`.mapWith(
+          sql<number>`(select count(*) from ${entitlement} where ${entitlement.personId} = ${sql.raw('"person"."id"')})`.mapWith(
             Number,
           ),
       })
