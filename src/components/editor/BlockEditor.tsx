@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { useI18n } from "~/i18n";
 import type { BlockType } from "~/db/schema";
-import { resolveVideo } from "~/server/mutations/authoring";
+import { confirmUpload, requestUpload, resolveVideo } from "~/server/mutations/authoring";
 import { Button } from "~/components/ui/button";
 import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
@@ -52,6 +52,8 @@ export function BlockEditor({
     queueMicrotask(onSave);
   };
   const resolve = useServerFn(resolveVideo);
+  const request = useServerFn(requestUpload);
+  const confirm = useServerFn(confirmUpload);
   const [videoInput, setVideoInput] = useState(str(p.external_id));
   const [resolving, setResolving] = useState(false);
   const [resolveMsg, setResolveMsg] = useState<string | null>(null);
@@ -166,10 +168,11 @@ export function BlockEditor({
           </Field>
           <div className="sm:col-span-2">
             <UploadField
-              courseId={courseId}
               accept={block.type === "audio" ? audioMime : uploads.allowedMime}
               maxBytes={uploads.maxBytes}
-              current={{ title: str(p.title), key: str(p.file_key) }}
+              current={{ key: str(p.file_key) }}
+              request={(f) => request({ data: { courseId, ...f } })}
+              confirm={(key, filename) => confirm({ data: { courseId, key, filename } })}
               onUploaded={(f) =>
                 block.type === "audio"
                   ? setAndSave({ file_key: f.key, title: str(p.title) || f.filename })

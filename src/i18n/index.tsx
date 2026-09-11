@@ -1,13 +1,10 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { ca, type MessageKey } from "./ca";
-import { es } from "./es";
-import { en } from "./en";
+import type { MessageKey } from "./ca";
 import { INTL_TAG, LOCALES, LOCALE_NAMES, isLocale, type Locale } from "./locale";
+import { translate } from "./translate";
 
-export { LOCALES, LOCALE_NAMES, isLocale };
+export { LOCALES, LOCALE_NAMES, isLocale, translate };
 export type { Locale, MessageKey };
-
-const catalogs: Record<Locale, Record<MessageKey, string>> = { ca, es, en };
 
 export interface I18n {
   locale: Locale;
@@ -28,17 +25,6 @@ export interface I18n {
 const I18nContext = createContext<I18n | null>(null);
 
 const asDate = (d: Date | string) => (d instanceof Date ? d : new Date(d));
-
-export function translate(
-  locale: Locale,
-  key: MessageKey,
-  params?: Record<string, string | number>,
-): string {
-  const template = catalogs[locale][key] ?? catalogs.ca[key] ?? key;
-  return params
-    ? template.replace(/\{(\w+)\}/g, (_, name: string) => String(params[name] ?? `{${name}}`))
-    : template;
-}
 
 export function createI18n(locale: Locale, timeZone: string): I18n {
   const tag = INTL_TAG[locale];

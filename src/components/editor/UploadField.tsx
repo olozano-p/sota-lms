@@ -1,26 +1,45 @@
 import { useRef, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { Upload } from "lucide-react";
 import { useI18n } from "~/i18n";
-import { confirmUpload, requestUpload } from "~/server/mutations/authoring";
 import { Button } from "~/components/ui/button";
 
-interface UploadFieldProps {
-  courseId: string;
-  accept: string[];
-  maxBytes: number;
-  current: { title: string; key: string } | null;
-  onUploaded: (file: { key: string; filename: string; mime: string; size: number }) => void;
+export interface UploadedFile {
+  key: string;
+  filename: string;
+  mime: string;
+  size: number;
 }
 
-/** Presigned PUT straight to object storage; the server records the file after a HEAD. */
-export function UploadField({ courseId, accept, maxBytes, current, onUploaded }: UploadFieldProps) {
+interface UploadFieldProps {
+  accept: string[];
+  maxBytes: number;
+  current: { key: string } | null;
+  /** Asks the server for a presigned PUT. */
+  request: (f: {
+    filename: string;
+    mime: string;
+    size: number;
+  }) => Promise<{ url: string; key: string }>;
+  /** Tells the server the PUT is done; it HEADs the object and records the file. */
+  confirm: (key: string, filename: string) => Promise<UploadedFile>;
+  onUploaded: (file: UploadedFile) => void;
+  label?: string;
+}
+
+/** Presigned PUT straight to object storage from the browser; used by teachers and by students' submissions. */
+export function UploadField({
+  accept,
+  maxBytes,
+  current,
+  request,
+  confirm,
+  onUploaded,
+  label,
+}: UploadFieldProps) {
   const { t } = useI18n();
   const input = useRef<HTMLInputElement>(null);
   const [pct, setPct] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const request = useServerFn(requestUpload);
-  const confirm = useServerFn(confirmUpload);
 
   const upload = async (f: File) => {
     setError(null);
@@ -35,18 +54,12 @@ export function UploadField({ courseId, accept, maxBytes, current, onUploaded }:
     }
     setPct(0);
     try {
-      const { url, key } = await request({
-        data: {
-          courseId,
-          filename: f.name,
-          mime: f.type || "application/octet-stream",
-          size: f.size,
-        },
-      });
+      const mime = f.type || "application/octet-stream";
+      const { url, key } = await request({ filename: f.name, mime, size: f.size });
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", url);
-        xhr.setRequestHeader("content-type", f.type || "application/octet-stream");
+        xhr.setRequestHeader("content-type", mime);
         xhr.upload.onprogress = (e) =>
           e.lengthComputable && setPct(Math.round((e.loaded / e.total) * 100));
         xhr.onload = () =>
@@ -56,8 +69,7 @@ export function UploadField({ courseId, accept, maxBytes, current, onUploaded }:
         xhr.onerror = () => reject(new Error("upload failed"));
         xhr.send(f);
       });
-      const rec = await confirm({ data: { courseId, key, filename: f.name } });
-      onUploaded(rec);
+      onUploaded(await confirm(key, f.name));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -73,6 +85,7 @@ export function UploadField({ courseId, accept, maxBytes, current, onUploaded }:
           type="file"
           className="sr-only"
           accept={accept.join(",")}
+          aria-label={label ?? t("teach.block.file.upload")}
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) void upload(f);
@@ -91,7 +104,7 @@ export function UploadField({ courseId, accept, maxBytes, current, onUploaded }:
             ? t("teach.block.file.uploading", { pct })
             : current?.key
               ? t("teach.block.file.replace")
-              : t("teach.block.file.upload")}
+              : (label ?? t("teach.block.file.upload"))}
         </Button>
         {current?.key ? (
           <span className="truncate font-mono text-xs text-muted-foreground">
