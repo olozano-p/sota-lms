@@ -1,5 +1,5 @@
 {
-  "id": "1dc8a09d-03bd-4909-9126-2e943f3baeb1",
+  "id": "4214b083-4c7c-40e3-812e-2ba6dff355f4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1411,6 +1411,12 @@
         },
         "last_seen_at": {
           "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entitlements_synced_at": {
+          "name": "entitlements_synced_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false

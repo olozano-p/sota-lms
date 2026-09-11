@@ -79,4 +79,7 @@ dev/mock-idp/          oidc-provider + mock entitlement source     drizzle/  tes
 - `DATABASE_URL=pglite://memory` opens an in-memory PGlite (tests); anything else is `pg`.
 - Server-only modules (`authz.ts`, `oidc.ts`, `src/db`, services) are imported only from server
   handlers; `src/server/auth/session.ts` is the client-safe surface.
+- Handlers that set cookies must return `new Response(null, { status, headers: { location } })`, never
+  `Response.redirect()`: its headers are immutable and the framework cannot append `Set-Cookie`.
+- `vite dev` loads `.env` once at start; a new variable needs a restart.
 - `src/routeTree.gen.ts` is generated and git-ignored: run `pnpm dev` or `pnpm build` once before `pnpm typecheck`.

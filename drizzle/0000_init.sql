@@ -164,6 +164,7 @@ CREATE TABLE "person" (
 	"roles" text[] DEFAULT '{}'::text[] NOT NULL,
 	"email_opt_out" boolean DEFAULT false NOT NULL,
 	"last_seen_at" timestamp with time zone,
+	"entitlements_synced_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "person_idp_sub_unique" UNIQUE("idp_sub")

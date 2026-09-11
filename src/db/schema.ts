@@ -47,6 +47,8 @@ export const person = pgTable("person", {
     .default(sql`'{}'::text[]`),
   emailOptOut: boolean("email_opt_out").notNull().default(false),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  /** Last successful pull or push from the entitlement source; drives the 15-minute TTL. */
+  entitlementsSyncedAt: timestamp("entitlements_synced_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
