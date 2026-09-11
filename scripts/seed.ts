@@ -19,6 +19,7 @@ import {
   course,
   courseTeacher,
   entitlement,
+  file,
   lesson,
   lessonBlock,
   person,
@@ -317,13 +318,37 @@ async function seedContent(courseId: string) {
       {
         slug: "obrir-se",
         title: "Obrir-se",
-        descriptionMd: "Encara en preparació.",
+        descriptionMd: "Escoltar, sentir, deixar estar.",
         lessons: [
           {
             slug: "els-sons",
             title: "Els sons",
             summary: "Escoltar sense triar.",
             estimatedMinutes: 12,
+            blocks: [
+              {
+                type: "text",
+                payload: {
+                  md: "Els sons arriben i marxen sols. La pràctica és **no anar-los a buscar** ni apartar-los.",
+                },
+              },
+              {
+                type: "video",
+                payload: {
+                  provider: "vimeo",
+                  external_id: "76979871",
+                  title: "Els sons",
+                  duration_s: 420,
+                  thumbnail_url: null,
+                },
+              },
+            ],
+          },
+          {
+            slug: "les-sensacions",
+            title: "Les sensacions",
+            summary: "Encara en preparació.",
+            estimatedMinutes: 10,
             status: "draft",
             blocks: [{ type: "text", payload: { md: "Esborrany." } }],
           },
@@ -413,8 +438,100 @@ async function seedCohort(
   }
 }
 
+/**
+ * Placeholder objects for the demo audio and PDF blocks so downloads resolve. Best effort: when
+ * object storage is not reachable the rows still exist and the player says the file is missing.
+ */
+async function seedFiles(uploadedBy: string) {
+  const objects = [
+    {
+      key: "seed/practica-postura.mp3",
+      filename: "practica-postura.mp3",
+      mime: "audio/mpeg",
+      body: silentMp3(),
+    },
+    {
+      key: "seed/postura.pdf",
+      filename: "postura.pdf",
+      mime: "application/pdf",
+      body: minimalPdf("Full de la postura"),
+    },
+  ];
+  for (const o of objects) {
+    await db
+      .insert(file)
+      .values({
+        key: o.key,
+        filename: o.filename,
+        mime: o.mime,
+        size: o.body.byteLength,
+        uploadedBy,
+      })
+      .onConflictDoNothing({ target: file.key });
+  }
+  if (!process.env.S3_BUCKET || !process.env.S3_ACCESS_KEY_ID) return;
+  try {
+    const { PutObjectCommand, S3Client } = await import("@aws-sdk/client-s3");
+    const s3 = new S3Client({
+      region: process.env.S3_REGION ?? "us-east-1",
+      endpoint: process.env.S3_ENDPOINT,
+      forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
+      credentials: {
+        accessKeyId: process.env.S3_ACCESS_KEY_ID,
+        secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "",
+      },
+    });
+    for (const o of objects) {
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.S3_BUCKET,
+          Key: o.key,
+          Body: o.body,
+          ContentType: o.mime,
+        }),
+      );
+    }
+  } catch (e) {
+    console.warn(`seed: could not upload placeholder files (${(e as Error).message})`);
+  }
+}
+
+/** A one-page PDF with a line of text — enough for a viewer to open. */
+function minimalPdf(text: string): Uint8Array {
+  const content = `BT /F1 24 Tf 72 720 Td (${text}) Tj ET`;
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let out = "%PDF-1.4\n";
+  const offsets: number[] = [];
+  objects.forEach((o, i) => {
+    offsets.push(out.length);
+    out += `${i + 1} 0 obj\n${o}\nendobj\n`;
+  });
+  const xref = out.length;
+  out += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (const off of offsets) out += `${String(off).padStart(10, "0")} 00000 n \n`;
+  out += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return new TextEncoder().encode(out);
+}
+
+/** A few silent MPEG-1 Layer III frames (≈ 1 s) so `<audio>` has something to play. */
+function silentMp3(): Uint8Array {
+  const frame = new Uint8Array(417);
+  frame.set([0xff, 0xfb, 0x90, 0x64]);
+  const frames = 38;
+  const out = new Uint8Array(frame.length * frames);
+  for (let i = 0; i < frames; i++) out.set(frame, i * frame.length);
+  return out;
+}
+
 async function main() {
   const ids = await upsertPeople();
+  await seedFiles(ids["mock-teacher"]!);
   const courseId = await upsertCourse();
   await db
     .insert(courseTeacher)

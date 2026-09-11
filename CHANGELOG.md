@@ -14,3 +14,7 @@ All notable changes to Lodrö are documented here. The format follows
 - `entitlements/v1` contract: pull with 15-minute TTL, HMAC-signed idempotent webhook, admin grants.
 - `canSeeLesson()` access resolution with an exhaustive test matrix.
 - Admin area: people, entitlements with local grants, webhook log, audit log.
+- Learner core: course catalogue with computed progress and a single "continue" target, syllabus
+  with lock states generated from the rule type, lesson player with text, video (Vimeo), audio,
+  file and embed blocks, keyboard navigation, per-lesson progress with media resume, signed file
+  downloads, cohort page with the release schedule.
