@@ -20,6 +20,8 @@ COPY scripts ./scripts
 COPY src/db ./src/db
 COPY src/config ./src/config
 COPY src/lib ./src/lib
+COPY src/i18n ./src/i18n
+COPY src/server/services ./src/server/services
 COPY lms.config.ts ./lms.config.ts
 EXPOSE 3003
 HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:${PORT:-3003}/api/health || exit 1

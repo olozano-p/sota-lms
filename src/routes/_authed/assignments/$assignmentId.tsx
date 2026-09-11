@@ -30,13 +30,26 @@ export const Route = createFileRoute("/_authed/assignments/$assignmentId")({
 
 function AssignmentPage() {
   const data = Route.useLoaderData();
-  return <AssignmentView key={`${data.assignment.id}:${data.submissions.length}`} data={data} />;
+  // The success notice outlives the keyed view, which remounts when a submission lands.
+  const [done, setDone] = useState(false);
+  return (
+    <AssignmentView
+      key={`${data.assignment.id}:${data.submissions.length}`}
+      data={data}
+      done={done}
+      onDone={() => setDone(true)}
+    />
+  );
 }
 
 function AssignmentView({
   data,
+  done,
+  onDone,
 }: {
   data: NonNullable<Awaited<ReturnType<typeof getAssignment>>>;
+  done: boolean;
+  onDone: () => void;
 }) {
   const { t, fmtDateTime } = useI18n();
   const { assignment, course, lesson, privileged, canSubmit, submissions } = data;
@@ -48,7 +61,6 @@ function AssignmentView({
   const [file, setFile] = useState<UploadedFile | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
   const current = submissions.find((s) => !s.superseded) ?? null;
   const history = submissions.filter((s) => s.superseded);
   const wantsText = assignment.submissionType !== "file";
@@ -69,7 +81,7 @@ function AssignmentView({
           fileKey: file?.key ?? null,
         },
       });
-      setDone(true);
+      onDone();
       await router.invalidate();
     } catch (e) {
       setError((e as Error).message);

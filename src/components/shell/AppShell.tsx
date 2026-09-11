@@ -6,7 +6,7 @@ import { LocaleSwitch } from "~/components/shell/LocaleSwitch";
 import { ThemeToggle } from "~/components/shell/ThemeToggle";
 
 interface AppShellProps {
-  brand: { name: string; logo: string | null };
+  brand: { name: string; logo: string | null; projectUrl: string };
   locales: readonly Locale[];
   /** Right-hand side of the header: navigation and account controls. */
   nav?: ReactNode;
@@ -47,7 +47,7 @@ export function AppShell({ brand, locales, nav, children }: AppShellProps) {
       </main>
       <footer className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-4 py-5 text-xs text-muted-foreground sm:px-6">
         <span>{brand.name}</span>
-        <a href="https://github.com/olozano-p/sota-lms" className="text-muted-foreground">
+        <a href={brand.projectUrl} className="text-muted-foreground">
           {t("app.poweredBy")}
         </a>
       </footer>

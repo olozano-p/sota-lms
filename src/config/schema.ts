@@ -25,6 +25,8 @@ export const lmsConfigSchema = z.object({
     name: z.string().min(1),
     /** Optional path under `public/` to a logo; the built-in mark is used when absent. */
     logo: z.string().nullable().default(null),
+    /** Where the footer's "Made with Lodrö" points; your fork or the upstream project. */
+    projectUrl: z.string().url().default("https://github.com/olozano-p/sota-lms"),
     /** Optional accent overrides (hex). Applied as CSS variables; tokens stay semantic. */
     colors: z
       .object({
