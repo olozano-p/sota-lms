@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   createRootRoute,
   ErrorComponent,
@@ -58,6 +58,14 @@ export const Route = createRootRoute({
   notFoundComponent: NotFound,
 });
 
+/** Lets tests (and a11y tooling) know the page is interactive; the SSR markup has no marker. */
+function HydrationMarker() {
+  useEffect(() => {
+    document.documentElement.dataset.hydrated = "1";
+  }, []);
+  return null;
+}
+
 function RootComponent() {
   const { locale } = Route.useLoaderData();
   const { session } = Route.useRouteContext();
@@ -75,6 +83,7 @@ function RootComponent() {
           >
             <Outlet />
           </AppShell>
+          <HydrationMarker />
         </I18nProvider>
       </QueryClientProvider>
     </RootDocument>

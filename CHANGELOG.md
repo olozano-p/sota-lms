@@ -18,3 +18,8 @@ All notable changes to Lodrö are documented here. The format follows
   with lock states generated from the rule type, lesson player with text, video (Vimeo), audio,
   file and embed blocks, keyboard navigation, per-lesson progress with media resume, signed file
   downloads, cohort page with the release schedule.
+- Authoring: `/teach` with course creation (admins) and teacher assignment, structure editor with
+  drag-sort for chapters, lessons and blocks, autosave on blur, publish toggles, Markdown preview,
+  presigned uploads with configurable limits, Vimeo URL resolution. Every write is audited.
+- Playwright smoke suite: SSO redirect and sign-out, lesson flow with progress and drip lock,
+  authoring with upload.
