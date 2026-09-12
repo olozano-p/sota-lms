@@ -23,6 +23,9 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@19.3.0)
+      '@fontsource-variable/schibsted-grotesk':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@tanstack/react-form':
         specifier: ^1.20.0
         version: 1.33.5(@tanstack/react-start@1.168.52(esbuild@0.28.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(rolldown@1.2.8)(vite@8.3.0(@types/node@24.13.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -88,9 +91,6 @@ importers:
         specifier: ^0.3.0
         version: 0.3.16
       '@fontsource-variable/literata':
-        specifier: ^5.2.0
-        version: 5.3.0
-      '@fontsource-variable/source-sans-3':
         specifier: ^5.2.0
         version: 5.3.0
       '@playwright/test':
@@ -839,8 +839,8 @@ packages:
   '@fontsource-variable/literata@5.3.0':
     resolution: {integrity: sha512-1Jw7xvOcoGyB83lxB2nG4bfNbqtX2/TTbdh9sHAOmU064SvmSdulDtA5RBu5JYWf64fdaKX7xU+z3GO1T2bCHA==}
 
-  '@fontsource-variable/source-sans-3@5.3.0':
-    resolution: {integrity: sha512-dpi0GZk7EQe2tYpg6Q0Fx0OmUgnuGu+0rHPgtXqtKhglYmJuP7jZ12Mu1uN+NfRaJRY1Emn8AQJEWzmoZ4wa9g==}
+  '@fontsource-variable/schibsted-grotesk@5.3.0':
+    resolution: {integrity: sha512-ndS6H/KICWANchlHF3q4UdZD+xrZ3Ji0rUobIuXlgvDUzDfqZDsVuXPXZb636nJZMHE9zZ9Fmwgqazm8hMB50Q==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3296,7 +3296,7 @@ snapshots:
 
   '@fontsource-variable/literata@5.3.0': {}
 
-  '@fontsource-variable/source-sans-3@5.3.0': {}
+  '@fontsource-variable/schibsted-grotesk@5.3.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

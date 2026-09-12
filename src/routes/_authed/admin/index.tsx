@@ -22,9 +22,9 @@ function PeoplePage() {
   const navigate = useNavigate({ from: Route.fullPath });
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="flex w-full max-w-sm flex-col gap-1">
-          <span className="sr-only">{t("common.search")}</span>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <label className="flex w-full max-w-sm flex-col gap-1.5">
+          <span className="text-sm font-medium">{t("common.search")}</span>
           <Input
             type="search"
             placeholder={t("admin.people.search")}

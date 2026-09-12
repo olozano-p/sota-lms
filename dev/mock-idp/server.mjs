@@ -153,7 +153,7 @@ async function postLogoutSuccessSource(ctx) {
 
 function page(title, body) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · mock IdP</title>
-<style>body{font:16px/1.5 system-ui,sans-serif;background:#f6f4ef;color:#1e1c19;max-width:36rem;margin:3rem auto;padding:0 1rem}h1{font-weight:500}button,.btn{display:block;width:100%;text-align:left;margin:.5rem 0;padding:.75rem 1rem;border:1px solid rgba(30,28,25,.2);border-radius:4px;background:#fdfcf9;font:inherit;cursor:pointer}button:hover{background:rgba(30,28,25,.05)}small{color:#6b665e}code{background:rgba(30,28,25,.06);padding:.1em .3em;border-radius:3px}</style></head>
+<style>body{font:16px/1.5 system-ui,sans-serif;background:#ffffff;color:#1e1c19;max-width:36rem;margin:3rem auto;padding:0 1rem}h1{font-weight:500}button,.btn{display:block;width:100%;text-align:left;margin:.5rem 0;padding:.75rem 1rem;border:1px solid rgba(30,28,25,.2);border-radius:4px;background:#fdfcf9;font:inherit;cursor:pointer}button:hover{background:rgba(30,28,25,.05)}small{color:#6b665e}code{background:rgba(30,28,25,.06);padding:.1em .3em;border-radius:3px}</style></head>
 <body><h1>${title}</h1>${body}<p><small>dev/mock-idp — not for production</small></p></body></html>`;
 }
 

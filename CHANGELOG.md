@@ -36,3 +36,8 @@ All notable changes to SOTA are documented here. The format follows
   video providers and the embed allowlist), `nosniff`, referrer and permissions policies, HSTS on
   HTTPS, in-process rate limiting on `/auth/*` and `/api/*`.
 - Deployment: production compose file, nginx sample, rsync + pm2 alternative, `docs/deploy.md`.
+
+### Changed
+
+- Schibsted Grotesk replaces Source Sans 3 as the interface face; the page is white with a gold
+  accent and an ochre link colour; warning moves to rust (ADR-009).

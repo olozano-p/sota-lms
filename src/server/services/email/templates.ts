@@ -33,11 +33,11 @@ function layout(
   cta: { label: string; url: string },
 ): Rendered {
   const text = [title, "", ...lines, "", `${cta.label}: ${cta.url}`, "", `— ${brand}`].join("\n");
-  const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#f6f4ef;color:#1e1c19;font:16px/1.5 Georgia,serif">
-<div style="max-width:560px;margin:0 auto;background:#fdfcf9;border:1px solid rgba(30,28,25,.12);border-radius:8px;padding:28px">
+  const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#ffffff;color:#1e1c19;font:16px/1.5 Georgia,serif">
+<div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid rgba(30,28,25,.12);border-radius:8px;padding:28px">
 <h1 style="font-size:22px;font-weight:500;margin:0 0 16px">${esc(title)}</h1>
 ${lines.map((l) => `<p style="margin:0 0 12px">${esc(l)}</p>`).join("")}
-<p style="margin:24px 0 0"><a href="${esc(cta.url)}" style="display:inline-block;padding:10px 16px;background:#2f6f6d;color:#f6f4ef;text-decoration:none;border-radius:4px;font-family:system-ui,sans-serif;font-size:14px">${esc(cta.label)}</a></p>
+<p style="margin:24px 0 0"><a href="${esc(cta.url)}" style="display:inline-block;padding:10px 16px;background:#e0a51c;color:#1e1c19;text-decoration:none;border-radius:4px;font-family:system-ui,sans-serif;font-size:14px">${esc(cta.label)}</a></p>
 </div><p style="max-width:560px;margin:16px auto 0;font:12px system-ui,sans-serif;color:#6b665e">${esc(brand)}</p></body></html>`;
   return { subject: title, text, html };
 }
