@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { eq, or, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "~/db";
-import { file, lessonBlock, submission } from "~/db/schema";
-import { AuthorizationError, currentUser, hasRole } from "~/server/auth/authz";
-import { requireLessonAccess } from "~/server/access/require";
+import { assignment, file, lessonBlock, submission } from "~/db/schema";
+import { AuthorizationError, currentUser } from "~/server/auth/authz";
+import { isPrivileged, loadPersonFacts, requireLessonAccess } from "~/server/access/require";
 import { signedGetUrl } from "~/server/services/files";
 
 /**
@@ -22,8 +22,7 @@ export const Route = createFileRoute("/api/files/$fileId")({
         const blocks = await db
           .select({ lessonId: lessonBlock.lessonId })
           .from(lessonBlock)
-          .where(or(sql`${lessonBlock.payload}->>'file_key' = ${f.key}`))
-          .limit(5);
+          .where(sql`${lessonBlock.payload}->>'file_key' = ${f.key}`);
         let allowed = false;
         for (const b of blocks) {
           try {
@@ -35,13 +34,17 @@ export const Route = createFileRoute("/api/files/$fileId")({
           }
         }
         if (!allowed) {
-          // A submission's file: its author, the course's teachers and admins.
+          // A submission's file: its author, the teachers of that course and admins.
           const [s] = await db
-            .select({ personId: submission.personId })
+            .select({ personId: submission.personId, courseId: assignment.courseId })
             .from(submission)
+            .innerJoin(assignment, eq(assignment.id, submission.assignmentId))
             .where(eq(submission.fileKey, f.key))
             .limit(1);
-          if (s && (s.personId === user.id || hasRole(user, "teacher", "admin"))) allowed = true;
+          if (s) {
+            if (s.personId === user.id) allowed = true;
+            else allowed = isPrivileged(await loadPersonFacts(user), s.courseId);
+          }
           if (!allowed && f.uploadedBy === user.id) allowed = true;
         }
         if (!allowed) return new Response("forbidden", { status: 403 });

@@ -4,7 +4,7 @@
  */
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "~/db";
+import { db, type DbOrTx } from "~/db";
 import { assignment, file, quiz, type BlockType } from "~/db/schema";
 import { lmsConfig } from "~/config";
 import { renderMarkdown } from "~/lib/markdown";
@@ -34,6 +34,40 @@ export const blockPayloadSchemas = {
   quiz: z.object({ quiz_id: z.string().uuid() }),
   embed: z.object({ url: z.string().url(), title: z.string().nullable().optional() }),
 } satisfies Record<BlockType, z.ZodTypeAny>;
+
+/**
+ * References inside a payload must stay inside the block's course: an assignment or quiz of
+ * another course, or an object under another course's (or a submission's) storage prefix, would
+ * otherwise become reachable through this lesson. Empty values are drafts and pass.
+ */
+export async function assertBlockReferences(
+  tx: DbOrTx,
+  type: BlockType,
+  payload: Record<string, unknown>,
+  courseId: string,
+): Promise<void> {
+  const str = (k: string) => (typeof payload[k] === "string" ? (payload[k] as string) : "");
+  if ((type === "audio" || type === "file") && str("file_key")) {
+    if (!str("file_key").startsWith(`courses/${courseId}/`))
+      throw new Error("file does not belong to this course");
+  }
+  if (type === "assignment" && str("assignment_id")) {
+    const [a] = await tx
+      .select({ courseId: assignment.courseId })
+      .from(assignment)
+      .where(eq(assignment.id, str("assignment_id")))
+      .limit(1);
+    if (a?.courseId !== courseId) throw new Error("assignment does not belong to this course");
+  }
+  if (type === "quiz" && str("quiz_id")) {
+    const [q] = await tx
+      .select({ courseId: quiz.courseId })
+      .from(quiz)
+      .where(eq(quiz.id, str("quiz_id")))
+      .limit(1);
+    if (q?.courseId !== courseId) throw new Error("quiz does not belong to this course");
+  }
+}
 
 export function embedAllowed(url: string): boolean {
   try {

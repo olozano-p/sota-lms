@@ -23,7 +23,7 @@ import { lmsConfig } from "~/config";
 import { SLUG_PATTERN, slugify } from "~/lib/slug";
 import { audit } from "~/server/audit";
 import { requireCourseTeacher, requireRole } from "~/server/auth/authz";
-import { blockPayloadSchemas, embedAllowed } from "~/server/services/blocks";
+import { assertBlockReferences, blockPayloadSchemas, embedAllowed } from "~/server/services/blocks";
 import { headObject, signedPutUrl } from "~/server/services/files";
 import { videoProvider } from "~/server/services/video";
 
@@ -522,6 +522,7 @@ export const updateBlock = createServerFn({ method: "POST" })
       const schema = blockPayloadSchemas[before.type];
       const lenient = schema instanceof z.ZodObject ? schema.partial() : schema;
       const payload = lenient.parse(data.payload) as Record<string, unknown>;
+      await assertBlockReferences(tx, before.type, payload, courseId);
       if (
         before.type === "embed" &&
         typeof payload.url === "string" &&

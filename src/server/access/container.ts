@@ -13,18 +13,30 @@ import {
   type PersonAccessFacts,
 } from "./require";
 
-export async function containingLesson(kind: "assignment" | "quiz", refId: string) {
+/**
+ * Lessons of `courseId` that embed the assignment or quiz, in syllabus order. Blocks in other
+ * courses never count: a course must not become a door into another course's assignments.
+ */
+export async function containingLessons(
+  kind: "assignment" | "quiz",
+  refId: string,
+  courseId: string,
+) {
   const key = kind === "assignment" ? "assignment_id" : "quiz_id";
-  const rows = await db
+  return db
     .select({ lesson, chapter, course })
     .from(lessonBlock)
     .innerJoin(lesson, eq(lesson.id, lessonBlock.lessonId))
     .innerJoin(chapter, eq(chapter.id, lesson.chapterId))
     .innerJoin(course, eq(course.id, chapter.courseId))
-    .where(and(eq(lessonBlock.type, kind), sql`${lessonBlock.payload}->>${key} = ${refId}`))
-    .orderBy(chapter.sort, lesson.sort)
-    .limit(1);
-  return rows[0] ?? null;
+    .where(
+      and(
+        eq(lessonBlock.type, kind),
+        eq(chapter.courseId, courseId),
+        sql`${lessonBlock.payload}->>${key} = ${refId}`,
+      ),
+    )
+    .orderBy(chapter.sort, lesson.sort);
 }
 
 export interface ContainerAccess {
@@ -33,7 +45,7 @@ export interface ContainerAccess {
   lesson: { id: string; slug: string; title: string } | null;
 }
 
-/** Privileged people (course teachers, admins) always pass; students need the containing lesson open. */
+/** Privileged people (course teachers, admins) always pass; students need one containing lesson open. */
 export async function requireContainerAccess(
   user: SessionUser,
   kind: "assignment" | "quiz",
@@ -42,20 +54,21 @@ export async function requireContainerAccess(
 ): Promise<ContainerAccess> {
   const facts = await loadPersonFacts(user);
   const privileged = isPrivileged(facts, courseId);
-  const container = await containingLesson(kind, refId);
+  const containers = await containingLessons(kind, refId, courseId);
+  const summary = (c: (typeof containers)[number]) => ({
+    id: c.lesson.id,
+    slug: c.lesson.slug,
+    title: c.lesson.title,
+  });
   if (privileged)
-    return {
-      facts,
-      privileged,
-      lesson: container
-        ? { id: container.lesson.id, slug: container.lesson.slug, title: container.lesson.title }
-        : null,
-    };
-  if (!container) throw new AuthorizationError(403);
-  await requireLessonAccess(user, container.lesson.id);
-  return {
-    facts,
-    privileged,
-    lesson: { id: container.lesson.id, slug: container.lesson.slug, title: container.lesson.title },
-  };
+    return { facts, privileged, lesson: containers[0] ? summary(containers[0]) : null };
+  for (const c of containers) {
+    try {
+      await requireLessonAccess(user, c.lesson.id);
+      return { facts, privileged, lesson: summary(c) };
+    } catch (e) {
+      if (!(e instanceof AuthorizationError)) throw e;
+    }
+  }
+  throw new AuthorizationError(403);
 }
