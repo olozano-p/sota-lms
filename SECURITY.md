@@ -6,9 +6,8 @@ The latest minor release on `main` receives security fixes. Older tags do not.
 
 ## Reporting a vulnerability
 
-Please **do not** open a public issue for security problems. Email the maintainers at
-**ol347@nyu.edu** (the reference deployment's operator; replace with your own address
-in a fork) with:
+Please **do not** open a public issue for security problems. Email the maintainer at
+**ol347@nyu.edu** (replace with your own address in a fork) with:
 
 - a description of the issue and its impact,
 - steps to reproduce or a proof of concept,

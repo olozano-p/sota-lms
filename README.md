@@ -6,6 +6,11 @@ progress. SOTA is a **relying party**: your identity provider says who someone i
 system says what they may access, and SOTA delivers the lessons. It never handles sign-up,
 passwords or payments.
 
+The name is the Pali [_sotāpanna_](https://en.wikipedia.org/wiki/Sot%C4%81panna), "the one who
+has entered the stream": the moment a path stops being an idea and becomes the direction you are
+already moving in. SOTA wants to be that first step for the people who learn with it, and to get
+out of the way once they are moving.
+
 <p align="center">
   <img src="docs/screenshots/syllabus.png" alt="Course page: syllabus rail with lesson states, progress rule and a single Continue button" width="800">
 </p>
@@ -41,7 +46,7 @@ Agent rules: `CLAUDE.md`.
 ## Run it locally
 
 ```bash
-git clone https://github.com/olozano-p/sota-lms && cd sota
+git clone https://github.com/olozano-p/sota-lms && cd sota-lms
 cp .env.example .env
 docker compose up
 ```

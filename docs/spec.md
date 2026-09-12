@@ -1,7 +1,7 @@
 # SOTA — Build Spec (v1)
 
 > **Decisions log (2026-09-11).** The open questions of §11 were settled as follows; each has an
-> ADR in `docs/decisions/`: name **SOTA** (repo `sota`, GitHub user olozano-p) · licence
+> ADR in `docs/decisions/`: name **SOTA** (repo `olozano-p/sota-lms`) · licence
 > **MIT** (ADR-006) · content **Markdown** (ADR-007) · hand-written UI primitives instead of
 > shadcn (ADR-008) · Postgres 16 + PGlite in tests (ADR-002) · admin-grant write-back deferred to
 > v1.1 · a cohort belongs to one course · `pass_threshold` supported, nullable · audio in object
@@ -10,7 +10,7 @@
 
 Name: **SOTA** (after Pali _sotāpanna_, "the one who has entered the stream"; repo `sota`). A lean, self-hostable, open-source course platform. Inspired by Frappe LMS's core model (Course → Chapter → Lesson, Batch → Cohort, Quiz, Assignment) but stripped to the essentials and built as a **relying party**: identity and entitlements come from an external OIDC identity provider; the LMS never owns accounts or payments.
 
-**First production deployment and reference implementation: the reference deployment** with the members' site as the IdP. Every feature in this spec is driven by that deployment's needs, but nothing in the codebase may be specific to it — all the reference deployment particulars live in configuration and in Appendix A.
+**First production deployment and reference implementation: a small foundation's members' school**, with the foundation's own members' site as the IdP. Every feature in this spec is driven by that deployment's needs, but nothing in the codebase may be specific to it — all of its particulars live in configuration and in Appendix A.
 
 This document is written to be handed to a coding agent. Sections marked **DECISION** are settled. Sections marked **OPEN** need Oscar's answer before implementation.
 
@@ -23,7 +23,7 @@ These are constraints on _how_ the project is built, not features:
 1. **Public repo from day one.** Public GitHub repository under the Foundation's (or Nodal's — OPEN) organisation. No private history to scrub later; secrets never committed, even in the first commit.
 2. **Generic core, configured edge.** Anything that names an organisation, domain, membership tier, brand, or IdP belongs in `.env`, `lms.config.ts`, or the database — never in source. Rule of thumb for the agent: _if a second organisation forked this tomorrow, would they have to edit a `.ts` file to run it? If yes, it's misplaced._
 3. **Standards over integrations.** SSO is plain OIDC (any compliant IdP works; better-auth is just the reference). Entitlements are a documented, versioned JSON contract over HTTPS, not a call into the members' site's internals. Storage is S3-compatible. Email is SMTP. Video is behind a provider interface (Vimeo is the first implementation).
-4. **One-command local setup.** `docker compose up` gives Postgres + MinIO + a mock OIDC provider + the app with seed data. A contributor must be able to run the full lesson flow locally without any the reference deployment credentials.
+4. **One-command local setup.** `docker compose up` gives Postgres + MinIO + a mock OIDC provider + the app with seed data. A contributor must be able to run the full lesson flow locally without any credentials from the reference deployment.
 5. **Documented as a product, not a project.** `README.md` (what it is, screenshots, quickstart), `docs/deploy.md`, `docs/idp-integration.md` (how to wire your own IdP and entitlement source), `docs/adr/`. `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` (responsible disclosure), `CHANGELOG.md` (Keep a Changelog), semver tags.
 6. **License:** AGPL-3.0 (recommended — same as Frappe LMS, keeps hosted forks open) or MIT (maximally permissive). **OPEN.**
 7. **English-first codebase and docs**; UI is i18n'd with ca/es/en shipped as the first three catalogs. Identifiers, comments, commits, ADRs in English.
@@ -63,22 +63,22 @@ These are constraints on _how_ the project is built, not features:
 
 ## 2. Stack — **DECISION**
 
-| Concern          | Choice                                                                                                              | Notes                                                                                         |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Framework        | TanStack Start (React, file-based routes, server functions)                                                         | SSR + server functions replace a separate API layer for the app's own needs                   |
-| Router / data    | TanStack Router + TanStack Query                                                                                    | Loaders on routes; Query for client-side mutations and cache                                  |
-| Forms            | TanStack Form + Zod                                                                                                 | Zod schemas shared between server functions and forms                                         |
-| Tables (admin)   | TanStack Table                                                                                                      |                                                                                               |
-| DB               | PostgreSQL 16                                                                                                       |                                                                                               |
-| ORM              | Drizzle ORM + drizzle-kit migrations                                                                                | Schema is the source of truth; migrations committed                                           |
-| Auth             | Generic OIDC relying party (`openid-client`)                                                                        | Reference IdP: better-auth with OIDC Provider plugin. Mock IdP in docker-compose for dev      |
-| Video            | `VideoProvider` interface; `VimeoProvider` is the v1 implementation                                                 | See §5                                                                                        |
-| Files            | S3-compatible object storage (`@aws-sdk/client-s3`)                                                                 | MinIO in dev; any S3 API in prod. Signed URLs only                                            |
-| Email            | SMTP via `nodemailer`                                                                                               | Any relay. Templates in `src/server/services/email/templates`                                 |
-| Styling          | Tailwind + shadcn/ui; brand tokens (logo, colours, name) from `lms.config.ts`                                       |                                                                                               |
-| i18n             | JSON message catalogs, locale resolution order: `?lang` → cookie → IdP `locale` claim → `Accept-Language` → default | Cookie domain configurable so a parent site can set it                                        |
-| Runtime / deploy | Node 22. Official: Docker image + `docker-compose.prod.yml` behind a reverse proxy                                  | the reference deployment's rsync/nginx deploy is a documented _alternative_ in Appendix A, not the default |
-| Repo conventions | AI-first: lean `CLAUDE.md`, ADRs under `docs/adr/`, no decorative comments, no over-engineering                     |                                                                                               |
+| Concern          | Choice                                                                                                              | Notes                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Framework        | TanStack Start (React, file-based routes, server functions)                                                         | SSR + server functions replace a separate API layer for the app's own needs                                |
+| Router / data    | TanStack Router + TanStack Query                                                                                    | Loaders on routes; Query for client-side mutations and cache                                               |
+| Forms            | TanStack Form + Zod                                                                                                 | Zod schemas shared between server functions and forms                                                      |
+| Tables (admin)   | TanStack Table                                                                                                      |                                                                                                            |
+| DB               | PostgreSQL 16                                                                                                       |                                                                                                            |
+| ORM              | Drizzle ORM + drizzle-kit migrations                                                                                | Schema is the source of truth; migrations committed                                                        |
+| Auth             | Generic OIDC relying party (`openid-client`)                                                                        | Reference IdP: better-auth with OIDC Provider plugin. Mock IdP in docker-compose for dev                   |
+| Video            | `VideoProvider` interface; `VimeoProvider` is the v1 implementation                                                 | See §5                                                                                                     |
+| Files            | S3-compatible object storage (`@aws-sdk/client-s3`)                                                                 | MinIO in dev; any S3 API in prod. Signed URLs only                                                         |
+| Email            | SMTP via `nodemailer`                                                                                               | Any relay. Templates in `src/server/services/email/templates`                                              |
+| Styling          | Tailwind + shadcn/ui; brand tokens (logo, colours, name) from `lms.config.ts`                                       |                                                                                                            |
+| i18n             | JSON message catalogs, locale resolution order: `?lang` → cookie → IdP `locale` claim → `Accept-Language` → default | Cookie domain configurable so a parent site can set it                                                     |
+| Runtime / deploy | Node 22. Official: Docker image + `docker-compose.prod.yml` behind a reverse proxy                                  | The reference deployment's rsync/nginx deploy is a documented _alternative_ in Appendix A, not the default |
+| Repo conventions | AI-first: lean `CLAUDE.md`, ADRs under `docs/adr/`, no decorative comments, no over-engineering                     |                                                                                                            |
 
 Configuration surface (all of it, nothing else):
 
@@ -351,7 +351,7 @@ Teacher editor, uploads, video resolve, publish toggles, drag-sort, audit log.
 Submissions + review; quiz builder + attempts + results; cohorts + drip; notifications.
 
 **Phase 5 — Hardening + v1.0.0**
-Security checklist, Playwright suite, `docs/deploy.md` verified on a clean VPS by someone other than the author, screenshots in README, tag `v1.0.0`. Then the the reference deployment deployment per Appendix A and pilot cohort.
+Security checklist, Playwright suite, `docs/deploy.md` verified on a clean VPS by someone other than the author, screenshots in README, tag `v1.0.0`. Then the reference deployment per Appendix A and pilot cohort.
 
 ---
 
@@ -370,7 +370,8 @@ Security checklist, Playwright suite, `docs/deploy.md` verified on a clean VPS b
 
 ## Appendix A — Reference deployment
 
-Everything below is configuration for one deployment. None of it appears in core source.
+Everything below is configuration for one deployment (a small foundation's members' school; names
+and hosts are placeholders). None of it appears in core source.
 
 - **Hostname:** `learn.example.org`; `COOKIE_DOMAIN=.example.org` so the main site can set the locale cookie.
 - **IdP:** the members' site's better-auth with the OIDC Provider plugin. Roles claim populated from the main site's user roles.
@@ -382,8 +383,8 @@ Everything below is configuration for one deployment. None of it appears in core
 - **Video:** the organisation's Vimeo account, embeds restricted to `learn.example.org`.
 - **Email:** the organisation's SMTP relay, `MAIL_FROM=lms@example.org`.
 - **Locales:** ca (default), es, en; same resolution order as the main site.
-- **Brand:** the reference deployment logo and colour tokens in `lms.config.ts`.
-- **Deploy:** a VPS shared with the members' site; nginx reverse proxy; either the official Docker image or the rsync + `deploy.sh` pattern already used for the main site (documented as an alternative in `docs/deploy.md`).
+- **Brand:** the organisation's logo and colour tokens in `lms.config.ts`.
+- **Deploy:** a VPS shared with the main site; nginx reverse proxy; either the official Docker image or the rsync + `deploy.sh` pattern already used for the main site (documented as an alternative in `docs/deploy.md`).
 - **Trust boundary reminder:** the main site handles payments (Stripe/Bizum), the Fase 2 accounting sync, and the ledger. The LMS receives only `sub`, profile fields, roles and entitlements — no payment data ever crosses.
 
 ## Appendix B — Frappe LMS concept mapping

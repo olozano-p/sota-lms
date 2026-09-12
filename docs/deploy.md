@@ -22,7 +22,7 @@ Copy `.env.example` to `.env` and fill every value; `SESSION_SECRET` is ≥ 32 r
 ## Option A — Docker (default)
 
 ```bash
-git clone https://github.com/olozano-p/sota-lms && cd sota
+git clone https://github.com/olozano-p/sota-lms && cd sota-lms
 cp .env.example .env && $EDITOR .env lms.config.ts
 docker compose -f docker-compose.prod.yml up -d --build
 ```
@@ -103,8 +103,8 @@ The daily digest goes out during the hour configured in `lms.config.ts → notif
 
 ## Reference deployment
 
-The first production instance runs at the reference deployment (`docs/spec.md`, Appendix A): the members'
-site is both IdP (better-auth OIDC Provider) and entitlement source, mapping its membership
-tiers to the `immediate` / `delayed` rule names; storage is MinIO on the same VPS; mail goes
-through a the organisation's SMTP relay; the proxy is nginx and the deploy is Option B. None of that is
-in the code.
+The first production instance is a small foundation's members' school (`docs/spec.md`,
+Appendix A): the members' site is both IdP (better-auth OIDC Provider) and entitlement source,
+mapping its membership tiers to the `immediate` / `delayed` rule names; storage is MinIO on the
+same VPS; mail goes through the organisation's SMTP relay; the proxy is nginx and the deploy is
+Option B. None of that is in the code.
