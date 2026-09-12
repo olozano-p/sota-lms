@@ -82,12 +82,24 @@ const LIMITS: { prefix: string; perMinute: number }[] = [
   { prefix: "/api/", perMinute: 240 },
 ];
 
-/** Client address: the first `X-Forwarded-For` hop when `TRUST_PROXY=true`, else the socket peer is unknown → one shared bucket. */
+/**
+ * Client address for the buckets. `X-Forwarded-For` / `X-Real-IP` are honoured only when
+ * `TRUST_PROXY=true`, and then the *last* forwarded hop is used: the one the proxy appended, which
+ * the client cannot choose. Otherwise the peer address recorded by `scripts/serve.mjs` in
+ * `X-SOTA-Remote-Addr` (overwritten on every request, so not forgeable) is used; without it
+ * (vite dev) every request shares one bucket.
+ */
 export function clientKey(request: Request): string {
-  const trust = process.env.TRUST_PROXY === "true";
-  const xff = request.headers.get("x-forwarded-for");
-  if (trust && xff) return xff.split(",")[0]!.trim();
-  return request.headers.get("x-real-ip") ?? "anonymous";
+  if (process.env.TRUST_PROXY === "true") {
+    const hops = (request.headers.get("x-forwarded-for") ?? "")
+      .split(",")
+      .map((h) => h.trim())
+      .filter(Boolean);
+    if (hops.length) return hops[hops.length - 1]!;
+    const real = request.headers.get("x-real-ip");
+    if (real) return real;
+  }
+  return request.headers.get("x-sota-remote-addr") || "anonymous";
 }
 
 /** Token bucket per client and path prefix. Returns false when the request must be refused (429). */

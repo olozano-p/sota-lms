@@ -3,7 +3,7 @@
 import http from "node:http";
 import { spawn } from "node:child_process";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { extname, join, normalize } from "node:path";
+import { extname, join, normalize, sep } from "node:path";
 import { Readable } from "node:stream";
 
 const handler = (await import("../dist/server/server.js")).default;
@@ -37,36 +37,52 @@ const mime = {
 
 http
   .createServer(async (req, res) => {
-    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
-    const filePath = normalize(join(clientDir, decodeURIComponent(url.pathname)));
-    if (filePath.startsWith(clientDir) && existsSync(filePath) && statSync(filePath).isFile()) {
-      res.writeHead(200, {
-        "content-type": mime[extname(filePath)] ?? "application/octet-stream",
-        "cache-control": url.pathname.startsWith("/assets/")
-          ? "public, max-age=31536000, immutable"
-          : "no-cache",
-      });
-      createReadStream(filePath).pipe(res);
-      return;
-    }
-
-    const body = req.method === "GET" || req.method === "HEAD" ? undefined : Readable.toWeb(req);
-    const request = new Request(url, {
-      method: req.method,
-      headers: Object.fromEntries(
-        Object.entries(req.headers).map(([k, v]) => [k, Array.isArray(v) ? v.join(", ") : v]),
-      ),
-      body,
-      duplex: body ? "half" : undefined,
-    });
     try {
+      // Both throw on hostile input (`/%c0%af`, a malformed Host); inside the try so a request
+      // can never take the process down.
+      const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+      const filePath = normalize(join(clientDir, decodeURIComponent(url.pathname)));
+      if (
+        filePath.startsWith(clientDir + sep) &&
+        existsSync(filePath) &&
+        statSync(filePath).isFile()
+      ) {
+        res.writeHead(200, {
+          "content-type": mime[extname(filePath)] ?? "application/octet-stream",
+          "cache-control": url.pathname.startsWith("/assets/")
+            ? "public, max-age=31536000, immutable"
+            : "no-cache",
+        });
+        createReadStream(filePath).pipe(res);
+        return;
+      }
+
+      const body = req.method === "GET" || req.method === "HEAD" ? undefined : Readable.toWeb(req);
+      const headers = Object.fromEntries(
+        Object.entries(req.headers).map(([k, v]) => [k, Array.isArray(v) ? v.join(", ") : v]),
+      );
+      // The peer address as this process sees it, for the rate limiter; always overwritten here.
+      headers["x-sota-remote-addr"] = req.socket.remoteAddress ?? "";
+      const request = new Request(url, {
+        method: req.method,
+        headers,
+        body,
+        duplex: body ? "half" : undefined,
+      });
       const response = await handler.fetch(request);
-      res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
+      // `Object.fromEntries` keeps one value per name; Set-Cookie must stay a list.
+      const out = Object.fromEntries(response.headers.entries());
+      const cookies = response.headers.getSetCookie();
+      if (cookies.length) out["set-cookie"] = cookies;
+      res.writeHead(response.status, out);
       if (response.body) Readable.fromWeb(response.body).pipe(res);
       else res.end();
     } catch (e) {
-      console.error(e);
-      res.writeHead(500).end("internal error");
+      const bad = e instanceof URIError || (e instanceof TypeError && e.code === "ERR_INVALID_URL");
+      if (!bad) console.error(e);
+      if (!res.headersSent)
+        res.writeHead(bad ? 400 : 500).end(bad ? "bad request" : "internal error");
+      else res.end();
     }
   })
   .listen(port, () => console.log(`sota listening on http://localhost:${port}`));

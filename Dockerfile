@@ -23,6 +23,8 @@ COPY src/lib ./src/lib
 COPY src/i18n ./src/i18n
 COPY src/server/services ./src/server/services
 COPY lms.config.ts ./lms.config.ts
+# Nothing under /app is written at runtime (storage is S3, logs go to stdout).
+USER node
 EXPOSE 3003
 HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:${PORT:-3003}/api/health || exit 1
 CMD ["sh", "-c", "if [ \"${MIGRATE:-true}\" = true ]; then node src/db/migrate.ts; fi && if [ \"${SEED:-false}\" = true ]; then node scripts/seed.ts; fi && node scripts/serve.mjs"]

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getCookie, getRequest, setCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { lmsConfig } from "~/config";
+import { env } from "~/config/env";
 import { isLocale, type Locale } from "~/i18n/locale";
 
 const enabled = (l: unknown): l is Locale => isLocale(l) && lmsConfig.locales.enabled.includes(l);
@@ -44,7 +45,7 @@ export const setLocale = createServerFn({ method: "POST" })
   });
 
 function setLocaleCookie(locale: Locale): void {
-  const domain = process.env.COOKIE_DOMAIN;
+  const domain = env.cookieDomain;
   setCookie(lmsConfig.locales.cookieName, locale, {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,

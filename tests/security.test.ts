@@ -1,0 +1,40 @@
+/** Rate-limiter client key: forwarded headers count only behind a trusted proxy, and then the last hop. */
+import { afterEach, describe, expect, it } from "vitest";
+import { allowRequest, clientKey } from "../src/server/security.ts";
+
+function req(headers: Record<string, string>): Request {
+  return new Request("http://localhost/auth/login", { headers });
+}
+
+afterEach(() => {
+  delete process.env.TRUST_PROXY;
+});
+
+describe("clientKey", () => {
+  it("ignores X-Forwarded-For and X-Real-IP unless TRUST_PROXY=true", () => {
+    expect(clientKey(req({ "x-forwarded-for": "1.1.1.1", "x-real-ip": "2.2.2.2" }))).toBe(
+      "anonymous",
+    );
+    expect(clientKey(req({ "x-forwarded-for": "1.1.1.1", "x-sota-remote-addr": "10.0.0.7" }))).toBe(
+      "10.0.0.7",
+    );
+  });
+  it("uses the hop the proxy appended (the last one), not the client-supplied first hop", () => {
+    process.env.TRUST_PROXY = "true";
+    expect(clientKey(req({ "x-forwarded-for": "6.6.6.6, 203.0.113.9" }))).toBe("203.0.113.9");
+    expect(clientKey(req({ "x-real-ip": "203.0.113.9" }))).toBe("203.0.113.9");
+    expect(clientKey(req({ "x-sota-remote-addr": "127.0.0.1" }))).toBe("127.0.0.1");
+  });
+});
+
+describe("allowRequest", () => {
+  it("refuses the 61st /auth request of a minute from one peer and keeps other peers unaffected", () => {
+    const t0 = Date.now();
+    const a = req({ "x-sota-remote-addr": "10.1.1.1" });
+    const b = req({ "x-sota-remote-addr": "10.1.1.2" });
+    for (let i = 0; i < 60; i++) expect(allowRequest(a, "/auth/login", t0)).toBe(true);
+    expect(allowRequest(a, "/auth/login", t0)).toBe(false);
+    expect(allowRequest(b, "/auth/login", t0)).toBe(true);
+    expect(allowRequest(a, "/auth/login", t0 + 60_000)).toBe(true);
+  });
+});

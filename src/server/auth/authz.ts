@@ -51,6 +51,7 @@ function decodeSessionCookie(value: string | undefined): string | null {
   return given.length === expected.length && timingSafeEqual(given, expected) ? id : null;
 }
 
+/** Host-only on purpose: `COOKIE_DOMAIN` widens the locale cookie, never the session. */
 export function sessionCookieOptions(maxAgeSeconds: number) {
   return {
     httpOnly: true,
@@ -58,7 +59,6 @@ export function sessionCookieOptions(maxAgeSeconds: number) {
     sameSite: "lax" as const,
     path: "/",
     maxAge: maxAgeSeconds,
-    ...(env.cookieDomain ? { domain: env.cookieDomain } : {}),
   };
 }
 

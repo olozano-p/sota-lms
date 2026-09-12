@@ -41,3 +41,19 @@ All notable changes to SOTA are documented here. The format follows
 
 - Schibsted Grotesk replaces Source Sans 3 as the interface face; the page is white with a gold
   accent and an ochre link colour; warning moves to rust (ADR-009).
+
+### Security
+
+- Assignment and quiz blocks may only reference their own course, and audio/file blocks only keys
+  under the course's storage prefix; the container lookup for assignments and quizzes is scoped to
+  the course. Before, a teacher of one course could expose another course's assignments, quiz
+  answers and files to their students.
+- Submission files are served to their author, the teachers of that course and admins only, not to
+  every teacher.
+- The production server answers 400 to malformed URLs and Host headers instead of exiting, and
+  forwards every `Set-Cookie` header instead of the last one.
+- The rate limiter honours `X-Forwarded-For` / `X-Real-IP` only behind `TRUST_PROXY=true`, takes
+  the hop the proxy appended, and otherwise keys on the socket peer.
+- The session cookie is always host-only; `COOKIE_DOMAIN` widens only the locale cookie.
+- The Docker image runs as `node`; CI runs with a read-only token and no longer ignores `pnpm audit`.
+- `nodemailer` 7 → 9.1 (two high advisories in 7.x).
