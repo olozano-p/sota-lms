@@ -1,5 +1,5 @@
 /**
- * Video lives with a provider; Lodrö stores an id and asks the provider for metadata and an
+ * Video lives with a provider; SOTA stores an id and asks the provider for metadata and an
  * embed. Vimeo is the v1 implementation (docs/video-vimeo.md); YouTube, Mux or a self-hosted
  * player are contributions behind this interface.
  */

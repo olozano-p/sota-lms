@@ -4,7 +4,7 @@
 
 ## Decision
 
-Lodrö is published under the MIT licence, copyright Oscar Lozano.
+SOTA is published under the MIT licence, copyright Oscar Lozano.
 
 ## Why
 

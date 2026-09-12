@@ -2,7 +2,7 @@ import type { MessageKey } from "./ca";
 
 export const en: Record<MessageKey, string> = {
   "app.skipToContent": "Skip to content",
-  "app.poweredBy": "Made with Lodrö",
+  "app.poweredBy": "Made with SOTA",
   "app.signedInAs": "Signed in as {name}",
 
   "nav.courses": "My courses",
@@ -113,7 +113,7 @@ export const en: Record<MessageKey, string> = {
   "admin.webhooks.error": "Error",
   "admin.webhooks.pending": "Pending",
   "admin.webhooks.payload": "Payload",
-  "admin.audit.lead": "Every write made from Lodrö leaves an entry.",
+  "admin.audit.lead": "Every write made from SOTA leaves an entry.",
   "admin.audit.when": "When",
   "admin.audit.actor": "Who",
   "admin.audit.action": "Action",

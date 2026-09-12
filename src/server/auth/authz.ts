@@ -11,7 +11,7 @@ import { courseTeacher, person, session, type Role } from "~/db/schema";
 import { env } from "~/config/env";
 import { isLocale, type Locale } from "~/i18n/locale";
 
-export const SESSION_COOKIE = "lodro_session";
+export const SESSION_COOKIE = "sota_session";
 /** 12 h absolute, 2 h idle (docs/spec.md §8). */
 export const SESSION_ABSOLUTE_MS = 12 * 60 * 60 * 1000;
 export const SESSION_IDLE_MS = 2 * 60 * 60 * 1000;

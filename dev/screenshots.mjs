@@ -42,7 +42,7 @@ const ctx = await browser.newContext({
   deviceScaleFactor: 2,
 });
 const page = await ctx.newPage();
-await page.addInitScript(() => localStorage.setItem("lodro_theme", "dark"));
+await page.addInitScript(() => localStorage.setItem("sota_theme", "dark"));
 await login(page, "mock-student", "/courses/introduccio-a-la-contemplacio/la-postura");
 await page.waitForTimeout(600);
 await page.screenshot({ path: `${out}/lesson-dark.png` });

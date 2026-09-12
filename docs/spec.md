@@ -1,14 +1,14 @@
-# Lodrö — Build Spec (v1)
+# SOTA — Build Spec (v1)
 
 > **Decisions log (2026-09-11).** The open questions of §11 were settled as follows; each has an
-> ADR in `docs/decisions/`: name **Lodrö** (repo `lodro`, GitHub user olozano-p) · licence
+> ADR in `docs/decisions/`: name **SOTA** (repo `sota`, GitHub user olozano-p) · licence
 > **MIT** (ADR-006) · content **Markdown** (ADR-007) · hand-written UI primitives instead of
 > shadcn (ADR-008) · Postgres 16 + PGlite in tests (ADR-002) · admin-grant write-back deferred to
 > v1.1 · a cohort belongs to one course · `pass_threshold` supported, nullable · audio in object
 > storage · prod storage: MinIO on the VPS or an external bucket, both in `docs/deploy.md`.
 > ADR file names follow the house style (`ADR-00n-topic.md`) rather than the paths in §9.
 
-Name: **Lodrö** (Tibetan _blo gros_, "intelligence, discernment"; repo `lodro`). A lean, self-hostable, open-source course platform. Inspired by Frappe LMS's core model (Course → Chapter → Lesson, Batch → Cohort, Quiz, Assignment) but stripped to the essentials and built as a **relying party**: identity and entitlements come from an external OIDC identity provider; the LMS never owns accounts or payments.
+Name: **SOTA** (after Pali _sotāpanna_, "the one who has entered the stream"; repo `sota`). A lean, self-hostable, open-source course platform. Inspired by Frappe LMS's core model (Course → Chapter → Lesson, Batch → Cohort, Quiz, Assignment) but stripped to the essentials and built as a **relying party**: identity and entitlements come from an external OIDC identity provider; the LMS never owns accounts or payments.
 
 **First production deployment and reference implementation: the reference deployment** with the members' site as the IdP. Every feature in this spec is driven by that deployment's needs, but nothing in the codebase may be specific to it — all the reference deployment particulars live in configuration and in Appendix A.
 
@@ -298,7 +298,7 @@ Every loader calls `requireSession()`; content loaders call `requireLessonAccess
 ## 9. Repository layout
 
 ```
-lodro/
+sota/
   README.md  LICENSE  CONTRIBUTING.md  CODE_OF_CONDUCT.md  SECURITY.md  CHANGELOG.md
   CLAUDE.md                      # ≤ 60 lines
   .env.example

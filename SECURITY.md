@@ -19,7 +19,7 @@ We will credit you in the changelog unless you prefer otherwise.
 
 ## Scope
 
-Lodrö is an OIDC relying party: it never stores passwords and never processes payments. Reports
+SOTA is an OIDC relying party: it never stores passwords and never processes payments. Reports
 about the identity provider or the entitlement source belong to those systems' operators. In
 scope here: session handling, the entitlement webhook (HMAC verification, replay, idempotency),
 access resolution (`canSeeLesson`), signed file URLs, content sanitisation, CSP, upload handling.

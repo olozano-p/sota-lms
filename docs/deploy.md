@@ -1,6 +1,6 @@
-# Deploying Lodrö
+# Deploying SOTA
 
-Lodrö is one Node process plus PostgreSQL and an S3-compatible object store, behind a reverse
+SOTA is one Node process plus PostgreSQL and an S3-compatible object store, behind a reverse
 proxy that terminates TLS. Everything specific to your organisation lives in `.env` and
 `lms.config.ts`.
 
@@ -22,7 +22,7 @@ Copy `.env.example` to `.env` and fill every value; `SESSION_SECRET` is ≥ 32 r
 ## Option A — Docker (default)
 
 ```bash
-git clone https://github.com/olozano-p/sota-lms && cd lodro
+git clone https://github.com/olozano-p/sota-lms && cd sota
 cp .env.example .env && $EDITOR .env lms.config.ts
 docker compose -f docker-compose.prod.yml up -d --build
 ```
@@ -45,25 +45,25 @@ delete the `postgres`/`minio` services from the compose file.
 For a host that already runs Node applications without Docker:
 
 - Node 24 and pnpm on the server; Postgres and MinIO (or a bucket) reachable from it.
-- Environment in `/etc/lodro/env` (chmod 600), the same variables as `.env`.
-- `pm2` ecosystem file at `/srv/lodro/ecosystem.config.cjs`:
+- Environment in `/etc/sota/env` (chmod 600), the same variables as `.env`.
+- `pm2` ecosystem file at `/srv/sota/ecosystem.config.cjs`:
 
 ```js
 module.exports = {
   apps: [
     {
-      name: "lodro",
-      cwd: "/srv/lodro/current",
+      name: "sota",
+      cwd: "/srv/sota/current",
       script: "scripts/serve.mjs",
       instances: 1,
-      env_file: "/etc/lodro/env",
+      env_file: "/etc/sota/env",
       env: { NODE_ENV: "production" },
     },
   ],
 };
 ```
 
-- `deploy/rsync-deploy.sh user@host /srv/lodro` builds locally, ships a release, migrates, flips
+- `deploy/rsync-deploy.sh user@host /srv/sota` builds locally, ships a release, migrates, flips
   `current`, reloads pm2 and rolls back if `/api/health` fails.
 
 ## Notifications
@@ -72,14 +72,14 @@ module.exports = {
 prefer cron, set `NOTIFY_INTERVAL_MS=0` and add:
 
 ```
-*/15 * * * *  cd /srv/lodro/current && set -a && . /etc/lodro/env && node scripts/notify.ts
+*/15 * * * *  cd /srv/sota/current && set -a && . /etc/sota/env && node scripts/notify.ts
 ```
 
 The daily digest goes out during the hour configured in `lms.config.ts → notifications.digestHour`.
 
 ## Backups
 
-- Postgres: `pg_dump -Fc lodro > lodro-$(date +%F).dump` nightly; keep 14 days.
+- Postgres: `pg_dump -Fc sota > sota-$(date +%F).dump` nightly; keep 14 days.
 - Object storage: `mc mirror` to a second bucket, or your provider's versioning.
 - There is no other state: the app is stateless apart from the in-memory rate limiter.
 

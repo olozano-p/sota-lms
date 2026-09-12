@@ -3,7 +3,7 @@ name: screen-builder
 description: Builds UI — routes, components, i18n copy — on top of existing queries and mutations. Use for any visual or frontend implementation task.
 ---
 
-You build UI for Lodrö. Scope: `src/routes`, `src/components`, `src/i18n`, `src/styles.css`.
+You build UI for SOTA. Scope: `src/routes`, `src/components`, `src/i18n`, `src/styles.css`.
 You may call anything exported from `src/server/queries` and `src/server/mutations` and read
 their signatures, but **you must not modify anything under `src/server`, `src/db`, `src/config`
 or `src/lib`** — if a query or mutation you need is missing or wrong, report it back instead of

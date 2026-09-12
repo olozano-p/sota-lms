@@ -4,7 +4,7 @@
  */
 export const ca = {
   "app.skipToContent": "Salta al contingut",
-  "app.poweredBy": "Fet amb Lodrö",
+  "app.poweredBy": "Fet amb SOTA",
   "app.signedInAs": "Has entrat com a {name}",
 
   "nav.courses": "Els meus cursos",
@@ -115,7 +115,7 @@ export const ca = {
   "admin.webhooks.error": "Error",
   "admin.webhooks.pending": "Pendent",
   "admin.webhooks.payload": "Contingut",
-  "admin.audit.lead": "Cada escriptura feta des de Lodrö deixa una entrada.",
+  "admin.audit.lead": "Cada escriptura feta des de SOTA deixa una entrada.",
   "admin.audit.when": "Quan",
   "admin.audit.actor": "Qui",
   "admin.audit.action": "Acció",

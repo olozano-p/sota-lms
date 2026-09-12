@@ -1,20 +1,20 @@
 # Development stack: `docker compose up` gives Postgres, MinIO, the mock IdP and the app with seed
 # data. Contributors need no real IdP or credentials. Ports are offset to leave local services alone.
-name: lodro
+name: sota
 
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: lodro
-      POSTGRES_PASSWORD: lodro
-      POSTGRES_DB: lodro
+      POSTGRES_USER: sota
+      POSTGRES_PASSWORD: sota
+      POSTGRES_DB: sota
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lodro -d lodro"]
+      test: ["CMD-SHELL", "pg_isready -U sota -d sota"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -23,8 +23,8 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: lodro
-      MINIO_ROOT_PASSWORD: lodro-dev-storage
+      MINIO_ROOT_USER: sota
+      MINIO_ROOT_PASSWORD: sota-dev-storage
     ports:
       - "9010:9000"
       - "9011:9001"
@@ -44,9 +44,9 @@ services:
         condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-      mc alias set local http://minio:9000 lodro lodro-dev-storage &&
-      mc mb --ignore-existing local/lodro &&
-      mc anonymous set none local/lodro"
+      mc alias set local http://minio:9000 sota sota-dev-storage &&
+      mc mb --ignore-existing local/sota &&
+      mc anonymous set none local/sota"
 
   mock-idp:
     image: node:24-alpine
@@ -56,10 +56,10 @@ services:
       MOCK_IDP_PORT: "3013"
       MOCK_IDP_ISSUER: http://localhost:3013
       APP_URL: http://localhost:3003
-      OIDC_CLIENT_ID: lodro
-      OIDC_CLIENT_SECRET: lodro-dev-secret
-      ENTITLEMENTS_PULL_TOKEN: lodro-dev-pull-token
-      ENTITLEMENTS_WEBHOOK_SECRET: lodro-dev-webhook-secret
+      OIDC_CLIENT_ID: sota
+      OIDC_CLIENT_SECRET: sota-dev-secret
+      ENTITLEMENTS_PULL_TOKEN: sota-dev-pull-token
+      ENTITLEMENTS_WEBHOOK_SECRET: sota-dev-webhook-secret
     ports:
       - "3013:3013"
     volumes:
@@ -80,25 +80,25 @@ services:
       NODE_ENV: production
       PORT: "3003"
       APP_URL: http://localhost:3003
-      DATABASE_URL: postgres://lodro:lodro@postgres:5432/lodro
+      DATABASE_URL: postgres://sota:sota@postgres:5432/sota
       SESSION_SECRET: dev-only-session-secret-please-change-me-0123456789
       OIDC_ISSUER: http://localhost:3013
-      OIDC_CLIENT_ID: lodro
-      OIDC_CLIENT_SECRET: lodro-dev-secret
+      OIDC_CLIENT_ID: sota
+      OIDC_CLIENT_SECRET: sota-dev-secret
       OIDC_END_SESSION_URL: http://localhost:3013/session/end
       OIDC_ROLES_CLAIM: roles
       ENTITLEMENTS_PULL_URL: http://mock-idp:3013/entitlements/v1
-      ENTITLEMENTS_PULL_TOKEN: lodro-dev-pull-token
-      ENTITLEMENTS_WEBHOOK_SECRET: lodro-dev-webhook-secret
+      ENTITLEMENTS_PULL_TOKEN: sota-dev-pull-token
+      ENTITLEMENTS_WEBHOOK_SECRET: sota-dev-webhook-secret
       S3_ENDPOINT: http://minio:9000
       S3_PUBLIC_ENDPOINT: http://localhost:9010
       S3_REGION: us-east-1
-      S3_BUCKET: lodro
-      S3_ACCESS_KEY_ID: lodro
-      S3_SECRET_ACCESS_KEY: lodro-dev-storage
+      S3_BUCKET: sota
+      S3_ACCESS_KEY_ID: sota
+      S3_SECRET_ACCESS_KEY: sota-dev-storage
       S3_FORCE_PATH_STYLE: "true"
       MAIL_TRANSPORT: console
-      MAIL_FROM: Lodrö <lms@example.invalid>
+      MAIL_FROM: SOTA <lms@example.invalid>
       SEED: "true"
     ports:
       - "3003:3003"

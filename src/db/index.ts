@@ -15,7 +15,7 @@ export type Db = NodePgDatabase<typeof schema>;
 /** Either the db or a transaction handle: what queries and mutations accept. */
 export type DbOrTx = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
 
-const url = process.env.DATABASE_URL ?? "postgres://lodro:lodro@localhost:5433/lodro";
+const url = process.env.DATABASE_URL ?? "postgres://sota:sota@localhost:5433/sota";
 export const isPglite = url.startsWith("pglite://");
 
 async function open(): Promise<Db> {

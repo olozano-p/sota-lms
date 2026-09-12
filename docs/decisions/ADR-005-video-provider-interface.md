@@ -4,7 +4,7 @@
 
 ## Decision
 
-Video is never stored or transcoded by Lodrö. A `video` block holds `{ provider, external_id,
+Video is never stored or transcoded by SOTA. A `video` block holds `{ provider, external_id,
 title, duration_s }`; `VideoProvider` (`src/server/services/video/provider.ts`) resolves a URL or
 id into metadata and produces an embed. `VimeoProvider` is the v1 implementation; the player
 component normalises the provider's events into `timeupdate` / `pause` / `ended` so progress
@@ -20,7 +20,7 @@ access check).
 
 ## Consequences
 
-- Access control for video is delegated to the provider's domain restriction; Lodrö controls who
+- Access control for video is delegated to the provider's domain restriction; SOTA controls who
   sees the _page_, Vimeo controls where the _player_ may be embedded (`docs/video-vimeo.md`).
 - Rejected: uploading video to S3 and serving it with `<video>` (no adaptive bitrate, huge egress);
   a hard dependency on `@vimeo/player` outside the provider adapter.

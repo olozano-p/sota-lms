@@ -3,7 +3,7 @@ import { Moon, Sun } from "lucide-react";
 import { useI18n } from "~/i18n";
 import { Button } from "~/components/ui/button";
 
-const KEY = "lodro_theme";
+const KEY = "sota_theme";
 
 /**
  * Light is the default: this inline `<script>` in the document head adds `.dark` before first

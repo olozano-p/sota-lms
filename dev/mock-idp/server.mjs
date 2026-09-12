@@ -16,10 +16,10 @@ import Provider from "oidc-provider";
 const PORT = Number(process.env.MOCK_IDP_PORT ?? 3013);
 const ISSUER = process.env.MOCK_IDP_ISSUER ?? `http://localhost:${PORT}`;
 const APP_URL = process.env.APP_URL ?? "http://localhost:3003";
-const CLIENT_ID = process.env.OIDC_CLIENT_ID ?? "lodro";
-const CLIENT_SECRET = process.env.OIDC_CLIENT_SECRET ?? "lodro-dev-secret";
-const PULL_TOKEN = process.env.ENTITLEMENTS_PULL_TOKEN ?? "lodro-dev-pull-token";
-const WEBHOOK_SECRET = process.env.ENTITLEMENTS_WEBHOOK_SECRET ?? "lodro-dev-webhook-secret";
+const CLIENT_ID = process.env.OIDC_CLIENT_ID ?? "sota";
+const CLIENT_SECRET = process.env.OIDC_CLIENT_SECRET ?? "sota-dev-secret";
+const PULL_TOKEN = process.env.ENTITLEMENTS_PULL_TOKEN ?? "sota-dev-pull-token";
+const WEBHOOK_SECRET = process.env.ENTITLEMENTS_WEBHOOK_SECRET ?? "sota-dev-webhook-secret";
 
 /** The three seeded people. `entitlements` follow docs/entitlements-contract.md. */
 export const USERS = {

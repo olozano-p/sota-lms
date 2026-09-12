@@ -1,6 +1,6 @@
-# Lodrö — visual rules
+# SOTA — visual rules
 
-Lodrö is a place to read, watch and think. The interface should feel like good paper: warm, quiet,
+SOTA is a place to read, watch and think. The interface should feel like good paper: warm, quiet,
 legible, with one restrained accent and nothing that shouts. Light is the default (lessons are
 read); dark is a stored preference. Depth comes from hairlines and spacing, not shadows. The tokens
 in `src/styles.css` are the only source of colour, radius, type and easing in the repo; brand

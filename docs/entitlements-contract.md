@@ -1,6 +1,6 @@
 # Entitlements contract — `entitlements/v1`
 
-Lodrö never decides _who may access what_ on its own. An external **entitlement source** (usually
+SOTA never decides _who may access what_ on its own. An external **entitlement source** (usually
 the system that also runs your identity provider, but not necessarily) tells it, through a small
 versioned JSON contract with two channels. Both are required for a production deployment; the
 mock in `dev/mock-idp/` implements both.
@@ -26,7 +26,7 @@ mock in `dev/mock-idp/` implements both.
 | Field                  | Meaning                                                                                                       |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `sub`                  | The OIDC subject. The join key between the IdP and the entitlement source.                                    |
-| `email`, `name`        | Mirrored into `person`. Lodrö never edits them.                                                               |
+| `email`, `name`        | Mirrored into `person`. SOTA never edits them.                                                                |
 | `locale`               | Optional; one of the enabled locales. Used when the ID token carries no `locale` claim.                       |
 | `roles`                | `student`, `teacher`, `admin`. The IdP's roles claim wins right after login; the source's win on later syncs. |
 | `entitlements[].scope` | `course` (one course), `all_courses`, `cohort` (access through membership of that cohort).                    |
@@ -34,8 +34,8 @@ mock in `dev/mock-idp/` implements both.
 | `entitlements[].rule`  | A key into `lms.config.ts → accessRules`. **Not** a tier name: the source maps its tiers to rule names first. |
 | `entitlements[].until` | Inclusive last day of access, `YYYY-MM-DD` in the deployment's `timeZone`, or `null`.                         |
 
-Each payload is the **complete** set of external entitlements for that person: Lodrö replaces
-all `source = 'external'` rows with it. Grants made by an admin in Lodrö (`source = 'admin'`) are
+Each payload is the **complete** set of external entitlements for that person: SOTA replaces
+all `source = 'external'` rows with it. Grants made by an admin in SOTA (`source = 'admin'`) are
 never touched by the contract.
 
 ## Rules
@@ -66,7 +66,7 @@ GET {ENTITLEMENTS_PULL_URL}/{sub}
 Authorization: Bearer {ENTITLEMENTS_PULL_TOKEN}
 ```
 
-Returns the payload (`200`) or `404` when the source has no record for that subject (Lodrö then
+Returns the payload (`200`) or `404` when the source has no record for that subject (SOTA then
 keeps whatever it has). Called on every login and whenever a person's cached entitlements are
 older than 15 minutes. Timeout 8 s; failures are logged and the cache is kept.
 
@@ -80,7 +80,7 @@ X-Event-Id:  6f1c…                # unique per event; duplicates are acknowled
 X-Signature: hex(HMAC-SHA256(ENTITLEMENTS_WEBHOOK_SECRET, "{X-Timestamp}.{raw body}"))
 ```
 
-Send it on every change (purchase, tier change, cohort placement, expiry). Lodrö:
+Send it on every change (purchase, tier change, cohort placement, expiry). SOTA:
 
 1. rejects missing headers (`400`), a timestamp more than 5 minutes away (`401`), a bad signature (`401`);
 2. stores the event (`webhook_event`, unique on `X-Event-Id`); a repeat returns `200 {"ok":true,"duplicate":true}`;
@@ -107,7 +107,7 @@ await fetch(`${APP_URL}/api/webhooks/entitlements`, {
 
 ## Roles and sessions
 
-A change of `roles` deletes the person's Lodrö sessions; their next request goes through the IdP
+A change of `roles` deletes the person's SOTA sessions; their next request goes through the IdP
 again (silently, if they still have an IdP session) and comes back with the new privileges.
 
 ## Versioning

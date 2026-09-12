@@ -4,7 +4,7 @@
 
 ## Decision
 
-Lodrö is a single TanStack Start app (React 19, TanStack Router + Query + Form + Table, Vite 8,
+SOTA is a single TanStack Start app (React 19, TanStack Router + Query + Form + Table, Vite 8,
 TypeScript strict, pnpm). Server functions and file-based API routes are the whole backend; the
 production server is `scripts/serve.mjs`, a `node:http` bridge to the fetch handler Vite emits,
 packaged in the official Docker image. Lint and format with oxlint/oxfmt, unit tests with vitest,

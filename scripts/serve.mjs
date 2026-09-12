@@ -69,4 +69,4 @@ http
       res.writeHead(500).end("internal error");
     }
   })
-  .listen(port, () => console.log(`lodro listening on http://localhost:${port}`));
+  .listen(port, () => console.log(`sota listening on http://localhost:${port}`));

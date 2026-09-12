@@ -1,6 +1,6 @@
 # Video on Vimeo
 
-Lodrö does not host or transcode video. Lessons reference a video at a provider; `VimeoProvider`
+SOTA does not host or transcode video. Lessons reference a video at a provider; `VimeoProvider`
 (`src/server/services/video/vimeo.ts`) is the v1 implementation of the `VideoProvider` interface
 (ADR-005). Another provider is a contribution behind the same interface.
 
@@ -19,7 +19,7 @@ Lodrö does not host or transcode video. Lessons reference a video at a provider
 ## Authoring
 
 In the editor, paste a Vimeo URL or id into a video block: `https://vimeo.com/123456789`,
-`https://vimeo.com/123456789/abcdef1234` (unlisted, with hash) or `123456789`. Lodrö calls
+`https://vimeo.com/123456789/abcdef1234` (unlisted, with hash) or `123456789`. SOTA calls
 `GET https://api.vimeo.com/videos/{id}` to confirm the video belongs to the account and stores
 `{ provider: "vimeo", external_id, title, duration_s }` in the block payload. Without a token the
 URL is accepted unverified and the title is left for the teacher to fill.

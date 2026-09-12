@@ -1,7 +1,7 @@
-# Lodrö — a lean LMS that relies on your identity provider
+# SOTA — a lean LMS that relies on your identity provider
 
 Courses → chapters → lessons made of blocks (text, video, audio, file, embed, assignment, quiz);
-cohorts with drip release; progress per lesson. Lodrö is an **OIDC relying party**: identity comes
+cohorts with drip release; progress per lesson. SOTA is an **OIDC relying party**: identity comes
 from an external IdP and access from an external _entitlement source_ over a versioned JSON
 contract. It never sells, registers or authenticates anyone. Product spec: `docs/spec.md`.
 Decisions: `docs/decisions/` (append, never rewrite). Visual rules: `docs/DESIGN.md`. When a

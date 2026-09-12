@@ -1,8 +1,8 @@
 {
-  "name": "lodro",
+  "name": "sota",
   "version": "0.1.0",
   "private": true,
-  "description": "Lodrö — a lean, self-hostable LMS that relies on your identity provider",
+  "description": "SOTA — a lean, self-hostable LMS that relies on your identity provider",
   "license": "MIT",
   "type": "module",
   "scripts": {

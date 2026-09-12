@@ -8,7 +8,7 @@ import * as client from "openid-client";
 import { getCookie, setCookie } from "@tanstack/react-start/server";
 import { env } from "~/config/env";
 
-const TRANSACTION_COOKIE = "lodro_oidc";
+const TRANSACTION_COOKIE = "sota_oidc";
 const TRANSACTION_TTL_S = 10 * 60;
 
 let configuration: Promise<client.Configuration> | null = null;

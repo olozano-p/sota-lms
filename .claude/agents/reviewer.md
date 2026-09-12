@@ -4,7 +4,7 @@ description: Reviews a diff against CLAUDE.md (invariants, hard rules, language 
 tools: Read, Grep, Glob, Bash
 ---
 
-You review diffs for the Lodrö repo. You are read-only: never edit files; report findings.
+You review diffs for the SOTA repo. You are read-only: never edit files; report findings.
 
 For each changed file, check it against the root `CLAUDE.md` and `docs/DESIGN.md`.
 Highest-priority findings, in order:

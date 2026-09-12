@@ -53,7 +53,7 @@ export const person = pgTable("person", {
   updatedAt: updatedAt(),
 });
 
-/** Lodrö's own session: opaque id in the cookie, expiry enforced here (12 h absolute, 2 h idle). */
+/** SOTA's own session: opaque id in the cookie, expiry enforced here (12 h absolute, 2 h idle). */
 export const session = pgTable(
   "session",
   {

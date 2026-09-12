@@ -1,4 +1,4 @@
-# ADR-004 · Entitlements come from outside through a versioned contract; Lodrö caches
+# ADR-004 · Entitlements come from outside through a versioned contract; SOTA caches
 
 **Date** 2026-09-11 · **Status** accepted
 
@@ -24,7 +24,7 @@ touches; writing them back to the source is deferred to v1.1.
 
 ## Consequences
 
-- The source must send **complete** payloads; Lodrö replaces external rows rather than merging.
+- The source must send **complete** payloads; SOTA replaces external rows rather than merging.
 - Lock reasons are generated from the rule type (i18n keys), never from the source's tier names.
-- Rejected: Lodrö calling the members' site's internal API; storing "unlocked" flags per lesson;
+- Rejected: SOTA calling the members' site's internal API; storing "unlocked" flags per lesson;
   a shared database between the two systems.

@@ -2,7 +2,7 @@
 # proxy (deploy/nginx.conf). Copy `.env.example` to `.env`, fill the secrets and run:
 #   docker compose -f docker-compose.prod.yml up -d --build
 # Or point DATABASE_URL / S3_* at managed services and drop those two services.
-name: lodro-prod
+name: sota-prod
 
 services:
   app:
@@ -30,13 +30,13 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-lodro}
+      POSTGRES_USER: ${POSTGRES_USER:-sota}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:-lodro}
+      POSTGRES_DB: ${POSTGRES_DB:-sota}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lodro}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sota}"]
       interval: 10s
       timeout: 5s
       retries: 10

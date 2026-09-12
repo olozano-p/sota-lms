@@ -10,7 +10,7 @@ export type LocaleCode = (typeof LOCALE_CODES)[number];
 /**
  * Access rule types the core understands. The entitlement source names *instances* of these
  * (e.g. "immediate", "delayed") in each entitlement's `rule` field; the mapping from an
- * organisation's tiers to those names happens outside Lodrö.
+ * organisation's tiers to those names happens outside SOTA.
  */
 export const accessRuleSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("immediate") }),
@@ -25,7 +25,7 @@ export const lmsConfigSchema = z.object({
     name: z.string().min(1),
     /** Optional path under `public/` to a logo; the built-in mark is used when absent. */
     logo: z.string().nullable().default(null),
-    /** Where the footer's "Made with Lodrö" points; your fork or the upstream project. */
+    /** Where the footer's "Made with SOTA" points; your fork or the upstream project. */
     projectUrl: z.string().url().default("https://github.com/olozano-p/sota-lms"),
     /** Optional accent overrides (hex). Applied as CSS variables; tokens stay semantic. */
     colors: z
@@ -43,7 +43,7 @@ export const lmsConfigSchema = z.object({
     default: z.enum(LOCALE_CODES),
     enabled: z.array(z.enum(LOCALE_CODES)).min(1),
     /** Cookie name; set the domain in `.env` (`COOKIE_DOMAIN`) so a parent site can share it. */
-    cookieName: z.string().default("lodro_locale"),
+    cookieName: z.string().default("sota_locale"),
   }),
   /** IANA zone used to turn dates (course end, release dates) into instants. */
   timeZone: z.string().default("UTC"),

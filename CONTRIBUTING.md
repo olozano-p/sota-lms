@@ -1,6 +1,6 @@
-# Contributing to Lodrö
+# Contributing to SOTA
 
-Thank you for considering a contribution. Lodrö is small on purpose: a lean LMS that leaves
+Thank you for considering a contribution. SOTA is small on purpose: a lean LMS that leaves
 identity and payments to other systems. Contributions that keep it lean are the ones most likely
 to land.
 

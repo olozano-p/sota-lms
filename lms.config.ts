@@ -6,14 +6,14 @@ import { defineConfig } from "./src/config/schema.ts";
 
 export default defineConfig({
   brand: {
-    name: "Lodrö",
+    name: "SOTA",
     logo: null,
     colors: {},
   },
   locales: {
     default: "ca",
     enabled: ["ca", "es", "en"],
-    cookieName: "lodro_locale",
+    cookieName: "sota_locale",
   },
   timeZone: "Europe/Madrid",
   // Rule names referenced by the entitlement source. Two instances of the core's rule types.

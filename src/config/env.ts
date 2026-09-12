@@ -25,12 +25,12 @@ export const env = {
     return (process.env.APP_URL ?? `http://localhost:${this.port}`).replace(/\/$/, "");
   },
   get databaseUrl(): string {
-    return process.env.DATABASE_URL ?? "postgres://lodro:lodro@localhost:5433/lodro";
+    return process.env.DATABASE_URL ?? "postgres://sota:sota@localhost:5433/sota";
   },
   get sessionSecret(): string {
     return isProduction
       ? required("SESSION_SECRET")
-      : (process.env.SESSION_SECRET ?? "lodro-dev-secret-not-for-production");
+      : (process.env.SESSION_SECRET ?? "sota-dev-secret-not-for-production");
   },
   get cookieDomain(): string | null {
     return optional("COOKIE_DOMAIN");
@@ -88,7 +88,7 @@ export const env = {
       return process.env.MAIL_TRANSPORT === "smtp" ? "smtp" : "console";
     },
     get from(): string {
-      return process.env.MAIL_FROM ?? "Lodrö <lms@example.invalid>";
+      return process.env.MAIL_FROM ?? "SOTA <lms@example.invalid>";
     },
     get smtp() {
       return {

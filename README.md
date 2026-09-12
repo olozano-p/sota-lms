@@ -1,9 +1,9 @@
-# Lodrö
+# SOTA
 
 A lean, self-hostable, open-source course platform. Courses made of chapters made of lessons
 (text, video, audio, files, embeds, assignments, quizzes), cohorts with drip release, per-lesson
-progress. Lodrö is a **relying party**: your identity provider says who someone is, your own
-system says what they may access, and Lodrö delivers the lessons. It never handles sign-up,
+progress. SOTA is a **relying party**: your identity provider says who someone is, your own
+system says what they may access, and SOTA delivers the lessons. It never handles sign-up,
 passwords or payments.
 
 <p align="center">
@@ -41,7 +41,7 @@ Agent rules: `CLAUDE.md`.
 ## Run it locally
 
 ```bash
-git clone https://github.com/olozano-p/sota-lms && cd lodro
+git clone https://github.com/olozano-p/sota-lms && cd sota
 cp .env.example .env
 docker compose up
 ```

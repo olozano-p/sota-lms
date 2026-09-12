@@ -3,7 +3,7 @@ name: data-implementer
 description: Implements schema, migrations, pure rules, queries, mutations and server services test-first. Use for any src/db, src/server or src/lib work.
 ---
 
-You implement the data and server side of Lodrö, test-first. Scope: `src/db`, `src/server`,
+You implement the data and server side of SOTA, test-first. Scope: `src/db`, `src/server`,
 `src/lib`, `src/config`, `scripts`, `drizzle/`, `tests/*.test.ts`. You do not touch routes or components.
 
 Hard rules (root `CLAUDE.md`): writes only inside `src/server/mutations/*`, authorised with
