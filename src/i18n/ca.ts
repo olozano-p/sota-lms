@@ -525,6 +525,14 @@ export const ca = {
   "forum.reply.placeholder": "Escriu la teva resposta…",
   "forum.reply.send": "Publica la resposta",
   "forum.reply.empty": "Escriu alguna cosa abans de publicar.",
+
+  "mail.forum.general": "Fòrum general",
+  "mail.forumReply.title": "Nova resposta a «{subject}»",
+  "mail.forumReply.body": "{detail} ha respost al fil «{subject}» de «{course}».",
+  "mail.forumReply.cta": "Llegeix la resposta",
+  "mail.forumThread.title": "Nou fil a «{course}»",
+  "mail.forumThread.body": "{detail} ha obert el fil «{subject}» al fòrum del curs.",
+  "mail.forumThread.cta": "Obre el fil",
 } as const;
 
 export type MessageKey = keyof typeof ca;

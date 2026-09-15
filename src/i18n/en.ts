@@ -524,4 +524,12 @@ export const en: Record<MessageKey, string> = {
   "forum.reply.placeholder": "Write your reply…",
   "forum.reply.send": "Post the reply",
   "forum.reply.empty": "Write something before posting.",
+
+  "mail.forum.general": "General forum",
+  "mail.forumReply.title": "New reply in “{subject}”",
+  "mail.forumReply.body": "{detail} replied to the thread “{subject}” in “{course}”.",
+  "mail.forumReply.cta": "Read the reply",
+  "mail.forumThread.title": "New thread in “{course}”",
+  "mail.forumThread.body": "{detail} started the thread “{subject}” in the course forum.",
+  "mail.forumThread.cta": "Open the thread",
 };

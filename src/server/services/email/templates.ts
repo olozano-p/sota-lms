@@ -6,9 +6,15 @@ import { translate } from "../../../i18n/translate.ts";
 import type { Locale } from "../../../i18n/locale.ts";
 import type { MessageKey } from "../../../i18n/ca.ts";
 
-export type NotificationKind = "submission_received" | "feedback_returned" | "chapter_released";
+export type NotificationKind =
+  | "submission_received"
+  | "feedback_returned"
+  | "chapter_released"
+  | "forum_reply"
+  | "forum_thread";
 
 export interface NotificationPayload {
+  /** Empty for the general forum, which belongs to no course. */
   courseTitle: string;
   /** Deep link, absolute. */
   url: string;
@@ -51,7 +57,7 @@ export function renderNotification(
   const t = (key: MessageKey, params?: Record<string, string | number>) =>
     translate(locale, key, params);
   const p = {
-    course: payload.courseTitle,
+    course: payload.courseTitle || t("mail.forum.general"),
     subject: payload.subject ?? "",
     detail: payload.detail ?? "",
   };
@@ -71,6 +77,16 @@ export function renderNotification(
     case "chapter_released":
       return layout(brand, t("mail.release.title", p), [t("mail.release.body", p)], {
         label: t("mail.release.cta"),
+        url: payload.url,
+      });
+    case "forum_reply":
+      return layout(brand, t("mail.forumReply.title", p), [t("mail.forumReply.body", p)], {
+        label: t("mail.forumReply.cta"),
+        url: payload.url,
+      });
+    case "forum_thread":
+      return layout(brand, t("mail.forumThread.title", p), [t("mail.forumThread.body", p)], {
+        label: t("mail.forumThread.cta"),
         url: payload.url,
       });
   }

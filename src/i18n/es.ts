@@ -528,4 +528,12 @@ export const es: Record<MessageKey, string> = {
   "forum.reply.placeholder": "Escribe tu respuesta…",
   "forum.reply.send": "Publicar la respuesta",
   "forum.reply.empty": "Escribe algo antes de publicar.",
+
+  "mail.forum.general": "Foro general",
+  "mail.forumReply.title": "Nueva respuesta en «{subject}»",
+  "mail.forumReply.body": "{detail} ha respondido al hilo «{subject}» de «{course}».",
+  "mail.forumReply.cta": "Leer la respuesta",
+  "mail.forumThread.title": "Nuevo hilo en «{course}»",
+  "mail.forumThread.body": "{detail} ha abierto el hilo «{subject}» en el foro del curso.",
+  "mail.forumThread.cta": "Abrir el hilo",
 };

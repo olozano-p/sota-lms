@@ -3,14 +3,23 @@
  * the forum access gate and appends an audit row inside its transaction (CLAUDE.md invariants).
  */
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 import { z } from "zod";
 import { db } from "~/db";
-import { FORUM_REACTIONS, file, forumPost, forumReaction, forumThread } from "~/db/schema";
+import {
+  FORUM_REACTIONS,
+  courseTeacher,
+  file,
+  forumPost,
+  forumReaction,
+  forumThread,
+} from "~/db/schema";
 import { lmsConfig } from "~/config";
-import { forumFileKey, forumScopeFromFileKey, nextReaction } from "~/lib/forum";
+import { env } from "~/config/env";
+import { forumFileKey, forumScopeFromFileKey, nextReaction, participants } from "~/lib/forum";
 import { audit } from "~/server/audit";
+import { enqueue } from "~/server/services/notifications";
 import { AuthorizationError, requireUser, type SessionUser } from "~/server/auth/authz";
 import {
   loadForumCourse,
@@ -20,8 +29,15 @@ import {
   type ForumAccess,
 } from "~/server/access/forum";
 import { headObject, signedPutUrl } from "~/server/services/files";
+import type { ForumCourse } from "~/server/access/forum";
 
 const id = z.string().uuid();
+
+/** Absolute link to a post, in the course forum or the general one. */
+function postUrl(c: ForumCourse | null, threadId: string, postId: string): string {
+  const base = c ? `${env.appUrl}/courses/${c.slug}/forum` : `${env.appUrl}/forum`;
+  return `${base}/${threadId}#post-${postId}`;
+}
 const title = z.string().trim().min(3).max(200);
 const bodyMd = z.string().trim().min(1).max(100_000);
 
@@ -74,6 +90,24 @@ export const createThread = createServerFn({ method: "POST" })
         entityId: thread!.id,
         after: { courseId: c?.id ?? null, title: data.title, openingPostId: post!.id },
       });
+      // The course's teachers hear about new threads in the daily digest.
+      if (c) {
+        const teachers = await tx
+          .select({ personId: courseTeacher.personId })
+          .from(courseTeacher)
+          .where(eq(courseTeacher.courseId, c.id));
+        for (const personId of participants(
+          teachers.map((r) => r.personId),
+          user.id,
+        )) {
+          await enqueue(tx, personId, "forum_thread", {
+            courseTitle: c.title,
+            subject: data.title,
+            detail: user.name,
+            url: postUrl(c, thread!.id, post!.id),
+          });
+        }
+      }
       return { id: thread!.id };
     });
   });
@@ -140,7 +174,7 @@ export const replyToThread = createServerFn({ method: "POST" })
   .validator(z.object({ threadId: id, bodyMd, replyToPostId: id.nullable().optional() }))
   .handler(async ({ data }) => {
     const user = await requireUser();
-    const { thread, access } = await threadAccess(user, data.threadId);
+    const { thread, course: c, access } = await threadAccess(user, data.threadId);
     if (thread.lockedAt && !access.moderator) throw new Error("thread is locked");
     if (data.replyToPostId) {
       const [cited] = await db
@@ -167,6 +201,22 @@ export const replyToThread = createServerFn({ method: "POST" })
         entityId: post!.id,
         after: { threadId: thread.id, replyToPostId: data.replyToPostId ?? null },
       });
+      // Everyone who wrote in the thread so far hears about the reply in the daily digest.
+      const earlier = await tx
+        .select({ authorPersonId: forumPost.authorPersonId })
+        .from(forumPost)
+        .where(and(eq(forumPost.threadId, thread.id), isNull(forumPost.deletedAt)));
+      for (const personId of participants(
+        [thread.authorPersonId, ...earlier.map((r) => r.authorPersonId)],
+        user.id,
+      )) {
+        await enqueue(tx, personId, "forum_reply", {
+          courseTitle: c?.title ?? "",
+          subject: thread.title,
+          detail: user.name,
+          url: postUrl(c, thread.id, post!.id),
+        });
+      }
       return { id: post!.id };
     });
   });
