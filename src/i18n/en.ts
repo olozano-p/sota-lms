@@ -532,4 +532,12 @@ export const en: Record<MessageKey, string> = {
   "mail.forumThread.title": "New thread in “{course}”",
   "mail.forumThread.body": "{detail} started the thread “{subject}” in the course forum.",
   "mail.forumThread.cta": "Open the thread",
+
+  "forum.error.locked": "The thread is locked.",
+  "forum.error.citedMissing": "The quoted message no longer exists.",
+  "forum.error.openingPost": "The opening message can only be removed with its thread.",
+  "forum.error.deleted": "This message was deleted.",
+  "forum.error.ownPost": "You cannot react to your own message.",
+  "forum.error.imageType": "Only images can be inserted.",
+  "forum.error.imageTooLarge": "The image is too large.",
 };

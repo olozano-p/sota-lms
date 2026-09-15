@@ -11,10 +11,12 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { ConfirmDialog } from "~/components/ui/dialog";
 import { Eyebrow } from "~/components/ui/eyebrow";
+import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { ForumLink, forumPath } from "./links";
 import { PostCard, type Post } from "./PostCard";
 import { When } from "./When";
+import { forumError } from "./errors";
 import { useForumUpload } from "./upload";
 
 type ThreadData = NonNullable<Awaited<ReturnType<typeof getThread>>>;
@@ -72,7 +74,7 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
         hash: `post-${id}`,
       });
     } catch (e) {
-      setError((e as Error).message);
+      setError(forumError(t, e));
     } finally {
       setSending(false);
     }
@@ -84,7 +86,7 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
       await patchThread({ data: { threadId: thread.id, patch: p } });
       await router.invalidate();
     } catch (e) {
-      setError((e as Error).message);
+      setError(forumError(t, e));
     } finally {
       setBusy(null);
     }
@@ -96,7 +98,7 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
       await removeThread({ data: { threadId: thread.id } });
       await navigate({ to: forumPath(courseSlug, { kind: "index" }) });
     } catch (e) {
-      setError((e as Error).message);
+      setError(forumError(t, e));
       setBusy(null);
     }
   };
@@ -124,7 +126,7 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
         </div>
         {renaming ? (
           <form
-            className="flex flex-wrap gap-2"
+            className="flex flex-wrap items-end gap-2"
             onSubmit={async (e) => {
               e.preventDefault();
               if (title.trim().length >= 3 && title.trim() !== thread.title)
@@ -132,13 +134,17 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
               setRenaming(false);
             }}
           >
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              aria-label={t("forum.thread.title")}
-              className="max-w-xl font-serif text-lg"
-              autoFocus
-            />
+            <Field label={t("forum.thread.title")} className="min-w-64 flex-1">
+              {(c) => (
+                <Input
+                  {...c}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  maxLength={200}
+                  autoFocus
+                />
+              )}
+            </Field>
             <Button type="submit" variant="outline" loading={busy === "title"}>
               {t("common.save")}
             </Button>

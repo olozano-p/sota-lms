@@ -533,6 +533,14 @@ export const ca = {
   "mail.forumThread.title": "Nou fil a «{course}»",
   "mail.forumThread.body": "{detail} ha obert el fil «{subject}» al fòrum del curs.",
   "mail.forumThread.cta": "Obre el fil",
+
+  "forum.error.locked": "El fil està tancat.",
+  "forum.error.citedMissing": "El missatge citat ja no existeix.",
+  "forum.error.openingPost": "El missatge inicial només se suprimeix amb el fil.",
+  "forum.error.deleted": "Aquest missatge s'ha suprimit.",
+  "forum.error.ownPost": "No pots reaccionar al teu propi missatge.",
+  "forum.error.imageType": "Només s'hi poden posar imatges.",
+  "forum.error.imageTooLarge": "La imatge és massa gran.",
 } as const;
 
 export type MessageKey = keyof typeof ca;

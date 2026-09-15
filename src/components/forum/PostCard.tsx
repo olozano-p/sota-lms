@@ -15,6 +15,7 @@ import { Button } from "~/components/ui/button";
 import { ConfirmDialog } from "~/components/ui/dialog";
 import { cn } from "~/lib/cn";
 import { ReactionButtons } from "./ReactionButtons";
+import { forumError } from "./errors";
 import { When } from "./When";
 
 type ThreadData = NonNullable<Awaited<ReturnType<typeof getThread>>>;
@@ -52,7 +53,7 @@ export function PostCard({ post, onCite, upload }: Props) {
       setEditing(false);
       await router.invalidate();
     } catch (e) {
-      setError((e as Error).message);
+      setError(forumError(t, e));
     } finally {
       setBusy(false);
     }
@@ -65,7 +66,7 @@ export function PostCard({ post, onCite, upload }: Props) {
       setConfirmDelete(false);
       await router.invalidate();
     } catch (e) {
-      setError((e as Error).message);
+      setError(forumError(t, e));
     } finally {
       setBusy(false);
     }

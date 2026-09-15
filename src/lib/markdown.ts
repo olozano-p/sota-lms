@@ -1,6 +1,6 @@
 import { marked } from "marked";
 import DOMPurify from "isomorphic-dompurify";
-import { isVideoLine, parseVideoUrl } from "./video-links";
+import { isVideoLine, parseVideoUrl, type VideoLink } from "./video-links";
 
 marked.setOptions({ gfm: true, breaks: false });
 
@@ -48,24 +48,26 @@ const ALLOWED_ATTR = ["href", "title", "alt", "src", "lang", "start", "align"];
 const EMBED_TOKEN = "sota-embed-7f3a1c";
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 
-function liftVideoLines(md: string): { md: string; embeds: string[] } {
-  const embeds: string[] = [];
+function liftVideoLines(md: string): { md: string; embeds: VideoLink[] } {
+  const embeds: VideoLink[] = [];
   const lines = md.split("\n").map((line) => {
     if (!isVideoLine(line)) return line;
     const video = parseVideoUrl(line.trim());
     if (!video) return line;
-    embeds.push(video.embedSrc);
+    embeds.push(video);
     return `${EMBED_TOKEN}-${embeds.length - 1}`;
   });
   return { md: lines.join("\n"), embeds };
 }
 
-function placeEmbeds(html: string, embeds: string[]): string {
+const PROVIDER_NAME = { youtube: "YouTube", vimeo: "Vimeo" } as const;
+
+function placeEmbeds(html: string, embeds: VideoLink[]): string {
   if (!embeds.length) return html;
   return html.replace(new RegExp(`<p>${EMBED_TOKEN}-(\\d+)</p>`, "g"), (whole, n: string) => {
-    const src = embeds[Number(n)];
-    if (!src) return whole;
-    return `<figure class="embed"><iframe src="${esc(src)}" title="" loading="lazy" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" referrerpolicy="strict-origin-when-cross-origin"></iframe></figure>`;
+    const video = embeds[Number(n)];
+    if (!video) return whole;
+    return `<figure class="embed"><iframe src="${esc(video.embedSrc)}" title="${PROVIDER_NAME[video.provider]}" loading="lazy" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" referrerpolicy="strict-origin-when-cross-origin"></iframe></figure>`;
   });
 }
 

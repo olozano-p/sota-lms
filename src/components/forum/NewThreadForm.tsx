@@ -9,6 +9,7 @@ import { Button } from "~/components/ui/button";
 import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { ForumLink, forumPath } from "./links";
+import { forumError } from "./errors";
 import { useForumUpload } from "./upload";
 
 export function NewThreadForm({ courseSlug }: { courseSlug: string | null }) {
@@ -30,7 +31,7 @@ export function NewThreadForm({ courseSlug }: { courseSlug: string | null }) {
       const { id } = await create({ data: { courseSlug, title: title.trim(), bodyMd: body } });
       await navigate({ to: forumPath(courseSlug, { kind: "thread", threadId: id }) });
     } catch (e) {
-      setError((e as Error).message);
+      setError(forumError(t, e));
       setBusy(false);
     }
   };

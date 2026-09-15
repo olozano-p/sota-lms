@@ -27,9 +27,9 @@ import {
   requireForumAccess,
   requireForumFileAccess,
   type ForumAccess,
+  type ForumCourse,
 } from "~/server/access/forum";
 import { headObject, signedPutUrl } from "~/server/services/files";
-import type { ForumCourse } from "~/server/access/forum";
 
 const id = z.string().uuid();
 
@@ -123,6 +123,8 @@ export const updateThread = createServerFn({ method: "POST" })
     const user = await requireUser();
     const { thread, access } = await threadAccess(user, data.threadId);
     const { title: newTitle, pinned, locked } = data.patch;
+    if (newTitle === undefined && pinned === undefined && locked === undefined)
+      return { ok: true as const };
     if (newTitle !== undefined && !mayEdit(access, thread.authorPersonId, user))
       throw new AuthorizationError(403);
     if ((pinned !== undefined || locked !== undefined) && !access.moderator)
@@ -175,14 +177,14 @@ export const replyToThread = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const user = await requireUser();
     const { thread, course: c, access } = await threadAccess(user, data.threadId);
-    if (thread.lockedAt && !access.moderator) throw new Error("thread is locked");
+    if (thread.lockedAt && !access.moderator) throw new Error("forum.error.locked");
     if (data.replyToPostId) {
       const [cited] = await db
         .select({ id: forumPost.id, deletedAt: forumPost.deletedAt })
         .from(forumPost)
         .where(and(eq(forumPost.id, data.replyToPostId), eq(forumPost.threadId, thread.id)))
         .limit(1);
-      if (!cited || cited.deletedAt) throw new Error("cited post not found");
+      if (!cited || cited.deletedAt) throw new Error("forum.error.citedMissing");
     }
     return db.transaction(async (tx) => {
       const [post] = await tx
@@ -253,7 +255,7 @@ export const deletePost = createServerFn({ method: "POST" })
     const { post, access, isOpening } = await postAccess(user, data.postId);
     if (post.deletedAt || !mayEdit(access, post.authorPersonId, user))
       throw new AuthorizationError(403);
-    if (isOpening) throw new Error("the opening post goes with its thread");
+    if (isOpening) throw new Error("forum.error.openingPost");
     return db.transaction(async (tx) => {
       await tx
         .update(forumPost)
@@ -275,8 +277,8 @@ export const reactToPost = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const user = await requireUser();
     const { post } = await postAccess(user, data.postId);
-    if (post.deletedAt) throw new Error("post deleted");
-    if (post.authorPersonId === user.id) throw new Error("no reacting to your own post");
+    if (post.deletedAt) throw new Error("forum.error.deleted");
+    if (post.authorPersonId === user.id) throw new Error("forum.error.ownPost");
     return db.transaction(async (tx) => {
       const [current] = await tx
         .select({ value: forumReaction.value })
@@ -339,11 +341,8 @@ export const requestForumUpload = createServerFn({ method: "POST" })
     const c = data.courseSlug ? await loadForumCourse(data.courseSlug) : null;
     if (data.courseSlug && !c) throw new AuthorizationError(403);
     await requireForumAccess(user, c);
-    if (!isImage(data.mime)) throw new Error(`type not allowed: ${data.mime}`);
-    if (data.size > lmsConfig.forum.imageMaxBytes)
-      throw new Error(
-        `image too large (max ${Math.round(lmsConfig.forum.imageMaxBytes / 1_048_576)} MB)`,
-      );
+    if (!isImage(data.mime)) throw new Error("forum.error.imageType");
+    if (data.size > lmsConfig.forum.imageMaxBytes) throw new Error("forum.error.imageTooLarge");
     const key = forumFileKey(
       c ? { kind: "course", courseId: c.id } : { kind: "general" },
       uuidv7(),
@@ -361,7 +360,7 @@ export const confirmForumUpload = createServerFn({ method: "POST" })
     await requireForumFileAccess(user, scope);
     const head = await headObject(data.key);
     if (!head) throw new Error("object not found after upload");
-    if (!isImage(head.mime)) throw new Error(`type not allowed: ${head.mime}`);
+    if (!isImage(head.mime)) throw new Error("forum.error.imageType");
     return db.transaction(async (tx) => {
       const [row] = await tx
         .insert(file)

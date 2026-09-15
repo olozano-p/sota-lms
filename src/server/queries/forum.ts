@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, asc, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/db";
-import { courseTeacher, forumPost, forumReaction, forumThread, person } from "~/db/schema";
+import { course, courseTeacher, forumPost, forumReaction, forumThread, person } from "~/db/schema";
 import { lmsConfig } from "~/config";
 import { markdownExcerpt, renderMarkdown } from "~/lib/markdown";
 import { AuthorizationError, requireUser, type SessionUser } from "~/server/auth/authz";
@@ -13,8 +13,12 @@ import {
   type ForumAccess,
   type ForumCourse,
 } from "~/server/access/forum";
-import { entitledCourses, isPrivileged, loadPersonFacts } from "~/server/access/require";
-import { course } from "~/db/schema";
+import {
+  decideCourse,
+  entitledCourses,
+  isPrivileged,
+  loadPersonFacts,
+} from "~/server/access/require";
 
 export type AuthorRole = "admin" | "teacher" | null;
 
@@ -102,6 +106,8 @@ export const listThreads = createServerFn({ method: "GET" })
         lastPostAt: sql<Date>`max(${forumPost.createdAt})`.as("last_post_at"),
       })
       .from(forumPost)
+      .innerJoin(forumThread, eq(forumThread.id, forumPost.threadId))
+      .where(where)
       .groupBy(forumPost.threadId)
       .as("stats");
     const lastActivity = sql`coalesce(${stats.lastPostAt}, ${forumThread.createdAt})`;
@@ -135,26 +141,27 @@ export const listThreads = createServerFn({ method: "GET" })
     ]);
 
     const ids = rows.map((r) => r.id);
-    const posts = ids.length
-      ? await db
-          .select({
-            id: forumPost.id,
-            threadId: forumPost.threadId,
-            authorPersonId: forumPost.authorPersonId,
-            bodyMd: forumPost.bodyMd,
-            createdAt: forumPost.createdAt,
-            deletedAt: forumPost.deletedAt,
-          })
-          .from(forumPost)
-          .where(inArray(forumPost.threadId, ids))
-          .orderBy(asc(forumPost.createdAt))
-      : [];
-    const opening = new Map<string, (typeof posts)[number]>();
-    const latest = new Map<string, (typeof posts)[number]>();
-    for (const p of posts) {
-      if (!opening.has(p.threadId)) opening.set(p.threadId, p);
-      latest.set(p.threadId, p);
-    }
+    // One row per thread each way: the opening post (for the excerpt) and the latest (its author).
+    const edge = (order: "asc" | "desc") =>
+      ids.length
+        ? db
+            .selectDistinctOn([forumPost.threadId], {
+              threadId: forumPost.threadId,
+              authorPersonId: forumPost.authorPersonId,
+              bodyMd: forumPost.bodyMd,
+              deletedAt: forumPost.deletedAt,
+            })
+            .from(forumPost)
+            .where(inArray(forumPost.threadId, ids))
+            .orderBy(
+              forumPost.threadId,
+              order === "asc" ? asc(forumPost.createdAt) : desc(forumPost.createdAt),
+            )
+        : Promise.resolve([]);
+    const [first, last] = await Promise.all([edge("asc"), edge("desc")]);
+    const opening = new Map(first.map((p) => [p.threadId, p]));
+    const latest = new Map(last.map((p) => [p.threadId, p]));
+    const posts = [...first, ...last];
     const authors = await authorsOf(
       [...rows.map((r) => r.authorPersonId), ...posts.map((p) => p.authorPersonId)].filter(
         (x): x is string => !!x,
@@ -294,6 +301,7 @@ export const getCourseHeader = createServerFn({ method: "GET" })
     return {
       course: { id: c.id, slug: c.slug, title: c.title, subtitle: c.subtitle, status: c.status },
       privileged,
-      forumEnabled: c.forumEnabled,
+      // The tab shows only to people the forum gate would let in.
+      forumEnabled: c.forumEnabled && (privileged || decideCourse(facts, c).ok),
     };
   });

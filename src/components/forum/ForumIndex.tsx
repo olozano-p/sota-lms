@@ -3,6 +3,7 @@ import { Plus, Search } from "lucide-react";
 import { useI18n } from "~/i18n";
 import type { listThreads } from "~/server/queries/forum";
 import { buttonVariants } from "~/components/ui/button";
+import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/cn";
 import { ForumLink, forumPath } from "./links";
@@ -24,10 +25,10 @@ export function ForumIndex({
   const navigate = useNavigate();
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <form
           role="search"
-          className="relative w-full max-w-xs"
+          className="w-full max-w-xs"
           onSubmit={(e) => {
             e.preventDefault();
             const value = (new FormData(e.currentTarget).get("q") as string).trim();
@@ -37,18 +38,24 @@ export function ForumIndex({
             });
           }}
         >
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            name="q"
-            type="search"
-            defaultValue={q ?? ""}
-            aria-label={t("forum.search.label")}
-            placeholder={t("forum.search")}
-            className="pl-9"
-          />
+          <Field label={t("forum.search.label")}>
+            {(c) => (
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  {...c}
+                  name="q"
+                  type="search"
+                  defaultValue={q ?? ""}
+                  placeholder={t("forum.search")}
+                  className="pl-9"
+                />
+              </div>
+            )}
+          </Field>
         </form>
         <ForumLink
           courseSlug={courseSlug}

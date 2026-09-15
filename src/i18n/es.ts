@@ -536,4 +536,12 @@ export const es: Record<MessageKey, string> = {
   "mail.forumThread.title": "Nuevo hilo en «{course}»",
   "mail.forumThread.body": "{detail} ha abierto el hilo «{subject}» en el foro del curso.",
   "mail.forumThread.cta": "Abrir el hilo",
+
+  "forum.error.locked": "El hilo está cerrado.",
+  "forum.error.citedMissing": "El mensaje citado ya no existe.",
+  "forum.error.openingPost": "El mensaje inicial solo se elimina con el hilo.",
+  "forum.error.deleted": "Este mensaje se ha eliminado.",
+  "forum.error.ownPost": "No puedes reaccionar a tu propio mensaje.",
+  "forum.error.imageType": "Solo se pueden insertar imágenes.",
+  "forum.error.imageTooLarge": "La imagen es demasiado grande.",
 };

@@ -45,7 +45,9 @@ export const VideoEmbed = Node.create<{ removeLabel: string }>({
     return [
       "figure",
       mergeAttributes(HTMLAttributes, { "data-video": node.attrs.src, class: "embed" }),
-      ...(video ? [["iframe", { src: video.embedSrc, title: "", loading: "lazy" }] as const] : []),
+      ...(video
+        ? [["iframe", { src: video.embedSrc, title: video.provider, loading: "lazy" }] as const]
+        : []),
     ];
   },
 
@@ -143,7 +145,7 @@ function VideoEmbedView({ node, deleteNode, selected, extension }: ReactNodeView
       {video ? (
         <iframe
           src={video.embedSrc}
-          title=""
+          title={video.provider === "youtube" ? "YouTube" : "Vimeo"}
           loading="lazy"
           className="pointer-events-none aspect-video w-full rounded-lg border bg-card"
         />

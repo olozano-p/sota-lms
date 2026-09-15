@@ -53,12 +53,13 @@ export async function requireForumAccess(
   user: SessionUser,
   forumCourse: ForumCourse | null,
 ): Promise<ForumAccess> {
-  const facts = await loadPersonFacts(user);
   if (!forumCourse) {
     if (!lmsConfig.forum.general) throw new AuthorizationError(403);
+    const facts = await loadPersonFacts(user);
     return { facts, moderator: facts.admin || hasRole(user, "teacher"), course: null };
   }
   if (!forumCourse.forumEnabled) throw new AuthorizationError(403);
+  const facts = await loadPersonFacts(user);
   const privileged = isPrivileged(facts, forumCourse.id);
   if (!privileged && !decideCourse(facts, forumCourse).ok) throw new AuthorizationError(403);
   return { facts, moderator: privileged, course: forumCourse };
