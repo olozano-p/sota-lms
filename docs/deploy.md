@@ -1,8 +1,8 @@
 # Deploying SOTA
 
-SOTA is one Node process plus PostgreSQL and an S3-compatible object store, behind a reverse
-proxy that terminates TLS. Everything specific to your organisation lives in `.env` and
-`lms.config.ts`.
+SOTA is one Node process plus PostgreSQL, behind a reverse proxy that terminates TLS. Files live
+in a directory the process owns (default) or in an S3-compatible bucket. Everything specific to
+your organisation lives in `.env` and `lms.config.ts`.
 
 ## Before you start
 
@@ -10,9 +10,11 @@ proxy that terminates TLS. Everything specific to your organisation lives in `.e
    (`docs/idp-integration.md`).
 2. **Entitlement source** implementing `docs/entitlements-contract.md` (pull URL + token, webhook
    secret).
-3. **Object storage**: a private bucket on MinIO (bundled) or any S3 API. Browsers upload and
-   download through short signed URLs, so the storage hostname must be reachable from them —
-   in practice a second hostname on your proxy (`files.example.org`) set as `S3_PUBLIC_ENDPOINT`.
+3. **File storage**: a writable directory that survives deploys (`STORAGE_DIR`, the default
+   `STORAGE_DRIVER=local`; uploads stream through the app, so the proxy must allow bodies up to
+   `uploads.maxBytes` on `/api/storage/`), or `STORAGE_DRIVER=s3` with a private bucket on any
+   S3 API. With S3, browsers talk to the bucket through short signed URLs, so its hostname must be
+   reachable from them — a second hostname on your proxy set as `S3_PUBLIC_ENDPOINT`.
 4. **SMTP** relay for notifications (or `MAIL_TRANSPORT=console` to log them).
 5. **Vimeo** token if teachers should validate videos (`docs/video-vimeo.md`).
 
@@ -37,15 +39,20 @@ git pull && docker compose -f docker-compose.prod.yml up -d --build
 
 Migrations are forward-only and run before the new code serves traffic; take a `pg_dump` first.
 
-**Managed services**: point `DATABASE_URL` at your Postgres and `S3_*` at your bucket, then
-delete the `postgres`/`minio` services from the compose file.
+Uploads land in the `uploads` volume (`/app/data/uploads` in the container). Bind-mounting a host
+directory instead works when it is owned by uid 1000 (`node` in the image).
+
+**Managed services**: point `DATABASE_URL` at your Postgres and delete the `postgres` service;
+set `STORAGE_DRIVER=s3` with the `S3_*` block and drop the `uploads` volume.
 
 ## Option B — rsync + pm2 on a VPS (alternative)
 
 For a host that already runs Node applications without Docker:
 
-- Node 24 and pnpm on the server; Postgres and MinIO (or a bucket) reachable from it.
-- Environment in `/etc/sota/env` (chmod 600), the same variables as `.env`.
+- Node 24 and pnpm on the server; Postgres reachable from it.
+- Environment in `/etc/sota/env` (chmod 600), the same variables as `.env`, with
+  `STORAGE_DIR=/srv/sota/shared/uploads`: releases under `/srv/sota/releases` are pruned, so
+  uploads must live outside them.
 - `pm2` ecosystem file at `/srv/sota/ecosystem.config.cjs`:
 
 ```js
@@ -80,15 +87,17 @@ The daily digest goes out during the hour configured in `lms.config.ts → notif
 ## Backups
 
 - Postgres: `pg_dump -Fc sota > sota-$(date +%F).dump` nightly; keep 14 days.
-- Object storage: `mc mirror` to a second bucket, or your provider's versioning.
-- There is no other state: the app is stateless apart from the in-memory rate limiter.
+- Files: `rsync -a` (or `tar`) of `STORAGE_DIR` nightly (the `uploads` volume under Docker); with
+  `STORAGE_DRIVER=s3`, `mc mirror` to a second bucket or your provider's versioning.
+- Nothing else is state; the in-memory rate limiter starts empty on every restart.
 
 ## Security checklist (docs/spec.md §8)
 
 - [ ] `APP_URL` is `https://…` (Secure cookies, HSTS header on).
 - [ ] `TRUST_PROXY=true` only behind a proxy you control.
 - [ ] Proxy rate limits on `/auth/` and `/api/` (the app's in-process limiter is a fallback).
-- [ ] Bucket is private; only the app holds the keys; `S3_PUBLIC_ENDPOINT` is HTTPS.
+- [ ] `STORAGE_DIR` is outside the web root and the release directories, owned by the app user
+      only; with S3, the bucket is private, only the app holds the keys, `S3_PUBLIC_ENDPOINT` is HTTPS.
 - [ ] `ENTITLEMENTS_WEBHOOK_SECRET` and `ENTITLEMENTS_PULL_TOKEN` are long and random.
 - [ ] Vimeo embeds restricted to your hostname.
 - [ ] `/api/health` monitored.
@@ -105,6 +114,6 @@ The daily digest goes out during the hour configured in `lms.config.ts → notif
 
 The first production instance is a small foundation's members' school (`docs/spec.md`,
 Appendix A): the members' site is both IdP (better-auth OIDC Provider) and entitlement source,
-mapping its membership tiers to the `immediate` / `delayed` rule names; storage is MinIO on the
-same VPS; mail goes through the organisation's SMTP relay; the proxy is nginx and the deploy is
+mapping its membership tiers to the `immediate` / `delayed` rule names; files live in a directory
+on the same VPS; mail goes through the organisation's SMTP relay; the proxy is nginx and the deploy is
 Option B. None of that is in the code.

@@ -6,6 +6,13 @@ All notable changes to SOTA are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- File storage sits behind a `StorageProvider` interface with a local filesystem driver (the
+  default: files under `STORAGE_DIR`, signed URLs honoured by `/api/storage/$token`) and the
+  S3 driver (`STORAGE_DRIVER=s3`). MinIO is gone from docker compose, CI and the deploy
+  reference; existing S3 deployments set `STORAGE_DRIVER=s3` (ADR-012).
+
 ### Added
 
 - Forums: a per-course forum teachers enable in settings and a general forum (`forum.general` in

@@ -5,7 +5,7 @@
 > **MIT** (ADR-006) · content **Markdown** (ADR-007) · hand-written UI primitives instead of
 > shadcn (ADR-008) · Postgres 16 + PGlite in tests (ADR-002) · admin-grant write-back deferred to
 > v1.1 · a cohort belongs to one course · `pass_threshold` supported, nullable · audio in object
-> storage · prod storage: MinIO on the VPS or an external bucket, both in `docs/deploy.md`.
+> storage · prod storage: a directory on the VPS or an external bucket, both in `docs/deploy.md` (ADR-012).
 > ADR file names follow the house style (`ADR-00n-topic.md`) rather than the paths in §9.
 
 Name: **SOTA** (after Pali _sotāpanna_, "the one who has entered the stream"; repo `sota`). A lean, self-hostable, open-source course platform. Inspired by Frappe LMS's core model (Course → Chapter → Lesson, Batch → Cohort, Quiz, Assignment) but stripped to the essentials and built as a **relying party**: identity and entitlements come from an external OIDC identity provider; the LMS never owns accounts or payments.
@@ -22,8 +22,8 @@ These are constraints on _how_ the project is built, not features:
 
 1. **Public repo from day one.** Public GitHub repository under the Foundation's (or Nodal's — OPEN) organisation. No private history to scrub later; secrets never committed, even in the first commit.
 2. **Generic core, configured edge.** Anything that names an organisation, domain, membership tier, brand, or IdP belongs in `.env`, `lms.config.ts`, or the database — never in source. Rule of thumb for the agent: _if a second organisation forked this tomorrow, would they have to edit a `.ts` file to run it? If yes, it's misplaced._
-3. **Standards over integrations.** SSO is plain OIDC (any compliant IdP works; better-auth is just the reference). Entitlements are a documented, versioned JSON contract over HTTPS, not a call into the members' site's internals. Storage is S3-compatible. Email is SMTP. Video is behind a provider interface (Vimeo is the first implementation).
-4. **One-command local setup.** `docker compose up` gives Postgres + MinIO + a mock OIDC provider + the app with seed data. A contributor must be able to run the full lesson flow locally without any credentials from the reference deployment.
+3. **Standards over integrations.** SSO is plain OIDC (any compliant IdP works; better-auth is just the reference). Entitlements are a documented, versioned JSON contract over HTTPS, not a call into the members' site's internals. Storage is a directory or any S3-compatible API behind one interface. Email is SMTP. Video is behind a provider interface (Vimeo is the first implementation).
+4. **One-command local setup.** `docker compose up` gives Postgres + a mock OIDC provider + the app with seed data. A contributor must be able to run the full lesson flow locally without any credentials from the reference deployment.
 5. **Documented as a product, not a project.** `README.md` (what it is, screenshots, quickstart), `docs/deploy.md`, `docs/idp-integration.md` (how to wire your own IdP and entitlement source), `docs/adr/`. `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` (responsible disclosure), `CHANGELOG.md` (Keep a Changelog), semver tags.
 6. **License:** AGPL-3.0 (recommended — same as Frappe LMS, keeps hosted forks open) or MIT (maximally permissive). **OPEN.**
 7. **English-first codebase and docs**; UI is i18n'd with ca/es/en shipped as the first three catalogs. Identifiers, comments, commits, ADRs in English.
@@ -73,7 +73,7 @@ These are constraints on _how_ the project is built, not features:
 | ORM              | Drizzle ORM + drizzle-kit migrations                                                                                | Schema is the source of truth; migrations committed                                                        |
 | Auth             | Generic OIDC relying party (`openid-client`)                                                                        | Reference IdP: better-auth with OIDC Provider plugin. Mock IdP in docker-compose for dev                   |
 | Video            | `VideoProvider` interface; `VimeoProvider` is the v1 implementation                                                 | See §5                                                                                                     |
-| Files            | S3-compatible object storage (`@aws-sdk/client-s3`)                                                                 | MinIO in dev; any S3 API in prod. Signed URLs only                                                         |
+| Files            | `StorageProvider`: local directory (default) or S3-compatible (`@aws-sdk/client-s3`)                                | Signed URLs only; the local driver honours them at `/api/storage/$token` (ADR-012)                         |
 | Email            | SMTP via `nodemailer`                                                                                               | Any relay. Templates in `src/server/services/email/templates`                                              |
 | Styling          | Tailwind + hand-written primitives (ADR-008); brand tokens (logo, colours, name) from `lms.config.ts`               |                                                                                                            |
 | Rich text        | Markdown storage (ADR-007), edited in place with Tiptap (ADR-010)                                                   | Bare YouTube/Vimeo links become players; images via `/api/files`                                           |
@@ -83,7 +83,7 @@ These are constraints on _how_ the project is built, not features:
 
 Configuration surface (all of it, nothing else):
 
-- `.env`: `DATABASE_URL`, `SESSION_SECRET`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_END_SESSION_URL` (optional), `ENTITLEMENTS_PULL_URL`, `ENTITLEMENTS_PULL_TOKEN`, `ENTITLEMENTS_WEBHOOK_SECRET`, `S3_*`, `SMTP_*`, `MAIL_FROM`, `VIMEO_ACCESS_TOKEN`, `APP_URL`, `COOKIE_DOMAIN`.
+- `.env`: `DATABASE_URL`, `SESSION_SECRET`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_END_SESSION_URL` (optional), `ENTITLEMENTS_PULL_URL`, `ENTITLEMENTS_PULL_TOKEN`, `ENTITLEMENTS_WEBHOOK_SECRET`, `STORAGE_DRIVER`, `STORAGE_DIR`, `S3_*`, `SMTP_*`, `MAIL_FROM`, `VIMEO_ACCESS_TOKEN`, `APP_URL`, `COOKIE_DOMAIN`.
 - `lms.config.ts` (committed, per-deployment fork or mounted): brand name, logo path, colour tokens, default locale, enabled locales, `accessRules` (see §3.3), allowed embed domains, upload limits/mime allowlist, notification defaults, `forum` (general forum switch, post image limit, page size).
 
 ---
@@ -244,7 +244,7 @@ Player component wraps the provider's iframe and exposes a common event surface 
 - Embed via `@vimeo/player`; resume from `media_position_s`, save every ~10 s and on pause/unload, mark watched at ≥ 90 %.
 - Signed per-view embeds: later hardening, not v1.
 
-Contributors may add `YouTubeProvider`, `MuxProvider`, `SelfHostedProvider` behind the same interface. Audio and PDFs go to object storage via signed URLs after an entitlement check.
+Contributors may add `YouTubeProvider`, `MuxProvider`, `SelfHostedProvider` behind the same interface. Audio and PDFs go to file storage via signed URLs after an entitlement check.
 
 ---
 
@@ -287,7 +287,7 @@ Every loader calls `requireSession()`; content loaders call `requireLessonAccess
 - **Continue**: single primary CTA to the first non-completed, released, published lesson.
 - **Entitlement sync**: refresh on login; webhook applies immediately; 15-min TTL self-heals.
 - **Authoring**: course → chapter → lesson → blocks; rich-text editor over Markdown (bold, italics, headings, lists, quotes, code, links, images, video); autosave on blur; publish toggles; drag-sort (dnd-kit).
-- **Uploads**: presigned PUT, server records `file` after HEAD. Limits and mime allowlist from config.
+- **Uploads**: signed PUT (to the bucket, or streamed through the app with the local driver), server records `file` after HEAD. Limits and mime allowlist from config.
 - **Notifications** (SMTP, minimal, per-user opt-out): submission received → teacher; feedback returned → student; chapter released → cohort; forum reply → earlier authors in the thread; new course thread → its teachers. Batched daily except feedback.
 - **Forum**: threads ordered pinned-first then by latest reply; the opening post set apart, replies below; every post shows author, date, like/dislike; "cite" quotes a post and links back to it; moderators (course teachers, admins) pin, lock, rename, delete. Course forums are off until a teacher enables them; the general forum is a config switch.
 - **Accessibility**: captions from the video provider; text titles/descriptions on media; full keyboard nav.
@@ -315,7 +315,7 @@ sota/
   CLAUDE.md                      # ≤ 60 lines
   .env.example
   lms.config.example.ts
-  docker-compose.yml             # dev: postgres, minio, mock-oidc, app
+  docker-compose.yml             # dev: postgres, mock-oidc, app
   docker-compose.prod.yml
   Dockerfile
   docs/
@@ -348,7 +348,7 @@ sota/
 ## 10. Phases
 
 **Phase 0 — Public skeleton**
-Public repo, license, README stub, CI, Dockerfile + compose (Postgres, MinIO, mock OIDC), Drizzle DDL from §4, health route, seed script, `CLAUDE.md`, config loader. Runs locally with `docker compose up`.
+Public repo, license, README stub, CI, Dockerfile + compose (Postgres, mock OIDC), Drizzle DDL from §4, health route, seed script, `CLAUDE.md`, config loader. Runs locally with `docker compose up`.
 
 **Phase 1 — SSO + entitlements**
 OIDC RP against the mock IdP, then against better-auth's OIDC plugin. Person mirror, pull + webhook, `accessRules`, `requireLessonAccess` with exhaustive tests. Admin route. `docs/idp-integration.md` + `docs/entitlements-contract.md` written as the code lands.

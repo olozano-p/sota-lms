@@ -28,5 +28,5 @@ access resolution (`canSeeLesson`), signed file URLs, content sanitisation, CSP,
 The controls the project commits to are listed in `docs/spec.md` §8 and verified in
 `tests/` and the CI workflow: PKCE + JWKS verification with `iss`/`aud`/`nonce`/`exp` checks;
 httpOnly `Secure` `SameSite=Lax` session cookies with 12 h absolute / 2 h idle expiry; HMAC-SHA256
-webhooks with a 5-minute timestamp window and idempotent event ids; private object storage with
+webhooks with a 5-minute timestamp window and idempotent event ids; private file storage with
 ≤ 5-minute signed URLs; CSP with per-request nonces; dependency audit on every CI run.

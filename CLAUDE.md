@@ -22,7 +22,9 @@ document and the code disagree, the code is right and the document gets fixed.
 - **Generic core, configured edge.** Organisation names, tiers, domains, brand, IdP details live in
   `.env`, `lms.config.ts` or the database. Test: would a second organisation have to edit a `.ts`
   file to run their fork? Then it is misplaced. Lock reasons are i18n'd from the rule _type_.
-- **Files are private.** Only `/api/files/$fileId` hands out signed URLs (≤ 5 min) after an access check.
+- **Files are private.** Only `/api/files/$fileId` hands out signed GET URLs (≤ 5 min) after an
+  access check. Storage sits behind `StorageProvider` (`src/server/services/storage`): `local`
+  (default, a directory served through `/api/storage/$token`, which only honours tokens) or `s3`.
 - **Assignments and quizzes are reached through the lesson block that embeds them**:
   `requireContainerAccess()` in `src/server/access/container.ts` is the only gate.
 - **Mail is queued, never sent inline**: mutations `enqueue()`; `scripts/notify.ts` (the tick, run by
@@ -56,7 +58,7 @@ No telemetry. No org-specific code.
 ## Commands
 
 ```bash
-docker compose up -d postgres minio minio-init mock-idp   # dev services (5433, 9010/9011, 3013)
+docker compose up -d postgres mock-idp   # dev services (5433, 3013); files go to data/uploads
 pnpm db:migrate && pnpm db:seed   # migrations + demo course, cohort, three mock users
 pnpm dev                          # http://localhost:3003
 pnpm typecheck · pnpm lint · pnpm fmt · pnpm test · pnpm e2e
@@ -70,7 +72,7 @@ pnpm notify                       # one notification tick (FORCE_DIGEST=true to 
 src/routes/            file routes; _authed = session, _authed/teach = teacher, _authed/admin = admin; api/ = handlers
 src/server/auth/       oidc.ts · session.ts (client-safe getSession) · authz.ts (server-only guards)
 src/server/access/     rules.ts (pure) · entitlements.ts (pull, cache, webhook) · require.ts · forum.ts (course/general forum gate)
-src/server/queries/ mutations/ services/   reads · writes+audit · video/, files, email/
+src/server/queries/ mutations/ services/   reads · writes+audit · video/, storage/, email/
 src/db/  src/lib/  src/i18n/  src/components/{ui,shell,syllabus,player,editor,forum}  src/config/
 dev/mock-idp/          oidc-provider + mock entitlement source     drizzle/  tests/  docs/
 ```
@@ -80,7 +82,7 @@ dev/mock-idp/          oidc-provider + mock entitlement source     drizzle/  tes
 - API routes: `createFileRoute("/api/x")({ server: { handlers: { GET, POST } } })`. Server functions
   use `.validator(zodSchema)`; read the request with `getRequest()` from `@tanstack/react-start/server`.
   The root `beforeLoad` also runs on the client, so it calls the `getSession` server fn.
-- `src/db/*`, `src/config/*`, `src/server/services/{notifications,email}` and `scripts/*` run under Node's native TypeScript: relative imports
+- `src/db/*`, `src/config/*`, `src/server/services/{notifications,email,storage}` and `scripts/*` run under Node's native TypeScript: relative imports
   with `.ts` extensions, no `~/` alias, no `enum`, no parameter properties.
 - `DATABASE_URL=pglite://memory` opens an in-memory PGlite (tests); anything else is `pg`.
 - Server-only modules (`authz.ts`, `oidc.ts`, `src/db`, services) are imported only from server

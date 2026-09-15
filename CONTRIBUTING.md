@@ -19,7 +19,7 @@ to land.
 ```bash
 pnpm install                      # installs the git hooks too
 cp .env.example .env              # the defaults point at the docker stack below
-docker compose up -d postgres minio minio-init mock-idp
+docker compose up -d postgres mock-idp
 pnpm db:migrate && pnpm db:seed
 pnpm dev                          # http://localhost:3003 — sign in as one of the three mock users
 ```

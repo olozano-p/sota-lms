@@ -16,7 +16,7 @@ out of the way once they are moving.
 </p>
 
 **Stack** — TanStack Start (React 19, Router, Query, Form) on Vite · PostgreSQL 16 + Drizzle ·
-OIDC via `openid-client` · S3-compatible storage · SMTP · Vimeo behind a provider interface ·
+OIDC via `openid-client` · files on disk or any S3 API · SMTP · Vimeo behind a provider interface ·
 Tailwind v4 with hand-written primitives · vitest + Playwright. MIT licence.
 
 Spec: `docs/spec.md` · Decisions: `docs/decisions/` · Visual rules: `docs/DESIGN.md` ·
@@ -35,7 +35,7 @@ Agent rules: `CLAUDE.md`.
 - **Assignments** (text and/or file, resubmission, teacher review with feedback) and **quizzes
   or forms** (four question types, auto-grading, optional pass mark, results per option).
 - **Progress** per lesson, media resume, "continue where you left off".
-- **Teacher editor** with drag-sort, autosave, uploads straight to object storage, Vimeo lookup.
+- **Teacher editor** with drag-sort, autosave, streamed uploads with progress, Vimeo lookup.
 - **Forums**: one per course (teachers switch it on) and a general one. Threads pinned-first then
   by latest reply, quoting, like/dislike, moderation by the course's teachers.
 - **Admin** area: people, entitlements with local grants, webhook log, audit log.
@@ -62,7 +62,7 @@ For development with hot reload:
 
 ```bash
 pnpm install                                                # installs the git hooks too
-docker compose up -d postgres minio minio-init mock-idp     # services only
+docker compose up -d postgres mock-idp                      # services only
 pnpm db:migrate && pnpm db:seed
 pnpm dev                                                    # http://localhost:3003
 ```
