@@ -9,6 +9,8 @@ import {
   loadPersonFacts,
   requireLessonAccess,
 } from "~/server/access/require";
+import { requireForumFileAccess } from "~/server/access/forum";
+import { forumScopeFromFileKey } from "~/lib/forum";
 import { signedGetUrl } from "~/server/services/files";
 
 /**
@@ -61,6 +63,18 @@ export const Route = createFileRoute("/api/files/$fileId")({
           if (c) {
             const facts = await loadPersonFacts(user);
             allowed = isPrivileged(facts, c.id) || decideCourse(facts, c).ok;
+          }
+        }
+        if (!allowed) {
+          // A forum image: whoever may read that forum.
+          const scope = forumScopeFromFileKey(f.key);
+          if (scope) {
+            try {
+              await requireForumFileAccess(user, scope);
+              allowed = true;
+            } catch (e) {
+              if (!(e instanceof AuthorizationError)) throw e;
+            }
           }
         }
         if (!allowed) return new Response("forbidden", { status: 403 });
