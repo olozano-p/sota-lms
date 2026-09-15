@@ -55,8 +55,9 @@ export const Route = createFileRoute("/api/files/$fileId")({
           if (!allowed && f.uploadedBy === user.id) allowed = true;
         }
         if (!allowed) {
-          // An image inside a text block's Markdown: anyone who may open the course right now.
-          const courseId = f.key.match(/^courses\/([0-9a-f-]{36})\//)?.[1];
+          // An image placed inside rich text (`courses/<id>/inline/…`): anyone who may open the
+          // course right now. Block files keep the per-lesson decision above.
+          const courseId = f.key.match(/^courses\/([0-9a-f-]{36})\/inline\//)?.[1];
           const [c] = courseId
             ? await db.select().from(course).where(eq(course.id, courseId)).limit(1)
             : [];

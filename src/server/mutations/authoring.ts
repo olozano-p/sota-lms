@@ -613,10 +613,14 @@ export const requestUpload = createServerFn({ method: "POST" })
       filename: z.string().min(1).max(255),
       mime: z.string().min(1),
       size: z.number().int().positive(),
+      /** An image placed inside rich text: readable by anyone who may open the course. */
+      inline: z.boolean().optional(),
     }),
   )
   .handler(async ({ data }) => {
     await requireCourseTeacher(data.courseId);
+    if (data.inline && !data.mime.startsWith("image/"))
+      throw new Error("only images can be placed inline");
     if (data.size > lmsConfig.uploads.maxBytes)
       throw new Error(
         `file too large (max ${Math.round(lmsConfig.uploads.maxBytes / 1_048_576)} MB)`,
@@ -624,7 +628,7 @@ export const requestUpload = createServerFn({ method: "POST" })
     if (!lmsConfig.uploads.allowedMime.includes(data.mime))
       throw new Error(`type not allowed: ${data.mime}`);
     const safeName = data.filename.replace(/[^\w.-]+/g, "_").slice(-120);
-    const key = `courses/${data.courseId}/${uuidv7()}-${safeName}`;
+    const key = `courses/${data.courseId}/${data.inline ? "inline/" : ""}${uuidv7()}-${safeName}`;
     return { key, url: await signedPutUrl(key, data.mime, data.size) };
   });
 

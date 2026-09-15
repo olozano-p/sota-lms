@@ -63,7 +63,7 @@ export function BlockEditor({
     accept: uploads.allowedMime.filter((m) => m.startsWith("image/")),
     maxBytes: uploads.maxBytes,
     request: (f: { filename: string; mime: string; size: number }) =>
-      request({ data: { courseId, ...f } }),
+      request({ data: { courseId, inline: true, ...f } }),
     confirm: (key: string, filename: string) => confirm({ data: { courseId, key, filename } }),
   };
 
