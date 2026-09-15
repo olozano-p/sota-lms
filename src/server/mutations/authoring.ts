@@ -63,6 +63,9 @@ async function courseIdOfBlock(blockId: string): Promise<{ courseId: string; les
   return row;
 }
 
+/** Segments that are routes of their own under a course, so no lesson may take them. */
+const RESERVED_LESSON_SLUGS = ["forum"];
+
 /** `title` → slug, made unique among `taken`. */
 function uniqueSlug(base: string, taken: string[]): string {
   const root = slugify(base) || "item";
@@ -119,6 +122,7 @@ export const updateCourse = createServerFn({ method: "POST" })
             .string()
             .regex(/^\d{4}-\d{2}-\d{2}$/)
             .nullable(),
+          forumEnabled: z.boolean(),
         })
         .partial(),
     }),
@@ -340,7 +344,7 @@ export const createLesson = createServerFn({ method: "POST" })
         .values({
           chapterId: data.chapterId,
           title: data.title,
-          slug: uniqueSlug(data.title, courseSlugs),
+          slug: uniqueSlug(data.title, [...courseSlugs, ...RESERVED_LESSON_SLUGS]),
           sort: Math.max(0, ...siblings.map((s) => s.sort)) + 1,
         })
         .returning();
@@ -387,6 +391,8 @@ export const updateLesson = createServerFn({ method: "POST" })
         (data.patch as { sort?: number }).sort = (max?.m ?? 0) + 1;
       }
       if (data.patch.slug && data.patch.slug !== before.slug) {
+        if (RESERVED_LESSON_SLUGS.includes(data.patch.slug))
+          throw new Error("slug reserved for a course page");
         const clash = await tx
           .select({ id: lesson.id })
           .from(lesson)

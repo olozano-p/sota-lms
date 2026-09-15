@@ -127,6 +127,8 @@ export const course = pgTable("course", {
   /** Date live delivery ended; input to `delayed_after_course_end`. */
   endedAt: date("ended_at"),
   sort: integer("sort").notNull().default(0),
+  /** Teachers switch the course forum on; off, the forum routes 404 for everyone. */
+  forumEnabled: boolean("forum_enabled").notNull().default(false),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -512,4 +514,71 @@ export const notification = pgTable(
     error: text("error"),
   },
   (t) => [index("notification_pending_idx").on(t.sentAt, t.personId)],
+);
+
+// ---------- Forum ----------
+
+/**
+ * A discussion thread, either inside a course (`course_id` set) or in the general forum (null).
+ * The opening message is the thread's earliest `forum_post`; ordering (pinned first, then latest
+ * reply) is computed from the posts, never stored.
+ */
+export const forumThread = pgTable(
+  "forum_thread",
+  {
+    id: id(),
+    courseId: uuid("course_id").references(() => course.id, { onDelete: "cascade" }),
+    authorPersonId: uuid("author_person_id").references(() => person.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    pinnedAt: timestamp("pinned_at", { withTimezone: true }),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("forum_thread_course_created_idx").on(t.courseId, t.createdAt),
+    index("forum_thread_course_pinned_idx").on(t.courseId, t.pinnedAt),
+  ],
+);
+
+/** A message in a thread. Soft-deleted posts keep their slot so replies that cite them still read. */
+export const forumPost = pgTable(
+  "forum_post",
+  {
+    id: id(),
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => forumThread.id, { onDelete: "cascade" }),
+    authorPersonId: uuid("author_person_id").references(() => person.id, { onDelete: "set null" }),
+    bodyMd: text("body_md").notNull(),
+    /** The post this one cites; same thread. Self-reference, so no FK (see `submission.supersededBy`). */
+    replyToPostId: uuid("reply_to_post_id"),
+    editedAt: timestamp("edited_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("forum_post_thread_created_idx").on(t.threadId, t.createdAt)],
+);
+
+export const FORUM_REACTIONS = ["like", "dislike"] as const;
+export type ForumReaction = (typeof FORUM_REACTIONS)[number];
+
+/** One reaction per person per post; sending the same value again removes it. */
+export const forumReaction = pgTable(
+  "forum_reaction",
+  {
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => forumPost.id, { onDelete: "cascade" }),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    value: text("value", { enum: FORUM_REACTIONS }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.postId, t.personId] }),
+    check("forum_reaction_value", sql`${t.value} in ('like', 'dislike')`),
+  ],
 );

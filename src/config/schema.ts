@@ -60,6 +60,20 @@ export const lmsConfigSchema = z.object({
     /** Hour (0–23, in `timeZone`) at which the daily digest is assembled. */
     digestHour: z.number().int().min(0).max(23).default(8),
   }),
+  forum: z
+    .object({
+      /** A forum outside any course, open to every signed-in person. */
+      general: z.boolean().default(false),
+      /** Largest image a post may embed. */
+      imageMaxBytes: z
+        .number()
+        .int()
+        .positive()
+        .default(5 * 1024 * 1024),
+      /** Threads per page in a forum listing. */
+      pageSize: z.number().int().min(5).max(100).default(25),
+    })
+    .prefault({}),
   /** Address shown in SECURITY.md-style footers and error pages. */
   contactEmail: z.string().email().nullable().default(null),
 });

@@ -40,5 +40,10 @@ export default defineConfig({
     enabled: true,
     digestHour: 8,
   },
+  forum: {
+    general: true,
+    imageMaxBytes: 5 * 1024 * 1024,
+    pageSize: 25,
+  },
   contactEmail: null,
 });

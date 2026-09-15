@@ -461,4 +461,11 @@ export const es: Record<MessageKey, string> = {
   "editor.undo": "Deshacer",
   "editor.redo": "Rehacer",
   "editor.insert": "Insertar",
+
+  "teach.settings.forum": "Foro del curso",
+  "teach.settings.forum.lead":
+    "Un espacio donde el alumnado puede hacer preguntas y abrir conversaciones sobre el curso.",
+  "teach.settings.forum.enable": "Activar el foro",
+  "teach.settings.forum.hint":
+    "Aparece como una pestaña en la página del curso. Los docentes del curso lo moderan.",
 };

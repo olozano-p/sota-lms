@@ -459,4 +459,11 @@ export const en: Record<MessageKey, string> = {
   "editor.undo": "Undo",
   "editor.redo": "Redo",
   "editor.insert": "Insert",
+
+  "teach.settings.forum": "Course forum",
+  "teach.settings.forum.lead":
+    "A place where students ask questions and start conversations about the course.",
+  "teach.settings.forum.enable": "Enable the forum",
+  "teach.settings.forum.hint":
+    "Shows as a tab on the course page. The course's teachers moderate it.",
 };

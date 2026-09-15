@@ -460,6 +460,13 @@ export const ca = {
   "editor.undo": "Desfés",
   "editor.redo": "Refés",
   "editor.insert": "Insereix",
+
+  "teach.settings.forum": "Fòrum del curs",
+  "teach.settings.forum.lead":
+    "Un espai on l'alumnat pot fer preguntes i obrir converses sobre el curs.",
+  "teach.settings.forum.enable": "Activa el fòrum",
+  "teach.settings.forum.hint":
+    "Apareix com una pestanya a la pàgina del curs. Els docents del curs el moderen.",
 } as const;
 
 export type MessageKey = keyof typeof ca;

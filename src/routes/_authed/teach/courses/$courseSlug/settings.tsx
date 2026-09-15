@@ -137,6 +137,21 @@ function SettingsPage() {
 
       <section className="flex flex-col gap-3 border-t pt-6">
         <div>
+          <h2 className="text-lg">{t("teach.settings.forum")}</h2>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            {t("teach.settings.forum.lead")}
+          </p>
+        </div>
+        <Checkbox
+          label={t("teach.settings.forum.enable")}
+          description={t("teach.settings.forum.hint")}
+          checked={course.forumEnabled}
+          onChange={(e) => patch({ forumEnabled: e.target.checked })}
+        />
+      </section>
+
+      <section className="flex flex-col gap-3 border-t pt-6">
+        <div>
           <h2 className="text-lg">{t("teach.settings.teachers")}</h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
             {t("teach.settings.teachers.lead")}
