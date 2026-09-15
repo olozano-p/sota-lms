@@ -1,5 +1,6 @@
-# Development stack: `docker compose up` gives Postgres, MinIO, the mock IdP and the app with seed
-# data. Contributors need no real IdP or credentials. Ports are offset to leave local services alone.
+# Development stack: `docker compose up` gives Postgres, the mock IdP and the app with seed data.
+# Files live on a volume (local storage driver). Contributors need no real IdP or credentials.
+# Ports are offset to leave local services alone.
 name: sota
 
 services:
@@ -18,35 +19,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: sota
-      MINIO_ROOT_PASSWORD: sota-dev-storage
-    ports:
-      - "9010:9000"
-      - "9011:9001"
-    volumes:
-      - miniodata:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
-  # Creates the private bucket once MinIO is up.
-  minio-init:
-    image: minio/mc:latest
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 sota sota-dev-storage &&
-      mc mb --ignore-existing local/sota &&
-      mc anonymous set none local/sota"
 
   mock-idp:
     image: node:24-alpine
@@ -72,8 +44,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
       mock-idp:
         condition: service_started
     environment:
@@ -90,22 +60,19 @@ services:
       ENTITLEMENTS_PULL_URL: http://mock-idp:3013/entitlements/v1
       ENTITLEMENTS_PULL_TOKEN: sota-dev-pull-token
       ENTITLEMENTS_WEBHOOK_SECRET: sota-dev-webhook-secret
-      S3_ENDPOINT: http://minio:9000
-      S3_PUBLIC_ENDPOINT: http://localhost:9010
-      S3_REGION: us-east-1
-      S3_BUCKET: sota
-      S3_ACCESS_KEY_ID: sota
-      S3_SECRET_ACCESS_KEY: sota-dev-storage
-      S3_FORCE_PATH_STYLE: "true"
+      STORAGE_DRIVER: local
+      STORAGE_DIR: /app/data/uploads
       MAIL_TRANSPORT: console
       MAIL_FROM: SOTA <lms@example.invalid>
       SEED: "true"
     ports:
       - "3003:3003"
+    volumes:
+      - uploads:/app/data/uploads
     # The browser talks to the IdP on localhost:3013; the container reaches the same service by name.
     extra_hosts:
       - "localhost:host-gateway"
 
 volumes:
   pgdata:
-  miniodata:
+  uploads:

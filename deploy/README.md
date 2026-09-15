@@ -1,7 +1,7 @@
 # deploy/
 
-- `nginx.conf` — reverse proxy sample for the app and the object store, with the rate limits the
-  app also enforces in-process as a fallback.
+- `nginx.conf` — reverse proxy sample with the rate limits the app also enforces in-process as a
+  fallback and the larger body size uploads need on `/api/storage/`.
 - `rsync-deploy.sh` — the non-Docker alternative for a single VPS that already runs Node and
   pm2 (see `docs/deploy.md` § Alternative).
 

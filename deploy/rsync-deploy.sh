@@ -1,6 +1,7 @@
 #!/bin/sh
 # Alternative to the Docker image: build locally, rsync a release to a VPS, migrate, flip a
-# symlink, reload pm2. Assumes Node 24 + pnpm on the server and env in /etc/sota/env.
+# symlink, reload pm2. Assumes Node 24 + pnpm on the server and env in /etc/sota/env with
+# STORAGE_DIR=$ROOT/shared/uploads (releases are pruned; uploads must live outside them).
 #   deploy/rsync-deploy.sh user@host /srv/sota
 set -eu
 HOST=${1:?user@host}
@@ -11,7 +12,7 @@ RELEASE="$ROOT/releases/$STAMP"
 pnpm install --frozen-lockfile
 pnpm build
 
-ssh "$HOST" "mkdir -p $RELEASE"
+ssh "$HOST" "mkdir -p $RELEASE $ROOT/shared/uploads"
 rsync -az --delete dist drizzle scripts src/db src/config src/lib src/server/services src/i18n lms.config.ts package.json pnpm-lock.yaml pnpm-workspace.yaml "$HOST:$RELEASE/"
 
 ssh "$HOST" sh -s <<REMOTE

@@ -23,7 +23,9 @@ COPY src/lib ./src/lib
 COPY src/i18n ./src/i18n
 COPY src/server/services ./src/server/services
 COPY lms.config.ts ./lms.config.ts
-# Nothing under /app is written at runtime (storage is S3, logs go to stdout).
+# The only runtime write is STORAGE_DIR (local storage driver); logs go to stdout. The directory
+# exists in the image so a named volume mounted there inherits node's ownership.
+RUN mkdir -p /app/data/uploads && chown node:node /app/data/uploads
 USER node
 EXPOSE 3003
 HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:${PORT:-3003}/api/health || exit 1
