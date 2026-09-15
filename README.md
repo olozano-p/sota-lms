@@ -24,8 +24,9 @@ Agent rules: `CLAUDE.md`.
 
 ## What it does
 
-- **Courses → chapters → lessons**, each lesson a stack of blocks: Markdown text, video (Vimeo),
-  audio, files, allow-listed embeds, an assignment or a quiz.
+- **Courses → chapters → lessons**, each lesson a stack of blocks: rich text (edited in place,
+  stored as Markdown, with images and YouTube/Vimeo players), video (Vimeo), audio, files,
+  allow-listed embeds, an assignment or a quiz.
 - **Access decided by one pure function** from the entitlements your system pushes or the LMS
   pulls, the course and lesson publish state, and the cohort's release schedule. Locked lessons
   say why and when.
@@ -35,6 +36,8 @@ Agent rules: `CLAUDE.md`.
   or forms** (four question types, auto-grading, optional pass mark, results per option).
 - **Progress** per lesson, media resume, "continue where you left off".
 - **Teacher editor** with drag-sort, autosave, uploads straight to object storage, Vimeo lookup.
+- **Forums**: one per course (teachers switch it on) and a general one. Threads pinned-first then
+  by latest reply, quoting, like/dislike, moderation by the course's teachers.
 - **Admin** area: people, entitlements with local grants, webhook log, audit log.
 - **Notifications** by email: feedback at once, the rest in a daily digest.
 - **Three locales** shipped (ca, es, en); dark theme; keyboard navigation in the player.

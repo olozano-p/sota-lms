@@ -8,6 +8,14 @@ All notable changes to SOTA are documented here. The format follows
 
 ### Added
 
+- Forums: a per-course forum teachers enable in settings and a general forum (`forum.general` in
+  `lms.config.ts`). Threads pinned-first then by latest reply, replies with author, date and
+  like/dislike, "cite" quoting, moderation (pin, lock, rename, delete) by course teachers and
+  admins, digest mail to thread participants and teachers (ADR-011).
+- Rich-text editor over Markdown (Tiptap) for lesson text, course descriptions, assignment
+  instructions, quiz intros and forum posts: headings, bold, italic, code, quotes, lists, links,
+  image upload, and YouTube/Vimeo players from a pasted link (ADR-010).
+
 - Project skeleton: TanStack Start app, Postgres schema, docker compose with a mock OIDC provider,
   design system, i18n scaffolding, CI.
 - OIDC relying party (code + PKCE, own 12 h / 2 h session, IdP end-session on logout).

@@ -54,7 +54,7 @@ These are constraints on _how_ the project is built, not features:
 - Grades/GPA, weighted scoring, gradebooks.
 - Payments, checkout, subscriptions, pricing.
 - Self-registration, password reset, email verification, local passwords — all belong to the IdP.
-- Discussion forums, live class scheduling, Zoom integration.
+- Live class scheduling, Zoom integration. (Discussion forums were a non-goal until ADR-011.)
 - Mobile app.
 - Video hosting/transcoding.
 - Multi-tenancy (one organisation per deployment).
@@ -84,7 +84,7 @@ These are constraints on _how_ the project is built, not features:
 Configuration surface (all of it, nothing else):
 
 - `.env`: `DATABASE_URL`, `SESSION_SECRET`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_END_SESSION_URL` (optional), `ENTITLEMENTS_PULL_URL`, `ENTITLEMENTS_PULL_TOKEN`, `ENTITLEMENTS_WEBHOOK_SECRET`, `S3_*`, `SMTP_*`, `MAIL_FROM`, `VIMEO_ACCESS_TOKEN`, `APP_URL`, `COOKIE_DOMAIN`.
-- `lms.config.ts` (committed, per-deployment fork or mounted): brand name, logo path, colour tokens, default locale, enabled locales, `accessRules` (see §3.3), allowed embed domains, upload limits/mime allowlist, notification defaults.
+- `lms.config.ts` (committed, per-deployment fork or mounted): brand name, logo path, colour tokens, default locale, enabled locales, `accessRules` (see §3.3), allowed embed domains, upload limits/mime allowlist, notification defaults, `forum` (general forum switch, post image limit, page size).
 
 ---
 
@@ -171,7 +171,7 @@ Conventions: UUID v7 primary keys, `created_at`/`updated_at` everywhere, soft de
 
 ### Catalogue
 
-- `course` — `id`, `slug`, `title`, `subtitle`, `description_md`, `language`, `cover_image_key`, `status` (`draft` | `published` | `archived`), `ended_at` (date live delivery ended; used by `delayed_after_course_end`), `sort`.
+- `course` — `id`, `slug`, `title`, `subtitle`, `description_md`, `language`, `cover_image_key`, `status` (`draft` | `published` | `archived`), `ended_at` (date live delivery ended; used by `delayed_after_course_end`), `sort`, `forum_enabled`.
 - `course_teacher` — `course_id`, `person_id`.
 - `chapter` — `id`, `course_id`, `slug`, `title`, `description_md`, `sort`.
 - `lesson` — `id`, `chapter_id`, `slug`, `title`, `summary`, `sort`, `status` (`draft` | `published`), `estimated_minutes`.
@@ -203,6 +203,14 @@ Conventions: UUID v7 primary keys, `created_at`/`updated_at` everywhere, soft de
 - `cohort` — `id`, `course_id`, `slug`, `title`, `starts_at`, `ends_at`, `status` (`upcoming` | `active` | `closed`).
 - `cohort_member` — `cohort_id`, `person_id`, `joined_at`, `role` (`student` | `teacher`).
 - `cohort_release` — `cohort_id`, `chapter_id` or `lesson_id` (exactly one), `release_at`.
+
+### Forum (ADR-011)
+
+- `forum_thread` — `id`, `course_id` (nullable: null is the general forum), `author_person_id`, `title`, `pinned_at`, `locked_at`.
+- `forum_post` — `id`, `thread_id`, `author_person_id`, `body_md`, `reply_to_post_id` (same thread), `edited_at`, `deleted_at` (soft delete keeps the slot).
+- `forum_reaction` — PK (`post_id`, `person_id`); `value` (`like` | `dislike`).
+
+The opening post is the thread's earliest post. Ordering (pinned first, then latest post) is computed.
 
 ### Progress
 
@@ -247,8 +255,10 @@ Contributors may add `YouTubeProvider`, `MuxProvider`, `SelfHostedProvider` behi
 /auth/callback                      → OIDC callback
 /auth/logout
 /courses                            → my courses, progress
-/courses/$courseSlug                → syllabus, lock states, "Continue"
+/courses/$courseSlug                → syllabus, lock states, "Continue" (tab when the forum is on)
+/courses/$courseSlug/forum          → course forum: threads, /new, /$threadId
 /courses/$courseSlug/$lessonSlug    → lesson player
+/forum                              → general forum (lms.config.ts forum.general): threads, /new, /$threadId
 /assignments/$assignmentId
 /quizzes/$quizId
 /cohorts/$cohortSlug
@@ -278,7 +288,8 @@ Every loader calls `requireSession()`; content loaders call `requireLessonAccess
 - **Entitlement sync**: refresh on login; webhook applies immediately; 15-min TTL self-heals.
 - **Authoring**: course → chapter → lesson → blocks; rich-text editor over Markdown (bold, italics, headings, lists, quotes, code, links, images, video); autosave on blur; publish toggles; drag-sort (dnd-kit).
 - **Uploads**: presigned PUT, server records `file` after HEAD. Limits and mime allowlist from config.
-- **Notifications** (SMTP, minimal, per-user opt-out): submission received → teacher; feedback returned → student; chapter released → cohort. Batched daily except feedback.
+- **Notifications** (SMTP, minimal, per-user opt-out): submission received → teacher; feedback returned → student; chapter released → cohort; forum reply → earlier authors in the thread; new course thread → its teachers. Batched daily except feedback.
+- **Forum**: threads ordered pinned-first then by latest reply; the opening post set apart, replies below; every post shows author, date, like/dislike; "cite" quotes a post and links back to it; moderators (course teachers, admins) pin, lock, rename, delete. Course forums are off until a teacher enables them; the general forum is a config switch.
 - **Accessibility**: captions from the video provider; text titles/descriptions on media; full keyboard nav.
 
 ---

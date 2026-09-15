@@ -69,9 +69,9 @@ pnpm notify                       # one notification tick (FORCE_DIGEST=true to 
 ```
 src/routes/            file routes; _authed = session, _authed/teach = teacher, _authed/admin = admin; api/ = handlers
 src/server/auth/       oidc.ts · session.ts (client-safe getSession) · authz.ts (server-only guards)
-src/server/access/     rules.ts (pure) · entitlements.ts (pull, cache, webhook) · require.ts
+src/server/access/     rules.ts (pure) · entitlements.ts (pull, cache, webhook) · require.ts · forum.ts (course/general forum gate)
 src/server/queries/ mutations/ services/   reads · writes+audit · video/, files, email/
-src/db/  src/lib/  src/i18n/  src/components/{ui,shell,syllabus,player,editor}  src/config/
+src/db/  src/lib/  src/i18n/  src/components/{ui,shell,syllabus,player,editor,forum}  src/config/
 dev/mock-idp/          oidc-provider + mock entitlement source     drizzle/  tests/  docs/
 ```
 
@@ -90,3 +90,6 @@ dev/mock-idp/          oidc-provider + mock entitlement source     drizzle/  tes
 - `vite dev` loads `.env` once at start; a new variable needs a restart. So does `src/start.ts`
   (the request middleware: CSP nonce, security headers, rate limiter).
 - `src/routeTree.gen.ts` is generated and git-ignored: run `pnpm dev` or `pnpm build` once before `pnpm typecheck`.
+- Rich text is edited in place (Tiptap, `RichTextField`) but **stored as Markdown**; the field emits
+  Markdown and `renderMarkdown()` stays the one sanitiser. A YouTube/Vimeo URL alone on its line is a
+  player. `forum` is a reserved lesson slug (the course forum lives under it).
