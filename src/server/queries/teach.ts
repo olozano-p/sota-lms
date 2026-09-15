@@ -13,7 +13,6 @@ import {
   quiz,
 } from "~/db/schema";
 import { lmsConfig } from "~/config";
-import { renderMarkdown } from "~/lib/markdown";
 import { hasRole, requireCourseTeacher, requireRole } from "~/server/auth/authz";
 import { enabledVideoProviders } from "~/server/services/video";
 
@@ -161,14 +160,6 @@ export const getLessonEditor = createServerFn({ method: "GET" })
       embedAllowlist: lmsConfig.embedAllowlist,
       providers: enabledVideoProviders().map((p) => p.id),
     };
-  });
-
-/** Live preview for the Markdown editor; the same sanitiser the player uses. */
-export const previewMarkdown = createServerFn({ method: "POST" })
-  .validator(z.object({ md: z.string().max(200_000) }))
-  .handler(async ({ data }) => {
-    await requireRole("teacher");
-    return { html: renderMarkdown(data.md) };
   });
 
 export { and };

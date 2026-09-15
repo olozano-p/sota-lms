@@ -16,7 +16,7 @@ import {
   updateQuestion,
   updateQuiz,
 } from "~/server/mutations/quizzes";
-import { MarkdownField } from "~/components/editor/MarkdownField";
+import { RichTextField } from "~/components/editor/RichTextField";
 import { SortableList } from "~/components/editor/SortableList";
 import { SaveIndicator } from "~/components/editor/SaveIndicator";
 import { useAutosave } from "~/components/editor/useAutosave";
@@ -134,12 +134,12 @@ function QuizEditor({ data }: { data: NonNullable<Awaited<ReturnType<typeof getQ
         </Field>
         <Field label={t("teach.quizzes.intro")} className="lg:col-span-3">
           {(c) => (
-            <MarkdownField
+            <RichTextField
               id={c.id}
               value={intro}
               onChange={setIntro}
               onBlur={() => intro !== quiz.introMd && patch({ introMd: intro })}
-              rows={4}
+              minHeightClass="min-h-28"
             />
           )}
         </Field>

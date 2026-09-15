@@ -1,6 +1,15 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Button } from "~/components/ui/button";
+import { Field } from "~/components/ui/field";
+import { Input } from "~/components/ui/input";
 import { useI18n } from "~/i18n";
+
+const dialogClass = [
+  "m-auto w-[calc(100%-2rem)] max-w-md rounded-lg border bg-card p-0 text-card-foreground",
+  "backdrop:bg-foreground/40",
+  "transition-opacity duration-[120ms] ease-(--ease) starting:open:opacity-0",
+  "backdrop:transition-opacity backdrop:duration-[120ms] starting:open:backdrop:opacity-0",
+].join(" ");
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -57,12 +66,7 @@ export function ConfirmDialog({
       onClick={(e) => {
         if (e.target === e.currentTarget && !loading) onClose();
       }}
-      className={[
-        "m-auto w-[calc(100%-2rem)] max-w-md rounded-lg border bg-card p-0 text-card-foreground",
-        "backdrop:bg-foreground/40",
-        "transition-opacity duration-[120ms] ease-(--ease) starting:open:opacity-0",
-        "backdrop:transition-opacity backdrop:duration-[120ms] starting:open:backdrop:opacity-0",
-      ].join(" ")}
+      className={dialogClass}
     >
       <div className="flex flex-col gap-4 p-5">
         <div className="flex flex-col gap-1.5">
@@ -92,6 +96,97 @@ export function ConfirmDialog({
           ) : null}
         </div>
       </div>
+    </dialog>
+  );
+}
+
+interface PromptDialogProps {
+  open: boolean;
+  title: string;
+  label: string;
+  description?: string;
+  placeholder?: string;
+  defaultValue?: string;
+  confirmLabel: string;
+  /** Returns an error message to keep the dialog open, or nothing to close it. */
+  onConfirm: (value: string) => string | undefined | void;
+  onClose: () => void;
+}
+
+/** One text input in a native modal dialog; the house alternative to `window.prompt`. */
+export function PromptDialog({
+  open,
+  title,
+  label,
+  description,
+  placeholder,
+  defaultValue = "",
+  confirmLabel,
+  onConfirm,
+  onClose,
+}: PromptDialogProps) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLDialogElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const titleId = useId();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (open && !el.open) {
+      setError(null);
+      if (inputRef.current) inputRef.current.value = defaultValue;
+      el.showModal();
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    } else if (!open && el.open) {
+      el.close();
+    }
+  }, [open, defaultValue]);
+
+  return (
+    <dialog
+      ref={ref}
+      aria-labelledby={titleId}
+      onClose={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className={dialogClass}
+    >
+      <form
+        method="dialog"
+        className="flex flex-col gap-4 p-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const message = onConfirm(inputRef.current?.value.trim() ?? "");
+          if (message) setError(message);
+        }}
+      >
+        <h2 id={titleId} className="text-base leading-snug">
+          {title}
+        </h2>
+        <Field label={label} description={description} error={error ?? undefined}>
+          {(c) => (
+            <Input
+              {...c}
+              ref={inputRef}
+              type="text"
+              inputMode="url"
+              placeholder={placeholder}
+              defaultValue={defaultValue}
+              onChange={() => setError(null)}
+            />
+          )}
+        </Field>
+        <div className="flex flex-wrap-reverse justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+          <Button type="submit">{confirmLabel}</Button>
+        </div>
+      </form>
     </dialog>
   );
 }

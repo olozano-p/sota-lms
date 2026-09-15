@@ -75,7 +75,8 @@ These are constraints on _how_ the project is built, not features:
 | Video            | `VideoProvider` interface; `VimeoProvider` is the v1 implementation                                                 | See §5                                                                                                     |
 | Files            | S3-compatible object storage (`@aws-sdk/client-s3`)                                                                 | MinIO in dev; any S3 API in prod. Signed URLs only                                                         |
 | Email            | SMTP via `nodemailer`                                                                                               | Any relay. Templates in `src/server/services/email/templates`                                              |
-| Styling          | Tailwind + shadcn/ui; brand tokens (logo, colours, name) from `lms.config.ts`                                       |                                                                                                            |
+| Styling          | Tailwind + hand-written primitives (ADR-008); brand tokens (logo, colours, name) from `lms.config.ts`               |                                                                                                            |
+| Rich text        | Markdown storage (ADR-007), edited in place with Tiptap (ADR-010)                                                   | Bare YouTube/Vimeo links become players; images via `/api/files`                                           |
 | i18n             | JSON message catalogs, locale resolution order: `?lang` → cookie → IdP `locale` claim → `Accept-Language` → default | Cookie domain configurable so a parent site can set it                                                     |
 | Runtime / deploy | Node 22. Official: Docker image + `docker-compose.prod.yml` behind a reverse proxy                                  | The reference deployment's rsync/nginx deploy is a documented _alternative_ in Appendix A, not the default |
 | Repo conventions | AI-first: lean `CLAUDE.md`, ADRs under `docs/adr/`, no decorative comments, no over-engineering                     |                                                                                                            |
@@ -275,7 +276,7 @@ Every loader calls `requireSession()`; content loaders call `requireLessonAccess
 - **Locked lessons** are visible with reason and date, using i18n'd messages generated from the rule type (never from an organisation's tier names).
 - **Continue**: single primary CTA to the first non-completed, released, published lesson.
 - **Entitlement sync**: refresh on login; webhook applies immediately; 15-min TTL self-heals.
-- **Authoring**: course → chapter → lesson → blocks; autosave on blur; publish toggles; drag-sort (dnd-kit).
+- **Authoring**: course → chapter → lesson → blocks; rich-text editor over Markdown (bold, italics, headings, lists, quotes, code, links, images, video); autosave on blur; publish toggles; drag-sort (dnd-kit).
 - **Uploads**: presigned PUT, server records `file` after HEAD. Limits and mime allowlist from config.
 - **Notifications** (SMTP, minimal, per-user opt-out): submission received → teacher; feedback returned → student; chapter released → cohort. Batched daily except feedback.
 - **Accessibility**: captions from the video provider; text titles/descriptions on media; full keyboard nav.

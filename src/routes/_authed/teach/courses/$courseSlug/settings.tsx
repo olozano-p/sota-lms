@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useI18n } from "~/i18n";
 import { COURSE_STATUSES } from "~/db/schema";
 import { setCourseTeachers, updateCourse } from "~/server/mutations/authoring";
-import { MarkdownField } from "~/components/editor/MarkdownField";
+import { RichTextField } from "~/components/editor/RichTextField";
 import { SaveIndicator } from "~/components/editor/SaveIndicator";
 import { useAutosave } from "~/components/editor/useAutosave";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -73,14 +73,14 @@ function SettingsPage() {
         </Field>
         <Field label={t("teach.settings.description")} className="lg:col-span-2">
           {(c) => (
-            <MarkdownField
+            <RichTextField
               id={c.id}
               value={description}
               onChange={setDescription}
               onBlur={() =>
                 description !== course.descriptionMd && patch({ descriptionMd: description })
               }
-              rows={8}
+              minHeightClass="min-h-32"
             />
           )}
         </Field>

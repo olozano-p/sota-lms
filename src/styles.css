@@ -245,3 +245,21 @@
     @apply font-semibold;
   }
 }
+
+/* Rich-text editor (src/components/editor/RichTextField.tsx): the prose column, editable. */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  @apply text-muted-foreground;
+}
+.ProseMirror .ProseMirror-selectednode {
+  @apply outline-2 outline-offset-2 outline-ring;
+}
+.ProseMirror img {
+  max-width: 100%;
+}
+.ProseMirror > :first-child {
+  margin-top: 0;
+}

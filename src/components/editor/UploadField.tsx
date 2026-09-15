@@ -2,26 +2,12 @@ import { useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { useI18n } from "~/i18n";
 import { Button } from "~/components/ui/button";
+import { uploadFile, type UploadAdapter, type UploadedFile } from "./upload";
 
-export interface UploadedFile {
-  key: string;
-  filename: string;
-  mime: string;
-  size: number;
-}
+export type { UploadedFile } from "./upload";
 
-interface UploadFieldProps {
-  accept: string[];
-  maxBytes: number;
+interface UploadFieldProps extends UploadAdapter {
   current: { key: string } | null;
-  /** Asks the server for a presigned PUT. */
-  request: (f: {
-    filename: string;
-    mime: string;
-    size: number;
-  }) => Promise<{ url: string; key: string }>;
-  /** Tells the server the PUT is done; it HEADs the object and records the file. */
-  confirm: (key: string, filename: string) => Promise<UploadedFile>;
   onUploaded: (file: UploadedFile) => void;
   label?: string;
 }
@@ -54,22 +40,7 @@ export function UploadField({
     }
     setPct(0);
     try {
-      const mime = f.type || "application/octet-stream";
-      const { url, key } = await request({ filename: f.name, mime, size: f.size });
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("PUT", url);
-        xhr.setRequestHeader("content-type", mime);
-        xhr.upload.onprogress = (e) =>
-          e.lengthComputable && setPct(Math.round((e.loaded / e.total) * 100));
-        xhr.onload = () =>
-          xhr.status >= 200 && xhr.status < 300
-            ? resolve()
-            : reject(new Error(`upload failed (${xhr.status})`));
-        xhr.onerror = () => reject(new Error("upload failed"));
-        xhr.send(f);
-      });
-      onUploaded(await confirm(key, f.name));
+      onUploaded(await uploadFile({ accept, maxBytes, request, confirm }, f, setPct));
     } catch (e) {
       setError((e as Error).message);
     } finally {

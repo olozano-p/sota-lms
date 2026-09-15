@@ -73,6 +73,10 @@ slide on press or open; dialogs fade. `prefers-reduced-motion` keeps opacity and
 - Lesson player: single column, `max-w-3xl`, blocks stacked with generous space, a sticky slim
   footer with previous · progress rule · next; ←/→ move between lessons. "Next" is never blocked.
 - Admin and teacher tables are dense (`text-sm`, `py-2`), zebra-free, hairline row separators.
+- Rich-text editor (`RichTextField`): a hairline toolbar of ghost icon buttons (`aria-pressed`
+  for the marks at the cursor) over the writing surface, which is the reader's `.prose` column
+  inside a `rounded` input border. Links and videos are asked for in a `PromptDialog`, never
+  `window.prompt`. Video players and images sit in the flow at the prose measure.
 
 ## Interaction rules
 

@@ -9,7 +9,7 @@ import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { Select } from "~/components/ui/select";
 import { Eyebrow } from "~/components/ui/eyebrow";
-import { MarkdownField } from "./MarkdownField";
+import { RichTextField } from "./RichTextField";
 import { UploadField } from "./UploadField";
 
 export interface EditableBlock {
@@ -59,6 +59,13 @@ export function BlockEditor({
   const [resolveMsg, setResolveMsg] = useState<string | null>(null);
 
   const audioMime = uploads.allowedMime.filter((m) => m.startsWith("audio/"));
+  const imageUpload = {
+    accept: uploads.allowedMime.filter((m) => m.startsWith("image/")),
+    maxBytes: uploads.maxBytes,
+    request: (f: { filename: string; mime: string; size: number }) =>
+      request({ data: { courseId, ...f } }),
+    confirm: (key: string, filename: string) => confirm({ data: { courseId, key, filename } }),
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -76,7 +83,13 @@ export function BlockEditor({
       </div>
 
       {block.type === "text" ? (
-        <MarkdownField value={str(p.md)} onChange={(md) => set({ md })} onBlur={onSave} />
+        <RichTextField
+          value={str(p.md)}
+          onChange={(md) => set({ md })}
+          onBlur={onSave}
+          upload={imageUpload}
+          minHeightClass="min-h-48"
+        />
       ) : null}
 
       {block.type === "video" ? (

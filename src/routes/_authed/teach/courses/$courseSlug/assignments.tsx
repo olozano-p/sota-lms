@@ -10,7 +10,7 @@ import {
   deleteAssignment,
   updateAssignment,
 } from "~/server/mutations/assignments";
-import { MarkdownField } from "~/components/editor/MarkdownField";
+import { RichTextField } from "~/components/editor/RichTextField";
 import { SaveIndicator } from "~/components/editor/SaveIndicator";
 import { useAutosave } from "~/components/editor/useAutosave";
 import { Button } from "~/components/ui/button";
@@ -176,12 +176,12 @@ function AssignmentInstructions({
   return (
     <Field label={t("teach.assignments.instructions")} className="lg:col-span-2">
       {(c) => (
-        <MarkdownField
+        <RichTextField
           id={c.id}
           value={md}
           onChange={setMd}
           onBlur={() => md !== initial && onSave(md)}
-          rows={6}
+          minHeightClass="min-h-32"
         />
       )}
     </Field>

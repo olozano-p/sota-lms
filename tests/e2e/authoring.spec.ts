@@ -25,10 +25,14 @@ test("teacher adds a chapter, a lesson and a text block, publishes, then cleans 
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(`Lliçó e2e ${stamp}`);
   await page.getByRole("button", { name: /^Afegeix$|^Add$/ }).click();
-  const textarea = page.locator("textarea").first();
-  await expect(textarea).toBeVisible();
-  await textarea.fill(`## Hola ${stamp}\n\nText de prova.`);
-  await textarea.blur();
+  // The rich-text editor: `## ` is an input rule for a heading, Enter starts a paragraph.
+  const editor = page.locator('[contenteditable="true"]').first();
+  await expect(editor).toBeVisible();
+  await editor.click();
+  await page.keyboard.type(`## Hola ${stamp}`);
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Text de prova.");
+  await editor.blur();
   await expect(page.getByRole("status").filter({ hasText: /Desat|Saved/ })).toBeVisible();
 
   // A file block: presigned PUT straight to object storage, then the server records the file.
