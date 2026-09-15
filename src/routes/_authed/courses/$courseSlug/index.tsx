@@ -6,7 +6,6 @@ import { Syllabus } from "~/components/syllabus/Syllabus";
 import { Markdown } from "~/components/player/Markdown";
 import { LockNotice } from "~/components/LockNotice";
 import { buttonVariants } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
 import { ProgressRule } from "~/components/ui/progress-rule";
 import { cn } from "~/lib/cn";
 
@@ -21,27 +20,12 @@ export const Route = createFileRoute("/_authed/courses/$courseSlug/")({
 
 function CoursePage() {
   const { t } = useI18n();
-  const { course, chapters, progress, continueLesson, cohorts, decision, privileged } =
-    Route.useLoaderData();
+  const { course, chapters, progress, continueLesson, cohorts, decision } = Route.useLoaderData();
   const total = chapters.reduce((n, ch) => n + ch.lessons.length, 0);
   const allDone = progress.total > 0 && progress.completed === progress.total;
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-4">
-        <Link to="/courses" className="text-sm">
-          ← {t("nav.courses")}
-        </Link>
-        <div className="flex flex-wrap items-center gap-2">
-          {course.status === "draft" ? <Badge variant="warning">{t("courses.draft")}</Badge> : null}
-          {course.status === "archived" ? <Badge>{t("courses.archived")}</Badge> : null}
-          {privileged ? <Badge variant="info">{t("courses.teaching")}</Badge> : null}
-        </div>
-        <div className="flex flex-col gap-2">
-          <h1 className="text-4xl leading-tight">{course.title}</h1>
-          {course.subtitle ? (
-            <p className="text-lg text-muted-foreground">{course.subtitle}</p>
-          ) : null}
-        </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
           <span className="tabular-nums">{t("syllabus.lessons", { n: total })}</span>
           {cohorts.map((c) => (

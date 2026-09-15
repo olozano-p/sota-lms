@@ -38,7 +38,8 @@ test("teacher adds a chapter, a lesson and a text block, publishes, then cleans 
   // A file block: presigned PUT straight to object storage, then the server records the file.
   await page.getByRole("combobox", { name: /Afegeix un bloc|Add a block/ }).selectOption("file");
   await page.getByRole("button", { name: /^Afegeix$|^Add$/ }).click();
-  const fileInput = page.locator('input[type="file"]').last();
+  // The text block's editor has a hidden image input too; the file block's input carries a label.
+  const fileInput = page.getByLabel(/Puja un fitxer|Upload a file/);
   await fileInput.setInputFiles({
     name: `notes-${stamp}.txt`,
     mimeType: "text/plain",

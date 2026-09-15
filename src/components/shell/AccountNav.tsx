@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import { useI18n } from "~/i18n";
+import { lmsConfig } from "~/config";
 import type { SessionUser } from "~/server/auth/session";
 import { cn } from "~/lib/cn";
 
@@ -26,6 +27,11 @@ export function AccountNav({ user }: { user: SessionUser | null }) {
       <Link to="/courses" className={linkClass}>
         {t("nav.courses")}
       </Link>
+      {lmsConfig.forum.general ? (
+        <Link to="/forum" className={linkClass}>
+          {t("nav.forum")}
+        </Link>
+      ) : null}
       {teaches ? (
         <Link to="/teach" className={linkClass}>
           {t("nav.teach")}

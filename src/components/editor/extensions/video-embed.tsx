@@ -1,5 +1,5 @@
 import { Node, mergeAttributes, type JSONContent } from "@tiptap/core";
-import { Plugin, type Transaction } from "@tiptap/pm/state";
+import { Plugin, Selection, type Transaction } from "@tiptap/pm/state";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { NodeViewWrapper, ReactNodeViewRenderer, type ReactNodeViewProps } from "@tiptap/react";
 import { X } from "lucide-react";
@@ -75,8 +75,13 @@ export const VideoEmbed = Node.create<{ removeLabel: string }>({
       new Plugin({
         appendTransaction: (transactions, _old, state) => {
           if (!transactions.some((tr) => tr.docChanged)) return null;
+          // While typing, the line converts once the cursor has left it (Enter); a paste
+          // converts at once and the cursor lands after the player.
+          const pasted = transactions.some(
+            (tr) => tr.getMeta("paste") || tr.getMeta("uiEvent") === "paste",
+          );
           const tr = state.tr;
-          convertVideoParagraphs(state.doc, tr, type.name);
+          convertVideoParagraphs(state.doc, tr, type.name, pasted ? null : state.selection.head);
           return tr.docChanged ? tr : null;
         },
       }),
@@ -86,16 +91,27 @@ export const VideoEmbed = Node.create<{ removeLabel: string }>({
   onCreate() {
     const { state, view } = this.editor;
     const tr = state.tr;
-    convertVideoParagraphs(state.doc, tr, this.name);
+    convertVideoParagraphs(state.doc, tr, this.name, null);
     if (tr.docChanged) view.dispatch(tr.setMeta("addToHistory", false));
   },
 });
 
-/** Replaces every paragraph whose whole text is a recognised video URL with a `videoEmbed`. */
-function convertVideoParagraphs(doc: PMNode, tr: Transaction, nodeName: string) {
+/**
+ * Replaces every paragraph whose whole text is a recognised video URL with a `videoEmbed`,
+ * except the one the cursor is in (`skipHead`). After a paste the cursor lands after the player.
+ */
+function convertVideoParagraphs(
+  doc: PMNode,
+  tr: Transaction,
+  nodeName: string,
+  skipHead: number | null,
+) {
   const targets: { pos: number; size: number; url: string }[] = [];
-  doc.descendants((node, pos) => {
-    if (node.type.name !== "paragraph") return true;
+  doc.descendants((node, pos, parent) => {
+    // Only top-level paragraphs: a URL quoted inside a blockquote stays a link, as in the reader.
+    if (node.type.name !== "paragraph") return node.type.name === "doc" || parent === null;
+    if (parent && parent.type.name !== "doc") return false;
+    if (skipHead !== null && skipHead >= pos && skipHead <= pos + node.nodeSize) return false;
     const text = node.textContent.trim();
     if (!text || /\s/.test(text)) return false;
     const video = parseVideoUrl(text);
@@ -103,12 +119,14 @@ function convertVideoParagraphs(doc: PMNode, tr: Transaction, nodeName: string) 
     return false;
   });
   const type = tr.doc.type.schema.nodes[nodeName]!;
+  let after: number | null = null;
   for (const t of targets.reverse()) {
-    tr.replaceWith(
-      tr.mapping.map(t.pos),
-      tr.mapping.map(t.pos + t.size),
-      type.create({ src: t.url }),
-    );
+    const from = tr.mapping.map(t.pos);
+    tr.replaceWith(from, tr.mapping.map(t.pos + t.size), type.create({ src: t.url }));
+    after = from + 1;
+  }
+  if (after !== null && skipHead === null) {
+    tr.setSelection(Selection.near(tr.doc.resolve(Math.min(after, tr.doc.content.size)), 1));
   }
 }
 

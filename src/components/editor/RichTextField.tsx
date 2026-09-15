@@ -23,11 +23,20 @@ interface RichTextFieldProps {
   upload?: UploadAdapter;
   /** Tailwind min-height for the writing surface. */
   minHeightClass?: string;
+  /** Changing this value focuses the end of the text (after the parent inserted content). */
+  focusToken?: number;
   autoFocus?: boolean;
   className?: string;
 }
 
 type Prompt = { kind: "link" | "video"; defaultValue: string } | null;
+
+/** The Markdown extension keeps blank paragraphs as `&nbsp;`; trailing ones are just cursor room. */
+function cleanMarkdown(md: string): string {
+  const lines = md.split("\n");
+  while (lines.length && /^\s*(?:&nbsp;)?\s*$/.test(lines[lines.length - 1]!)) lines.pop();
+  return lines.join("\n").trim();
+}
 
 const LINK_PROTOCOLS = /^(https?:|mailto:)/i;
 
@@ -40,6 +49,7 @@ export function RichTextField({
   placeholder,
   upload,
   minHeightClass = "min-h-40",
+  focusToken,
   autoFocus = false,
   className,
 }: RichTextFieldProps) {
@@ -81,7 +91,7 @@ export function RichTextField({
       handlePaste: (_view, event) => acceptFiles(event.clipboardData?.files),
       handleDrop: (_view, event) => acceptFiles(event.dataTransfer?.files),
     },
-    onUpdate: ({ editor: e }) => onChange(e.getMarkdown()),
+    onUpdate: ({ editor: e }) => onChange(cleanMarkdown(e.getMarkdown())),
     onBlur: ({ event }) => {
       // Moving to the toolbar or a dialog is still editing; only leaving the field saves.
       const next = event.relatedTarget as Node | null;
@@ -97,7 +107,7 @@ export function RichTextField({
   const lastValue = useRef(value);
   useEffect(() => {
     if (!editor || value === lastValue.current) return;
-    if (value !== editor.getMarkdown()) {
+    if (value !== cleanMarkdown(editor.getMarkdown())) {
       editor.commands.setContent(value, { contentType: "markdown", emitUpdate: false });
     }
     lastValue.current = value;
@@ -105,6 +115,9 @@ export function RichTextField({
   useEffect(() => {
     lastValue.current = value;
   }, [value]);
+  useEffect(() => {
+    if (focusToken) editor?.commands.focus("end", { scrollIntoView: true });
+  }, [editor, focusToken]);
 
   function acceptFiles(files: FileList | undefined): boolean {
     if (!upload || !files?.length) return false;

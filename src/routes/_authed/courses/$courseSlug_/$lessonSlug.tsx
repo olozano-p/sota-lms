@@ -13,7 +13,7 @@ import { Eyebrow } from "~/components/ui/eyebrow";
 import { ProgressRule } from "~/components/ui/progress-rule";
 import { cn } from "~/lib/cn";
 
-export const Route = createFileRoute("/_authed/courses/$courseSlug/$lessonSlug")({
+export const Route = createFileRoute("/_authed/courses/$courseSlug_/$lessonSlug")({
   loader: async ({ params }) => {
     const data = await getLesson({
       data: { courseSlug: params.courseSlug, lessonSlug: params.lessonSlug },
