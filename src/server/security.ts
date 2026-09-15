@@ -7,6 +7,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { randomBytes } from "node:crypto";
 import { lmsConfig } from "~/config";
 import { env } from "~/config/env";
+import { storageOrigins } from "~/server/services/storage";
 import { enabledVideoProviders } from "~/server/services/video";
 
 /** The nonce travels from the request middleware to `getRouter()` through this store. */
@@ -26,17 +27,16 @@ function origin(url: string | null | undefined): string | null {
 }
 
 /**
- * `frame-src` is built from the enabled video providers and the embed allowlist; storage origins
- * are allowed for images, media playback and uploads (`/api/files` redirects there). Styles stay `'unsafe-inline'` (utility classes set
- * inline style attributes); scripts require the nonce.
+ * `frame-src` is built from the enabled video providers and the embed allowlist; with the S3
+ * driver its origins are allowed for images, media playback and uploads (`/api/files` redirects
+ * there; the local driver is `'self'`). Styles stay `'unsafe-inline'` (utility classes set inline
+ * style attributes); scripts require the nonce.
  */
 export function contentSecurityPolicy(nonce: string): string {
   const frames = new Set<string>(["'self'"]);
   for (const p of enabledVideoProviders()) frames.add(`https://${p.embed("0").frameHost}`);
   for (const host of lmsConfig.embedAllowlist) frames.add(`https://${host}`);
-  const storage = [origin(process.env.S3_PUBLIC_ENDPOINT), origin(env.s3.endpoint)].filter(
-    (o): o is string => !!o,
-  );
+  const storage = storageOrigins();
   const idp = origin(process.env.OIDC_ISSUER);
   return [
     "default-src 'self'",
@@ -79,6 +79,8 @@ interface Bucket {
 const buckets = new Map<string, Bucket>();
 const LIMITS: { prefix: string; perMinute: number }[] = [
   { prefix: "/auth/", perMinute: 60 },
+  // Signed file GET/PUT (local driver): a page of inline images costs a redirect plus a fetch each.
+  { prefix: "/api/storage/", perMinute: 600 },
   { prefix: "/api/", perMinute: 240 },
 ];
 

@@ -35,7 +35,7 @@ test("teacher adds a chapter, a lesson and a text block, publishes, then cleans 
   await editor.blur();
   await expect(page.getByRole("status").filter({ hasText: /Desat|Saved/ })).toBeVisible();
 
-  // A file block: presigned PUT straight to object storage, then the server records the file.
+  // A file block: signed PUT to storage, then the server records the file.
   await page.getByRole("combobox", { name: /Afegeix un bloc|Add a block/ }).selectOption("file");
   await page.getByRole("button", { name: /^Afegeix$|^Add$/ }).click();
   // The text block's editor has a hidden image input too; the file block's input carries a label.

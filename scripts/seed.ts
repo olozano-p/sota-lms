@@ -10,6 +10,7 @@
  */
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../src/db/index.ts";
+import { putObject } from "../src/server/services/storage/index.ts";
 import {
   assignment,
   chapter,
@@ -447,7 +448,7 @@ async function seedCohort(
 
 /**
  * Placeholder objects for the demo audio and PDF blocks so downloads resolve. Best effort: when
- * object storage is not reachable the rows still exist and the player says the file is missing.
+ * storage is not writable the rows still exist and the player says the file is missing.
  */
 async function seedFiles(uploadedBy: string) {
   const objects = [
@@ -476,28 +477,8 @@ async function seedFiles(uploadedBy: string) {
       })
       .onConflictDoNothing({ target: file.key });
   }
-  if (!process.env.S3_BUCKET || !process.env.S3_ACCESS_KEY_ID) return;
   try {
-    const { PutObjectCommand, S3Client } = await import("@aws-sdk/client-s3");
-    const s3 = new S3Client({
-      region: process.env.S3_REGION ?? "us-east-1",
-      endpoint: process.env.S3_ENDPOINT,
-      forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
-      credentials: {
-        accessKeyId: process.env.S3_ACCESS_KEY_ID,
-        secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "",
-      },
-    });
-    for (const o of objects) {
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: process.env.S3_BUCKET,
-          Key: o.key,
-          Body: o.body,
-          ContentType: o.mime,
-        }),
-      );
-    }
+    for (const o of objects) await putObject(o.key, o.body, o.mime);
   } catch (e) {
     console.warn(`seed: could not upload placeholder files (${(e as Error).message})`);
   }

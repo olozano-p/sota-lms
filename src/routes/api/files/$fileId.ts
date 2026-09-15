@@ -11,7 +11,7 @@ import {
 } from "~/server/access/require";
 import { requireForumFileAccess } from "~/server/access/forum";
 import { forumScopeFromFileKey } from "~/lib/forum";
-import { signedGetUrl } from "~/server/services/files";
+import { signedGetUrl } from "~/server/services/storage";
 
 /**
  * The only way to a stored object: find who references the file, check that the caller may see

@@ -29,7 +29,7 @@ import {
   type ForumAccess,
   type ForumCourse,
 } from "~/server/access/forum";
-import { headObject, signedPutUrl } from "~/server/services/files";
+import { headObject, signedPutUrl } from "~/server/services/storage";
 
 const id = z.string().uuid();
 

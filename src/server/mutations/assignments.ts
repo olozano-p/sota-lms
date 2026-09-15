@@ -20,7 +20,7 @@ import { markdownExcerpt } from "~/lib/markdown";
 import { audit } from "~/server/audit";
 import { requireCourseTeacher, requireUser } from "~/server/auth/authz";
 import { requireContainerAccess } from "~/server/access/container";
-import { headObject, signedPutUrl } from "~/server/services/files";
+import { headObject, signedPutUrl } from "~/server/services/storage";
 import { enqueue, sendImmediate } from "~/server/services/notifications";
 
 const id = z.string().uuid();

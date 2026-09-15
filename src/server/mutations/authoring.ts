@@ -24,7 +24,7 @@ import { SLUG_PATTERN, slugify } from "~/lib/slug";
 import { audit } from "~/server/audit";
 import { requireCourseTeacher, requireRole } from "~/server/auth/authz";
 import { assertBlockReferences, blockPayloadSchemas, embedAllowed } from "~/server/services/blocks";
-import { headObject, signedPutUrl } from "~/server/services/files";
+import { headObject, signedPutUrl } from "~/server/services/storage";
 import { videoProvider } from "~/server/services/video";
 
 const id = z.string().uuid();

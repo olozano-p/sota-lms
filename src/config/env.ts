@@ -3,6 +3,8 @@
  * modules without runtime secrets) never fails on a missing variable; production fails loudly at
  * the first use instead. Server-only: never import from a component.
  */
+import { resolve } from "node:path";
+
 const isProduction = process.env.NODE_ENV === "production";
 
 function required(name: string): string {
@@ -63,9 +65,25 @@ export const env = {
       return required("ENTITLEMENTS_WEBHOOK_SECRET");
     },
   },
+  storage: {
+    /** `local` keeps files under `dir` and serves them itself; `s3` needs the `S3_*` block. */
+    get driver(): "local" | "s3" {
+      return process.env.STORAGE_DRIVER === "s3" ? "s3" : "local";
+    },
+    /** Absolute. Required in production so a deploy cannot write uploads into a pruned release dir. */
+    get dir(): string {
+      return resolve(
+        isProduction ? required("STORAGE_DIR") : (process.env.STORAGE_DIR ?? "data/uploads"),
+      );
+    },
+  },
   s3: {
     get endpoint(): string | null {
       return optional("S3_ENDPOINT");
+    },
+    /** Origin browsers use when it differs from `endpoint` (a container name inside, a hostname outside). */
+    get publicEndpoint(): string | null {
+      return optional("S3_PUBLIC_ENDPOINT");
     },
     get region(): string {
       return process.env.S3_REGION ?? "us-east-1";
