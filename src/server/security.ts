@@ -27,7 +27,7 @@ function origin(url: string | null | undefined): string | null {
 
 /**
  * `frame-src` is built from the enabled video providers and the embed allowlist; storage origins
- * are allowed for media playback and uploads. Styles stay `'unsafe-inline'` (utility classes set
+ * are allowed for images, media playback and uploads (`/api/files` redirects there). Styles stay `'unsafe-inline'` (utility classes set
  * inline style attributes); scripts require the nonce.
  */
 export function contentSecurityPolicy(nonce: string): string {
@@ -45,7 +45,7 @@ export function contentSecurityPolicy(nonce: string): string {
     "frame-ancestors 'none'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://player.vimeo.com`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
+    `img-src 'self' data: https: ${storage.join(" ")}`.trim(),
     "font-src 'self' data:",
     `media-src 'self' blob: ${storage.join(" ")}`.trim(),
     `connect-src 'self' ${storage.join(" ")}`.trim(),

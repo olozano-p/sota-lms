@@ -1,9 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { eq, sql } from "drizzle-orm";
 import { db } from "~/db";
-import { assignment, file, lessonBlock, submission } from "~/db/schema";
+import { assignment, course, file, lessonBlock, submission } from "~/db/schema";
 import { AuthorizationError, currentUser } from "~/server/auth/authz";
-import { isPrivileged, loadPersonFacts, requireLessonAccess } from "~/server/access/require";
+import {
+  decideCourse,
+  isPrivileged,
+  loadPersonFacts,
+  requireLessonAccess,
+} from "~/server/access/require";
 import { signedGetUrl } from "~/server/services/files";
 
 /**
@@ -46,6 +51,17 @@ export const Route = createFileRoute("/api/files/$fileId")({
             else allowed = isPrivileged(await loadPersonFacts(user), s.courseId);
           }
           if (!allowed && f.uploadedBy === user.id) allowed = true;
+        }
+        if (!allowed) {
+          // An image inside a text block's Markdown: anyone who may open the course right now.
+          const courseId = f.key.match(/^courses\/([0-9a-f-]{36})\//)?.[1];
+          const [c] = courseId
+            ? await db.select().from(course).where(eq(course.id, courseId)).limit(1)
+            : [];
+          if (c) {
+            const facts = await loadPersonFacts(user);
+            allowed = isPrivileged(facts, c.id) || decideCourse(facts, c).ok;
+          }
         }
         if (!allowed) return new Response("forbidden", { status: 403 });
 
