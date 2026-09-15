@@ -8,7 +8,7 @@
  * Runs under plain Node: relative imports with .ts extensions, no alias. Fixtures use
  * `@example.invalid`; nothing here names a real organisation.
  */
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../src/db/index.ts";
 import {
   assignment,
@@ -20,6 +20,9 @@ import {
   courseTeacher,
   entitlement,
   file,
+  forumPost,
+  forumReaction,
+  forumThread,
   lesson,
   lessonBlock,
   person,
@@ -86,11 +89,15 @@ async function upsertCourse() {
     .from(course)
     .where(eq(course.slug, COURSE_SLUG))
     .limit(1);
-  if (existing[0]) return existing[0].id;
+  if (existing[0]) {
+    await db.update(course).set({ forumEnabled: true }).where(eq(course.id, existing[0].id));
+    return existing[0].id;
+  }
   const [c] = await db
     .insert(course)
     .values({
       slug: COURSE_SLUG,
+      forumEnabled: true,
       title: "Introducció a la contemplació",
       subtitle: "Un curs de sis setmanes per asseure's i mirar",
       descriptionMd:
@@ -529,6 +536,100 @@ function silentMp3(): Uint8Array {
   return out;
 }
 
+/** One pinned course thread with a cited reply and likes, and one general thread. Keyed by title. */
+async function seedForum(courseId: string, ids: Record<string, string>) {
+  const threads: {
+    courseId: string | null;
+    title: string;
+    author: string;
+    pinned: boolean;
+    posts: { author: string; bodyMd: string; citesPrevious?: boolean; likedBy?: string[] }[];
+  }[] = [
+    {
+      courseId,
+      title: "Benvinguda al fòrum del curs",
+      author: "mock-teacher",
+      pinned: true,
+      posts: [
+        {
+          author: "mock-teacher",
+          bodyMd:
+            "Aquest és l'espai per compartir dubtes i descobertes de la pràctica. Presenteu-vos, si voleu, i pregunteu **qualsevol cosa**: no hi ha preguntes petites.\n\nUn vídeo curt per començar:\n\nhttps://vimeo.com/76979871",
+        },
+        {
+          author: "mock-student",
+          bodyMd:
+            "Hola! Sóc l'Aina. Fa poc que medito i em costa mantenir l'esquena recta més de deu minuts.",
+          likedBy: ["mock-teacher"],
+        },
+        {
+          author: "mock-teacher",
+          bodyMd:
+            "> **Aina Estudiant:**\n>\n> em costa mantenir l'esquena recta més de deu minuts.\n\nProva d'asseure't sobre la vora del coixí: la pelvis bascula endavant i l'esquena troba la seva corba sola.",
+          citesPrevious: true,
+          likedBy: ["mock-student"],
+        },
+      ],
+    },
+    {
+      courseId: null,
+      title: "Presentacions",
+      author: "mock-admin",
+      pinned: false,
+      posts: [
+        {
+          author: "mock-admin",
+          bodyMd: "Un fil per dir qui sou i què us porta aquí. Benvingudes i benvinguts!",
+        },
+      ],
+    },
+  ];
+  for (const t of threads) {
+    const exists = await db
+      .select({ id: forumThread.id })
+      .from(forumThread)
+      .where(
+        and(
+          eq(forumThread.title, t.title),
+          t.courseId ? eq(forumThread.courseId, t.courseId) : isNull(forumThread.courseId),
+        ),
+      )
+      .limit(1);
+    if (exists[0]) continue;
+    const [thread] = await db
+      .insert(forumThread)
+      .values({
+        courseId: t.courseId,
+        authorPersonId: ids[t.author]!,
+        title: t.title,
+        pinnedAt: t.pinned ? new Date() : null,
+      })
+      .returning({ id: forumThread.id });
+    let previous: string | null = null;
+    for (const [i, p] of t.posts.entries()) {
+      const inserted: { id: string }[] = await db
+        .insert(forumPost)
+        .values({
+          threadId: thread!.id,
+          authorPersonId: ids[p.author]!,
+          bodyMd: p.bodyMd,
+          replyToPostId: p.citesPrevious ? previous : null,
+          // Spread the posts over the past days so the listing has real timestamps.
+          createdAt: new Date(Date.now() - (t.posts.length - i) * 86_400_000),
+        })
+        .returning({ id: forumPost.id });
+      const post = inserted[0];
+      for (const who of p.likedBy ?? []) {
+        await db
+          .insert(forumReaction)
+          .values({ postId: post!.id, personId: ids[who]!, value: "like" })
+          .onConflictDoNothing();
+      }
+      previous = post!.id;
+    }
+  }
+}
+
 async function main() {
   const ids = await upsertPeople();
   await seedFiles(ids["mock-teacher"]!);
@@ -539,6 +640,7 @@ async function main() {
     .onConflictDoNothing();
   const releases = await seedContent(courseId);
   await seedCohort(courseId, ids, releases);
+  await seedForum(courseId, ids);
   // Mirror of what the mock entitlement source returns, so the catalogue is populated before the
   // first login refreshes it.
   const grants: {
