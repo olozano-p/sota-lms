@@ -29,50 +29,120 @@ const updatedAt = () =>
     .defaultNow()
     .$onUpdateFn(() => new Date());
 
-// ---------- Identity mirror ----------
+// ---------- Identity ----------
 
+/** Names are the stored vocabulary; the brief's learner/instructor are accepted from the IdP and mapped (ADR-016). */
 export const ROLES = ["student", "teacher", "admin"] as const;
 export type Role = (typeof ROLES)[number];
 
-/** Mirror of the IdP user. Written only from IdP/enrollment-source data. */
-export const person = pgTable("person", {
-  id: id(),
-  idpSub: text("idp_sub").notNull().unique(),
-  email: text("email").notNull(),
-  name: text("name").notNull(),
-  locale: text("locale"),
-  roles: text("roles")
-    .array()
-    .notNull()
-    .default(sql`'{}'::text[]`),
-  emailOptOut: boolean("email_opt_out").notNull().default(false),
-  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
-  /** Last successful pull or push from the enrollment source; drives the 15-minute TTL. */
-  entitlementsSyncedAt: timestamp("entitlements_synced_at", { withTimezone: true }),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
+/**
+ * The profile row every other table references, and also the user model of better-auth (ADR-016):
+ * the library writes it on signup/login, SOTA's own code writes it only through the identity
+ * paths listed in CLAUDE.md. `external_sub` + `external_iss` identify the person at the IdP or the
+ * enrollment source and are null for people who only exist locally.
+ */
+export const person = pgTable(
+  "person",
+  {
+    id: id(),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("email_verified").notNull().default(false),
+    name: text("name").notNull(),
+    image: text("image"),
+    locale: text("locale"),
+    roles: text("roles")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    externalSub: text("external_sub"),
+    externalIss: text("external_iss"),
+    emailOptOut: boolean("email_opt_out").notNull().default(false),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    /** Last successful pull, push or claims sync from the enrollment source; drives the 15-minute TTL. */
+    entitlementsSyncedAt: timestamp("entitlements_synced_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("person_external_identity_idx")
+      .on(sql`coalesce(${t.externalIss}, '')`, t.externalSub)
+      .where(sql`${t.externalSub} is not null`),
+  ],
+);
 
-/** SOTA's own session: opaque id in the cookie, expiry enforced here (12 h absolute, 2 h idle). */
-export const session = pgTable(
-  "session",
+/** better-auth session. Absolute lifetime is enforced in `currentUser()`; the library handles idle expiry. */
+export const authSession = pgTable(
+  "auth_session",
+  {
+    id: id(),
+    userId: uuid("person_id")
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("auth_session_person_idx").on(t.userId)],
+);
+
+/** better-auth account: a credential (`providerId = 'credential'`, hashed password) or the OIDC link. */
+export const authAccount = pgTable(
+  "auth_account",
+  {
+    id: id(),
+    userId: uuid("person_id")
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("auth_account_provider_idx").on(t.providerId, t.accountId),
+    index("auth_account_person_idx").on(t.userId),
+  ],
+);
+
+/** better-auth one-time values: magic-link tokens, password-reset tokens. */
+export const authVerification = pgTable(
+  "auth_verification",
+  {
+    id: id(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("auth_verification_identifier_idx").on(t.identifier)],
+);
+
+/** Admin invitation: a one-time link (only its hash is stored) that lets the invitee set a password. */
+export const invitation = pgTable(
+  "invitation",
   {
     id: id(),
     personId: uuid("person_id")
       .notNull()
       .references(() => person.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => person.id, { onDelete: "set null" }),
     createdAt: createdAt(),
-    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
-    absoluteExpiresAt: timestamp("absolute_expires_at", { withTimezone: true }).notNull(),
-    /** Passed as `id_token_hint` to the IdP's end-session endpoint on logout. */
-    idTokenHint: text("id_token_hint"),
-    /** Snapshot of the roles at creation; a change on sync rotates the session. */
-    roles: text("roles")
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
   },
-  (t) => [index("session_person_idx").on(t.personId)],
+  (t) => [index("invitation_person_idx").on(t.personId)],
 );
 
 // ---------- Catalogue ----------
@@ -83,6 +153,8 @@ export type CourseStatus = (typeof COURSE_STATUSES)[number];
 export const course = pgTable("course", {
   id: id(),
   slug: text("slug").notNull().unique(),
+  /** The external system's id for this course, matched by claims/webhook sync alongside the slug. */
+  externalRef: text("external_ref").unique(),
   title: text("title").notNull(),
   subtitle: text("subtitle"),
   descriptionMd: text("description_md").notNull().default(""),
@@ -356,6 +428,8 @@ export const cohort = pgTable("cohort", {
     .notNull()
     .references(() => course.id, { onDelete: "cascade" }),
   slug: text("slug").notNull().unique(),
+  /** The external system's id for this cohort, matched by claims/webhook sync alongside the slug. */
+  externalRef: text("external_ref").unique(),
   title: text("title").notNull(),
   startsAt: date("starts_at"),
   endsAt: date("ends_at"),
@@ -512,14 +586,17 @@ export const auditLog = pgTable(
   ],
 );
 
-/** Queued notifications; feedback goes out at once, the rest in the daily digest. */
+/**
+ * Queued notifications; feedback goes out at once, the rest in the daily digest. Account mail
+ * (magic link, invitation, reset) is addressed by `to_email` because its recipient may not have a
+ * person row yet; its payload is cleared once sent since it carries a one-time link.
+ */
 export const notification = pgTable(
   "notification",
   {
     id: id(),
-    personId: uuid("person_id")
-      .notNull()
-      .references(() => person.id, { onDelete: "cascade" }),
+    personId: uuid("person_id").references(() => person.id, { onDelete: "cascade" }),
+    toEmail: text("to_email"),
     kind: text("kind").notNull(),
     payload: jsonb("payload").notNull(),
     immediate: boolean("immediate").notNull().default(false),
@@ -527,7 +604,10 @@ export const notification = pgTable(
     sentAt: timestamp("sent_at", { withTimezone: true }),
     error: text("error"),
   },
-  (t) => [index("notification_pending_idx").on(t.sentAt, t.personId)],
+  (t) => [
+    index("notification_pending_idx").on(t.sentAt, t.personId),
+    check("notification_recipient_chk", sql`${t.personId} is not null or ${t.toEmail} is not null`),
+  ],
 );
 
 // ---------- Forum ----------

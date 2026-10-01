@@ -1,7 +1,7 @@
 /**
  * Demo data so a fresh checkout has something to click: a published course with every block type,
  * a cohort with a drip schedule, an assignment, a quiz and mirror rows for the mock IdP users.
- * Idempotent (keyed by slug / idp_sub) — safe to run on every boot of the dev stack.
+ * Idempotent (keyed by slug / email) — safe to run on every boot of the dev stack.
  *
  *   pnpm db:seed
  *
@@ -35,28 +35,28 @@ import {
 
 const PEOPLE = [
   {
-    idpSub: "mock-student",
+    externalSub: "mock-student",
     email: "student@example.invalid",
     name: "Aina Estudiant",
     locale: "ca",
     roles: ["student"],
   },
   {
-    idpSub: "mock-delayed",
+    externalSub: "mock-delayed",
     email: "delayed@example.invalid",
     name: "Pau Pacient",
     locale: "es",
     roles: ["student"],
   },
   {
-    idpSub: "mock-teacher",
+    externalSub: "mock-teacher",
     email: "teacher@example.invalid",
     name: "Marta Mestra",
     locale: "ca",
     roles: ["teacher"],
   },
   {
-    idpSub: "mock-admin",
+    externalSub: "mock-admin",
     email: "admin@example.invalid",
     name: "Oriol Administrador",
     locale: "en",
@@ -72,13 +72,13 @@ async function upsertPeople() {
   for (const p of PEOPLE) {
     const [row] = await db
       .insert(person)
-      .values(p)
+      .values({ ...p, emailVerified: true })
       .onConflictDoUpdate({
-        target: person.idpSub,
-        set: { email: p.email, name: p.name, locale: p.locale, roles: p.roles },
+        target: person.email,
+        set: { name: p.name, locale: p.locale, roles: p.roles, externalSub: p.externalSub },
       })
       .returning({ id: person.id });
-    ids[p.idpSub] = row!.id;
+    ids[p.externalSub] = row!.id;
   }
   return ids;
 }
