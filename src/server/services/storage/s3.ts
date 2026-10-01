@@ -68,6 +68,18 @@ export function createS3Storage(): StorageProvider {
         return null;
       }
     },
+    async getObject(key) {
+      try {
+        const r = await internal.send(new GetObjectCommand({ Bucket, Key: key }));
+        if (!r.Body) return null;
+        return {
+          body: await r.Body.transformToByteArray(),
+          mime: r.ContentType ?? "application/octet-stream",
+        };
+      } catch {
+        return null;
+      }
+    },
     async putObject(key, body, mime) {
       await internal.send(
         new PutObjectCommand({ Bucket, Key: key, Body: body, ContentType: mime }),

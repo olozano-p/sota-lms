@@ -7,13 +7,25 @@
  *   pnpm sota validate-config         check .env and lms.config.ts, print a summary
  *   pnpm sota validate-theme [dir] [--strict]   check THEME_DIR (or dir): theme.json, messages, emails,
  *                                     assets, slots; --strict also fails on warnings
+ *   pnpm sota export <dir> --course <slug>... | --all [--cohorts] [--force]
+ *                                     courses, lessons, blocks, quizzes and media to a directory
+ *   pnpm sota import <dir> [--dry-run] [--draft]
+ *                                     the same, idempotent by slug, in one transaction
  *
  * In the container: `docker compose exec app node scripts/sota.ts <command>`.
  * Plain Node: relative imports with .ts extensions, no alias.
  */
 export {};
 
-const COMMANDS = ["migrate", "seed", "create-admin", "validate-config", "validate-theme"] as const;
+const COMMANDS = [
+  "migrate",
+  "seed",
+  "create-admin",
+  "validate-config",
+  "validate-theme",
+  "export",
+  "import",
+] as const;
 type Command = (typeof COMMANDS)[number];
 
 function usage(code: number): never {
@@ -42,6 +54,12 @@ switch (command) {
   case "create-admin":
     await import("./create-admin.ts");
     break;
+  case "export":
+  case "import": {
+    const { runContent } = await import("./content.ts");
+    await runContent(command, process.argv.slice(2));
+    break;
+  }
   case "validate-config": {
     const { EnvError, parseEnv } = await import("../src/config/env.ts");
     const { checkDeployment } = await import("../src/config/check.ts");

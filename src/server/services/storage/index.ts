@@ -32,6 +32,8 @@ export const signedPutUrl: StorageProvider["signedPutUrl"] = async (...args) =>
   (await storage()).signedPutUrl(...args);
 export const headObject: StorageProvider["headObject"] = async (...args) =>
   (await storage()).headObject(...args);
+export const getObject: StorageProvider["getObject"] = async (...args) =>
+  (await storage()).getObject(...args);
 export const putObject: StorageProvider["putObject"] = async (...args) =>
   (await storage()).putObject(...args);
 

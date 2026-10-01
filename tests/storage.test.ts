@@ -43,6 +43,14 @@ describe("objects", () => {
     await store.putObject("seed/a.txt", "hello", "text/plain");
     expect(await store.headObject("seed/a.txt")).toEqual({ size: 5, mime: "text/plain" });
   });
+  it("reads an object back with its content type, and null for a missing one", async () => {
+    await store.putObject("seed/b.bin", new Uint8Array([1, 2, 3]), "application/x-test");
+    const got = await store.getObject("seed/b.bin");
+    expect([...got!.body]).toEqual([1, 2, 3]);
+    expect(got!.mime).toBe("application/x-test");
+    expect(await store.getObject("seed/none.bin")).toBeNull();
+    expect(await store.getObject("../x")).toBeNull();
+  });
   it("returns null for a missing object", async () => {
     expect(await store.headObject("seed/missing.txt")).toBeNull();
   });

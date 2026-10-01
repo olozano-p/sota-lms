@@ -1,4 +1,4 @@
-# Enrollment audit trail
+# Audit trail: enrollments and content import
 
 Every write to an `enrollment` row appends an `audit_log` row in the same transaction, whoever or
 whatever made it. `diff` is `{ actor?, before, after }`; the actor is the person (`actor_person_id`) or,
@@ -26,3 +26,10 @@ a pasted list, a cohort) keeps one audit row with the first 100 changes (`AUDIT_
 `total` and `truncated`; a list of 500 addresses says so and lists 100.
 
 A sync that changes nothing writes nothing: the same pull or webhook every 15 minutes does not fill the log.
+
+## Content import
+
+`pnpm sota import` appends one `content.import` row per course that changed (entity `course`, actor
+`cli:import` in `diff.actor`). `after` holds the counts per kind (`created`, `updated`, `unchanged`), the
+media stored or reused, and a capped list of changes `{ entity, ref, op }` with `total` and `truncated`
+like the enrollment rows. A dry run and an import that changes nothing write no row.

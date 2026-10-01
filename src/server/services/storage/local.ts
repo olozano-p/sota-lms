@@ -185,6 +185,15 @@ export function createLocalStorage(opts: LocalStorageOptions): LocalStorage {
     return new Response(body, { status: range ? 206 : 200, headers });
   }
 
+  /** Content type from the sidecar; the generic type for an object written without one. */
+  async function mimeOf(key: string): Promise<string> {
+    try {
+      return (JSON.parse(await readFile(pathFor("meta", key), "utf8")) as { mime: string }).mime;
+    } catch {
+      return "application/octet-stream";
+    }
+  }
+
   return {
     async signedGetUrl(key, filename, mime, inline = false) {
       pathFor("objects", key);
@@ -199,14 +208,14 @@ export function createLocalStorage(opts: LocalStorageOptions): LocalStorage {
     async headObject(key) {
       try {
         const size = (await stat(pathFor("objects", key))).size;
-        let mime = "application/octet-stream";
-        try {
-          mime = (JSON.parse(await readFile(pathFor("meta", key), "utf8")) as { mime: string })
-            .mime;
-        } catch {
-          // Object without a sidecar (written by hand): fall back to the generic type.
-        }
-        return { size, mime };
+        return { size, mime: await mimeOf(key) };
+      } catch {
+        return null;
+      }
+    },
+    async getObject(key) {
+      try {
+        return { body: await readFile(pathFor("objects", key)), mime: await mimeOf(key) };
       } catch {
         return null;
       }

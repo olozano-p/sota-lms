@@ -34,6 +34,9 @@ COPY src/server/services ./src/server/services
 COPY src/server/auth ./src/server/auth
 COPY src/server/access ./src/server/access
 COPY src/server/audit.ts src/server/client-ip.ts ./src/server/
+# `sota export` and `sota import` (ADR-021).
+COPY src/server/mutations/content-import-core.ts ./src/server/mutations/
+COPY src/server/queries/content-export-core.ts ./src/server/queries/
 COPY lms.config.ts ./lms.config.ts
 COPY --from=build /out/theme ./theme
 # The only runtime write is STORAGE_DIR (local storage driver); logs go to stdout. The directory
