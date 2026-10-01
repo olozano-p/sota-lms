@@ -1,5 +1,50 @@
 # Status
 
+## 2026-10-01 · Phase 5 — hardening, observability, content export/import, release (1.0.0)
+
+- **Rate limits** (`src/server/security.ts`, `tests/rate-limit.test.ts`): the test enumerates the real
+  better-auth endpoints and checks each credential, mail and recovery one is in the strict bucket. Gaps found
+  and closed: `verify-password`, change-password/email, set-password, delete-user, verify-email (strict);
+  `/api/webhooks/` (60/min) and `/_serverFn/` (600/min, which carried invitation and bulk enrollment) had only
+  the generic bucket. New per-address throttle on account mail (5/hour/address across kinds,
+  `enqueueAccountMail` returns false; the magic-link endpoint answers as usual and sends nothing; an invitation
+  records `mailQueued: false`). Table in `docs/configuration.md`.
+- **Audit of every enrollment write** (`src/server/audit.ts`, `docs/audit-log.md`, `tests/enrollment-audit.test.ts`):
+  the pull, the webhook and the login sync wrote none; the claims sync only counts. Now each path appends a row with
+  per-row before/after (`sync:webhook|pull|claims`, service API, manual grant/revoke, bulk list, cohort enrollment,
+  placement, removal, cohort deletion, placeholder merge, seed), capped at 100 changes with `total`/`truncated`.
+  A repeat sync writes nothing. Found on the way and fixed: a sync without `valid_from` reset the stored start on
+  every run (it now keeps it), and the webhook applied its writes outside a transaction.
+- **`pnpm sota export|import`** (ADR-021, `docs/content-export-import.md`): versioned JSON (`sota-content/v1`, zod) plus
+  `media/` in a plain directory. No ids in the bundle (slugs, local keys, media ids, `sota-media:` tokens in Markdown);
+  idempotent by slug/`external_ref`, never deletes, leaves quizzes with attempts alone, validates and checks sha256 and
+  upload limits first, one transaction, `--dry-run` rolls it back, one `content.import` audit row per changed course,
+  media through `StorageProvider` (new `getObject`). `tests/content-bundle.test.ts`: export from one PGlite, import into
+  another, the second export equals the first, plus idempotency, dry run, atomicity, validation, symlink and traversal.
+  Exercised with the CLI against real Postgres 16 and inside the built image.
+- **Observability** (`docs/observability.md`): `src/lib/log.ts` (JSON lines, `LOG_LEVEL`, key redaction and text
+  scrubbing), request log with id/method/path/status/duration and no query, address or header
+  (`src/server/request-log.ts`, `X-Request-Id`), `console.*` gone from server code and unattended scripts. `/api/health`
+  keeps `db: "ok"` and adds `version` and `dbLatencyMs`; 503 when the database fails or takes over 3 s.
+- **Backup and restore** (`docs/backup-restore.md`): the commands were run against a scratch Postgres 16 and a scratch
+  volume: dump, restore, row counts, migrations, a content export from the restored database equal to the original,
+  tar of the uploads volume with owner preserved.
+- **Release**: `.github/workflows/release.yml` (tag `vX.Y.Z` -> the whole CI via `workflow_call` -> tag equals
+  `package.json` version -> build, boot against Postgres, publish `ghcr.io/<owner>/sota` for amd64 and arm64 with tags
+  `X.Y.Z`, `X.Y`, `X`, `latest`). The image now defaults `STORAGE_DIR`. Built locally with `docker build` and booted per
+  `docs/deploying.md` on an empty Postgres (admin, sign-in, `/courses`, `/admin`, export, import).
+- **1.0.0**: `package.json`, `CHANGELOG.md`, README (what it is, quickstart, auth modes, theming, integration, forum,
+  licence), `docs/audit.md` closed with its deliberate deviations, CLAUDE.md brought in line with the code.
+  `tests/repo-hygiene.test.ts` now checks that every environment variable is in `docs/configuration.md`, `.env.example`
+  covers the schema, no deployment-specific name is in the tree, the plain-Node modules load under `node`, and the
+  release workflow's shape.
+- Not done / left: the release workflow and the CI `e2e` job were not run on GitHub (YAML parsed, steps reproduced
+  locally, the tag/version check and the multi-arch build were not); the Playwright suites were not run in this phase
+  (their ports belong to a running dev stack); no UI shows `mailQueued` or the audit detail yet (the admin audit page
+  prints the JSON); import covers no cohort members, teachers or forum content by design; deleted content is never
+  removed by an import; quiz and assignment matching is by title; nothing removes the `ENTITLEMENTS_WEBHOOK_SECRET`
+  alias; logs have no rotation of their own (Docker's driver does it).
+
 ## 2026-10-01 · Phase 4 — service API, OpenAPI, integration guide (ADR-020)
 
 - **Service API `/api/v1`** (`src/server/api/v1/`, thin catch-all route `src/routes/api/v1/$.ts`):

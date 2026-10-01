@@ -9,18 +9,24 @@ _enrollment source_ over a versioned JSON contract. It never sells anything. Pro
 Decisions: `docs/decisions/` (append, never rewrite). Visual rules: `docs/DESIGN.md`. When a
 document and the code disagree, the code is right and the document gets fixed.
 
-## Direction (in progress)
+## Direction
 
-Two auth modes (`AUTH_MODE=local|oidc`, ADR-013, ADR-016, ADR-017) and the `enrollment` table
-(ADR-014) are done; the forum stays (ADR-015). Gap list: `docs/audit.md`; progress:
-`docs/status.md`. The invariants below describe the code as it is today and are rewritten per phase.
+Version 1.0.0: two auth modes (`AUTH_MODE=local|oidc`, ADR-013, ADR-016, ADR-017), the `enrollment` table
+(ADR-014), the service API (ADR-020), theming (ADR-019) and content export/import (ADR-021) are done;
+the forum stays (ADR-015). The gap list in `docs/audit.md` is closed; progress is in `docs/status.md`.
+The invariants below describe the code as it is.
 
 ## Load-bearing invariants
 
 - **Every write goes through `src/server/mutations/*`**, starting with `requireUser()` /
   `requireRole()` / `requireCourseTeacher()` from `src/server/auth/authz.ts`, and appends an
   `audit_log` row (the one exception is a person's own `lesson_progress`, written every ~10 s of
-  playback). Loaders, queries and components never write.
+  playback). Loaders, queries and components never write. The non-session writers have their own
+  actor and audit with it: the sync paths (`diff.actor = "sync:webhook|pull|claims"`), the service API
+  (`service:api`) and `pnpm sota import` (`mutations/content-import-core.ts`, actor from `cliActor()`:
+  the operator's shell and `DATABASE_URL` are the credential, `cli:import`, ADR-021). **Every enrollment
+  write appends an `audit_log` row** with per-row before/after (capped for bulk): helpers in
+  `src/server/audit.ts`, the paths in `docs/audit-log.md`.
 - **Identity has few writers.** `person` is also the better-auth user (ADR-016); `person.roles` is
   `student | teacher | admin`, read live on every request. It is written only by better-auth (signup,
   magic link, OIDC sign-in and its after-callback hook, `completeOidcLogin`), the admin invitation and
@@ -54,8 +60,12 @@ create-admin`, `applyEnrollmentPayload` (pull and webhook) and the service API's
   (default, a directory served through `/api/storage/$token`, which only honours tokens) or `s3`.
 - **Assignments and quizzes are reached through the lesson block that embeds them**:
   `requireContainerAccess()` in `src/server/access/container.ts` is the only gate.
+- **Logs are structured and clean.** Server code and unattended scripts log through `logger` from
+  `src/lib/log.ts` (JSON lines, `LOG_LEVEL`), never `console.*`; the request log is `src/server/request-log.ts`.
+  Never put an address, token, cookie, signature or body in a log field or message (the logger scrubs
+  what it can, but do not rely on it). Operator CLI output (`pnpm sota ...`) is plain text.
 - **Mail is queued, never sent inline**: mutations `enqueue()` (account mail: `enqueueAccountMail()`,
-  flushed at once because a link is useless 15 minutes later); `scripts/notify.ts` (the tick, run by
+  flushed at once because a link is useless 15 minutes later; at most five account mails an hour per address); `scripts/notify.ts` (the tick, run by
   `scripts/serve.mjs` or cron) sends immediate items and the daily digest.
 - **The look is data.** Colours, fonts, radii and spacing resolve through CSS variables set from
   `theme.json`; Tailwind utilities map to them, so a component never holds a hex or a raw palette
@@ -93,7 +103,8 @@ No telemetry. No org-specific code.
 docker compose -f compose.dev.yml up -d postgres mock-idp   # dev services (5433, 3013); files go to data/uploads
                                   # compose.yml (root) is the production stack from the published image (docs/deploying.md)
 pnpm db:migrate && pnpm db:seed   # migrations + demo course, cohort, three mock users
-pnpm sota <migrate|seed|create-admin|validate-config|validate-theme>   # operator CLI (scripts/sota.ts); the image runs it
+pnpm sota <migrate|seed|create-admin|validate-config|validate-theme|export|import>   # operator CLI (scripts/sota.ts); the image runs it
+pnpm sota export ./out --course <slug> [--cohorts]   # content as JSON + media; `import ./out [--dry-run]` is idempotent (docs/content-export-import.md)
 pnpm create-admin                 # first admin (local mode) or the break-glass account (oidc mode)
 AUTH_MODE=oidc pnpm dev           # sign in through the mock IdP (default AUTH_MODE is local)
 pnpm dev                          # http://localhost:3003
@@ -111,8 +122,8 @@ src/routes/            file routes; _authed = session, _authed/teach = teacher, 
 src/server/auth/       auth.ts (better-auth, both modes) · identity.ts · flows.ts · session.ts (client-safe getSession) · authz.ts (server-only guards) · service.ts (service-API token + HMAC)
 src/server/api/v1/     service API: routes.ts (registry, zod) · dispatch.ts · openapi.ts · queries.ts; src/routes/api/v1/$.ts is a thin wrapper
 src/server/access/     rules.ts (pure) · enrollments.ts (pull, cache, webhook) · require.ts · forum.ts (course/general forum gate)
-src/server/queries/ mutations/ services/   reads · writes+audit · video/, storage/, email/
-src/db/  src/lib/  src/i18n/  src/components/{ui,shell,syllabus,player,editor,forum,theme}  src/config/
+src/server/queries/ mutations/ services/   reads · writes+audit · video/, storage/, email/ (content-export-core.ts, content-import-core.ts and services/content-bundle-dir.ts back `sota export|import`; the bundle schema is src/lib/content-bundle.ts)
+src/db/  src/lib/ (log.ts: the logger)  src/i18n/  src/components/{ui,shell,syllabus,player,editor,forum,theme}  src/config/
 src/theme/             schema · load (validate, merge, CSS, messages, mail) · assets · vite-plugin · slots.ts (props) · default/ · examples in examples/themes/
 dev/mock-idp/          oidc-provider + mock enrollment source     drizzle/  tests/  docs/
 ```
@@ -122,22 +133,23 @@ dev/mock-idp/          oidc-provider + mock enrollment source     drizzle/  test
 - API routes: `createFileRoute("/api/x")({ server: { handlers: { GET, POST } } })`. better-auth is mounted at `/api/auth/*` (callback `/api/auth/callback/oidc`). Server functions
   use `.validator(zodSchema)`; read the request with `getRequest()` from `@tanstack/react-start/server`.
   The root `beforeLoad` also runs on the client, so it calls the `getSession` server fn.
-- `src/db/*`, `src/config/*`, `src/theme/*.ts` (not the `.tsx` slots), `src/server/{audit.ts,auth/{auth,accounts,flows,identity,invitations,invite-plugin,roles}.ts,access/{claims,enrollments,refs}.ts}`,
-  `src/server/services/{notifications,email,storage}` and `scripts/*` run under Node's native TypeScript (the create-admin script and the sign-in hooks import them): relative imports
+- `src/db/*`, `src/config/*`, `src/theme/*.ts` (not the `.tsx` slots), `src/lib/*.ts` (no alias imports), `src/server/{audit.ts,version.ts,auth/{auth,accounts,flows,identity,invitations,invite-plugin,roles}.ts,access/{claims,enrollments,refs}.ts,mutations/content-import-core.ts,queries/content-export-core.ts}`,
+  `src/server/services/{notifications,email,storage,content-bundle-dir.ts}` and `scripts/*` run under Node's native TypeScript (the create-admin script and the sign-in hooks import them): relative imports
   with `.ts` extensions, no `~/` alias, no `enum`, no parameter properties.
 - `DATABASE_URL=pglite://memory` opens an in-memory PGlite (tests); anything else is `pg`.
 - In `src/server/mutations/`, a file with server functions exports nothing else that touches the database,
   `better-auth` or Node APIs: that code lives in a `*-core.ts` sibling (`enrollments-core.ts`,
   `people-core.ts`, `cohorts-core.ts`) that takes the actor and the transaction as arguments and is what
   tests call. A plain export would pull the server into the client bundle and crash the page.
-- Server-only modules (`authz.ts`, `oidc.ts`, `src/db`, services) are imported only from server
+- Server-only modules (`authz.ts`, `auth.ts`, `src/db`, services) are imported only from server
   handlers; `src/server/auth/session.ts` is the client-safe surface.
 - Handlers that set cookies must return `new Response(null, { status, headers: { location } })`, never
   `Response.redirect()`: its headers are immutable and the framework cannot append `Set-Cookie`.
 - Slots are compiled in: changing `theme/slots/*.tsx` needs a restart of `vite dev` or a rebuild of the
   image (`--build-arg THEME_DIR`). `theme.json`, `custom.css`, `messages/`, `emails/`, `assets/` are runtime.
 - `vite dev` loads `.env` once at start; a new variable needs a restart. So does `src/start.ts`
-  (the request middleware: CSP nonce, security headers, rate limiter).
+  (the request middleware: request log, rate limiter, CSP nonce, security headers). A new path that checks a credential or sends mail belongs in `AUTH_SENSITIVE_PREFIXES` (`src/server/security.ts`; `tests/rate-limit.test.ts` checks it against the real better-auth endpoints).
+- A new environment variable goes in `src/config/env.ts`, `.env.example` and `docs/configuration.md`; `tests/repo-hygiene.test.ts` fails otherwise. A file loaded by `scripts/*` must load under plain `node` (the same test imports them).
 - `src/routeTree.gen.ts` is generated and git-ignored: run `pnpm dev` or `pnpm build` once before `pnpm typecheck`.
 - Rich text is edited in place (Tiptap, `RichTextField`) but **stored as Markdown**; the field emits
   Markdown and `renderMarkdown()` stays the one sanitiser. A YouTube/Vimeo URL alone on its line is a

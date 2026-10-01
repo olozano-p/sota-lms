@@ -24,7 +24,7 @@ These are constraints on _how_ the project is built, not features:
 2. **Generic core, configured edge.** Anything that names an organisation, domain, membership tier, brand, or IdP belongs in `.env`, `lms.config.ts`, or the database — never in source. Rule of thumb for the agent: _if a second organisation forked this tomorrow, would they have to edit a `.ts` file to run it? If yes, it's misplaced._
 3. **Standards over integrations.** SSO is plain OIDC (any compliant IdP works; better-auth is just the reference). Enrollments are a documented, versioned JSON contract over HTTPS, not a call into the members' site's internals. Storage is a directory or any S3-compatible API behind one interface. Email is SMTP. Video is behind a provider interface (Vimeo is the first implementation).
 4. **One-command local setup.** `docker compose -f compose.dev.yml up` gives Postgres + a mock OIDC provider + the app with seed data. A contributor must be able to run the full lesson flow locally without any credentials from the reference deployment.
-5. **Documented as a product, not a project.** `README.md` (what it is, screenshots, quickstart), `docs/deploy.md`, `docs/idp-integration.md` (how to wire your own IdP and enrollment source), `docs/adr/`. `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` (responsible disclosure), `CHANGELOG.md` (Keep a Changelog), semver tags.
+5. **Documented as a product, not a project.** `README.md` (what it is, screenshots, quickstart), `docs/deploy.md`, `docs/deploying.md`, `docs/idp-integration.md` (how to wire your own IdP and enrollment source), `docs/adr/`. `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` (responsible disclosure), `CHANGELOG.md` (Keep a Changelog), semver tags.
 6. **License:** AGPL-3.0 (recommended — same as Frappe LMS, keeps hosted forks open) or MIT (maximally permissive). **OPEN.**
 7. **English-first codebase and docs**; UI is i18n'd with ca/es/en shipped as the first three catalogs. Identifiers, comments, commits, ADRs in English.
 8. **CI on every PR:** typecheck, lint, unit tests, migration dry-run, Playwright smoke. Dependabot/Renovate on.
@@ -267,7 +267,7 @@ Contributors may add `YouTubeProvider`, `MuxProvider`, `SelfHostedProvider` behi
 /api/webhooks/entitlements          → POST (HMAC)
 /api/v1/*                           → service API (bearer, optional HMAC), /api/v1/openapi.json
 /api/files/$fileId                  → GET signed redirect (access-checked)
-/api/health
+/api/health                         → GET: database round trip and version, 503 when the database is down (docs/observability.md)
 ```
 
 Every loader calls `requireSession()`; content loaders call `requireLessonAccess()`; authoring routes call `requireRole()` and check `course_teacher`.
@@ -295,7 +295,8 @@ Every loader calls `requireSession()`; content loaders call `requireLessonAccess
 - Webhooks: HMAC-SHA256, |now − ts| ≤ 5 min, store-then-process, idempotent.
 - Secrets only via env; `.env.example` complete; `SECURITY.md` with disclosure address.
 - Private bucket; signed URLs ≤ 5 min.
-- Rate limiting on `/auth/*` and `/api/*` documented for the reverse proxy; app-level fallback limiter.
+- Rate limiting on `/auth/*`, `/api/*` and server functions documented for the reverse proxy; app-level fallback limiter with strict buckets for credential, magic-link, recovery and invitation endpoints, and a per-address throttle on account mail (`docs/configuration.md`).
+- Structured JSON logs without secrets, tokens or addresses (`docs/observability.md`); every enrollment write audited (`docs/audit-log.md`); backup and restore drill (`docs/backup-restore.md`).
 - CSP with nonces; `frame-src` built from enabled providers + embed allowlist.
 - CI: dependency audit, migration dry-run; migrations applied only by explicit deploy step.
 

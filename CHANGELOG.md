@@ -6,74 +6,71 @@ All notable changes to SOTA are documented here. The format follows
 
 ## [Unreleased]
 
-### Changed
+## [1.0.0] - 2026-10-01
 
-- `enrollment` replaces `entitlement` (ADR-014): one row per person and course (optionally cohort)
-  with `valid_from`/`valid_until` and a status. The pull/push payload is now `enrollments/v1`;
-  `all_courses`, `accessRules` and `delayed_after_course_end` are gone, and admin grants are
-  `manual` enrollments the sync never touches. Breaking for sources still sending
-  `entitlements/v1`.
-- File storage sits behind a `StorageProvider` interface with a local filesystem driver (the
-  default: files under `STORAGE_DIR`, signed URLs honoured by `/api/storage/$token`) and the
-  S3 driver (`STORAGE_DRIVER=s3`). MinIO is gone from docker compose, CI and the deploy
-  reference; existing S3 deployments set `STORAGE_DRIVER=s3` (ADR-012).
+First release. SOTA is a self-hostable course platform with two ways to sign in (a local account
+store or your OIDC provider), enrollments from a source of your choice, a theme directory, a service
+API, and a container image published on every version tag.
 
 ### Added
 
-- Forums: a per-course forum teachers enable in settings and a general forum (`forum.general` in
-  `lms.config.ts`). Threads pinned-first then by latest reply, replies with author, date and
-  like/dislike, "cite" quoting, moderation (pin, lock, rename, delete) by course teachers and
-  admins, digest mail to thread participants and teachers (ADR-011).
-- Rich-text editor over Markdown (Tiptap) for lesson text, course descriptions, assignment
-  instructions, quiz intros and forum posts: headings, bold, italic, code, quotes, lists, links,
-  image upload, and YouTube/Vimeo players from a pasted link (ADR-010).
-
-- Project skeleton: TanStack Start app, Postgres schema, docker compose with a mock OIDC provider,
-  design system, i18n scaffolding, CI.
-- OIDC relying party (code + PKCE, own 12 h / 2 h session, IdP end-session on logout).
-- `entitlements/v1` contract: pull with 15-minute TTL, HMAC-signed idempotent webhook, admin grants.
-- `canSeeLesson()` access resolution with an exhaustive test matrix.
-- Admin area: people, entitlements with local grants, webhook log, audit log.
-- Learner core: course catalogue with computed progress and a single "continue" target, syllabus
-  with lock states generated from the rule type, lesson player with text, video (Vimeo), audio,
-  file and embed blocks, keyboard navigation, per-lesson progress with media resume, signed file
-  downloads, cohort page with the release schedule.
-- Authoring: `/teach` with course creation (admins) and teacher assignment, structure editor with
-  drag-sort for chapters, lessons and blocks, autosave on blur, publish toggles, Markdown preview,
-  presigned uploads with configurable limits, Vimeo URL resolution. Every write is audited.
-- Assignments: text and/or file submissions with resubmission and history, teacher review with
-  feedback (reviewed / returned), submission list with status filter.
-- Quizzes and forms: builder with four question types, attempts with auto-grading of choice
-  questions, optional pass mark, answers revealed after submission, results with per-option counts.
-- Cohorts: teacher editor with members (manual by email or automatic from `cohort` entitlements)
-  and a release schedule per chapter or lesson; member page with the calendar.
-- Notifications over SMTP (console transport in dev): submission received → teachers, feedback
-  returned → student (immediate), chapter released → cohort; daily digest at a configured hour;
-  per-person opt-out column; `scripts/notify.ts` tick run by the production server or cron.
-- Playwright smoke suite: SSO redirect and sign-out, lesson flow with progress and drip lock,
-  authoring with upload, assignment submission and review, quiz attempt and results.
-- Hardening: Content-Security-Policy with a per-request nonce (`frame-src` built from the enabled
-  video providers and the embed allowlist), `nosniff`, referrer and permissions policies, HSTS on
-  HTTPS, in-process rate limiting on `/auth/*` and `/api/*`.
-- Deployment: production compose file, nginx sample, rsync + pm2 alternative, `docs/deploy.md`.
+- **Two authentication modes** (`AUTH_MODE=local|oidc`, ADR-013, ADR-016, ADR-017): email + password,
+  magic link and admin invitations on better-auth, or a generic OIDC client with roles and
+  enrollments from claims; break-glass administrator; `pnpm sota create-admin`.
+- **Enrollment model** (ADR-014, ADR-018): one `enrollment` row per person and course (optionally
+  cohort) with a validity window; sources `manual`, `claims` and `webhook`; manual enrollment by pasted
+  list or by cohort; placeholder people adopted at first sign-in; the "N chapters every D days" drip rule.
+- **Service API** `/api/v1` (ADR-020, `docs/integration.md`): per-enrollment `PUT`/`DELETE`, progress and
+  course reads, health, an OpenAPI 3.1 document generated from the route schemas; bearer token plus
+  optional HMAC signature over method, path, timestamp and body.
+- **Theme directory** (ADR-019, `docs/theming.md`): `theme.json`, `custom.css`, message overrides, mail
+  layouts, assets and seven compiled slots; two example themes; `pnpm sota validate-theme`.
+- **`pnpm sota export` / `import`** (ADR-021, `docs/content-export-import.md`): courses, chapters,
+  lessons, blocks, assignments, quizzes and optionally cohorts with drip releases as versioned JSON plus
+  media in a plain directory; import is idempotent by slug, validated first, transactional, supports
+  `--dry-run`, remaps ids, writes audit rows and stores media through the `StorageProvider`.
+- **Structured logs and a real health check** (`docs/observability.md`): one JSON line per log event,
+  `LOG_LEVEL`, a request log with id, method, path, status and duration and no secrets, tokens or
+  addresses; `/api/health` reports the database round trip and the version and answers 503 when the
+  database does not.
+- **Audit trail for every enrollment write** (`docs/audit-log.md`): complete-set sync (push and pull),
+  claims, sign-in, manual, bulk, cohort, service API and placeholder merge, with per-row before/after
+  (capped for bulk).
+- **Backup and restore guide** (`docs/backup-restore.md`), validated by a dump/restore drill, and a
+  release workflow (`.github/workflows/release.yml`) that publishes `ghcr.io/<owner>/sota` on `vX.Y.Z`.
+- Forums (ADR-011), the rich-text editor over Markdown (ADR-010), course, cohort and lesson authoring,
+  assignments, quizzes and forms, notifications by mail, three locales, the lesson player with progress
+  and media resume, Playwright suites, and the Docker/Compose deployment (`docs/deploying.md`).
 
 ### Changed
 
-- Schibsted Grotesk replaces Source Sans 3 as the interface face; the page is white with a gold
-  accent and an ochre link colour; warning moves to rust (ADR-009).
+- `enrollment` replaces `entitlement` (ADR-014): the pull/push payload is `enrollments/v1`;
+  `all_courses`, `accessRules` and `delayed_after_course_end` are gone. Breaking for sources still
+  sending `entitlements/v1`.
+- File storage sits behind a `StorageProvider` interface with a local filesystem driver (the default)
+  and an S3 driver; MinIO is gone from Compose, CI and the deploy reference (ADR-012).
+- One signing secret, `WEBHOOK_HMAC_SECRET`, signs both push channels; `ENTITLEMENTS_WEBHOOK_SECRET` is a
+  deprecated alias (ADR-020).
+- Brand, colours and default language moved from `lms.config.ts` to the theme directory (ADR-019).
+- Schibsted Grotesk replaces Source Sans 3; the page is white with a gold accent (ADR-009).
+- A sync without `valid_from` keeps an existing enrollment's start instead of resetting it each time.
+- `docker compose` for production is `compose.yml`; the development stack is `compose.dev.yml`.
 
 ### Security
 
+- Rate limits cover better-auth's credential, mail and recovery endpoints (including
+  `verify-password`), the legacy webhook and server functions; account mail is throttled to five
+  messages an hour per address, whoever asks.
 - Assignment and quiz blocks may only reference their own course, and audio/file blocks only keys
   under the course's storage prefix; the container lookup for assignments and quizzes is scoped to
-  the course. Before, a teacher of one course could expose another course's assignments, quiz
-  answers and files to their students.
-- Submission files are served to their author, the teachers of that course and admins only, not to
-  every teacher.
+  the course.
+- Submission files are served to their author, the teachers of that course and admins only.
 - The production server answers 400 to malformed URLs and Host headers instead of exiting, and
   forwards every `Set-Cookie` header instead of the last one.
-- The rate limiter honours `X-Forwarded-For` / `X-Real-IP` only behind `TRUST_PROXY=true`, takes
-  the hop the proxy appended, and otherwise keys on the socket peer.
+- The rate limiter honours `X-Forwarded-For` / `X-Real-IP` only behind `TRUST_PROXY=true`, takes the
+  hop the proxy appended, and keys better-auth's own limiter on that address.
 - The session cookie is always host-only; `COOKIE_DOMAIN` widens only the locale cookie.
-- The Docker image runs as `node`; CI runs with a read-only token and no longer ignores `pnpm audit`.
-- `nodemailer` 7 → 9.1 (two high advisories in 7.x).
+- A Content-Security-Policy with a per-request nonce, `nosniff`, referrer and permissions policies, HSTS
+  on HTTPS.
+- The Docker image runs as `node`; CI runs with a read-only token and runs `pnpm audit`; `nodemailer`
+  7 → 9.1 (two high advisories in 7.x).
