@@ -3,11 +3,10 @@ import { ArrowRight } from "lucide-react";
 import { useI18n } from "~/i18n";
 import { listMyCourses } from "~/server/queries/courses";
 import { buttonVariants } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
 import { Empty } from "~/components/ui/empty";
 import { Eyebrow } from "~/components/ui/eyebrow";
-import { ProgressRule } from "~/components/ui/progress-rule";
 import { lockMessage } from "~/components/LockNotice";
+import { Slot } from "~/components/theme/Slot";
 import { cn } from "~/lib/cn";
 
 export const Route = createFileRoute("/_authed/courses/")({
@@ -51,62 +50,21 @@ function CoursesPage() {
         <Empty title={t("courses.empty.title")}>{t("courses.empty.lead")}</Empty>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2">
-          {courses.map((c) => {
-            const lock = lockMessage(c.decision, i18n);
-            return (
-              <li
-                key={c.id}
-                className="flex flex-col justify-between gap-4 rounded-lg border bg-card p-5"
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {c.status === "draft" ? (
-                      <Badge variant="warning">{t("courses.draft")}</Badge>
-                    ) : null}
-                    {c.status === "archived" ? <Badge>{t("courses.archived")}</Badge> : null}
-                    {c.privileged ? <Badge variant="info">{t("courses.teaching")}</Badge> : null}
-                  </div>
-                  <h2 className="font-serif text-xl font-medium tracking-normal">
-                    <Link
-                      to="/courses/$courseSlug"
-                      params={{ courseSlug: c.slug }}
-                      className="text-foreground"
-                    >
-                      {c.title}
-                    </Link>
-                  </h2>
-                  {c.subtitle ? (
-                    <p className="text-sm text-muted-foreground">{c.subtitle}</p>
-                  ) : null}
-                  {lock ? <p className="text-sm text-muted-foreground">{lock}</p> : null}
-                </div>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground tabular-nums">
-                    <span>
-                      {t("courses.progress", {
-                        completed: c.progress.completed,
-                        total: c.progress.total,
-                      })}
-                    </span>
-                    <span>{t("common.percent", { n: Math.round(c.progress.ratio * 100) })}</span>
-                  </div>
-                  <ProgressRule value={c.progress.ratio} label={t("courses.progress.label")} />
-                  <div>
-                    <Link
-                      to="/courses/$courseSlug"
-                      params={{ courseSlug: c.slug }}
-                      className={cn(
-                        buttonVariants({ variant: "outline", size: "sm" }),
-                        "text-foreground no-underline hover:no-underline",
-                      )}
-                    >
-                      {t("courses.open")}
-                    </Link>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
+          {courses.map((c) => (
+            <Slot
+              key={c.id}
+              name="CourseCard"
+              course={{
+                slug: c.slug,
+                title: c.title,
+                subtitle: c.subtitle,
+                status: c.status,
+                privileged: c.privileged,
+                lockMessage: lockMessage(c.decision, i18n),
+                progress: c.progress,
+              }}
+            />
+          ))}
         </ul>
       )}
     </div>

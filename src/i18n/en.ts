@@ -635,11 +635,11 @@ export const en: Record<MessageKey, string> = {
   "teach.cohorts.drip.noStart": "The cohort has no start date: pick one.",
   "teach.cohorts.drip.confirm":
     "This cohort already has chapter release dates. Applying the rule replaces all of them; lesson dates are left alone.",
-  "teach.cohorts.drip.done": "{n} release dates scheduled.",
+  "teach.cohorts.drip.done": "Release dates scheduled: {n}.",
   "teach.cohorts.enrollAll": "Enroll the whole cohort",
   "teach.cohorts.enrollAll.lead":
     "Enrolls every student of the cohort in the course, including anyone added without an enrollment.",
-  "teach.cohorts.enrollAll.done": "{n} people enrolled.",
+  "teach.cohorts.enrollAll.done": "People enrolled: {n}.",
   "teach.cohorts.enrollEmails.lead":
     "Paste a list of addresses: they are enrolled in the course through this cohort.",
   "enroll.title": "Enroll by email",
@@ -653,11 +653,11 @@ export const en: Record<MessageKey, string> = {
   "enroll.submit": "Enroll",
   "enroll.nothing": "No addresses found.",
   "enroll.invalid": "Invalid",
-  "enroll.outcome.enrolled": "Enrolled",
+  "enroll.outcome.enrolled": "Enrollments created",
   "enroll.outcome.enrolled.hint": "They now have access to the course.",
   "enroll.outcome.already": "Already enrolled",
   "enroll.outcome.already.hint": "Nothing changed.",
-  "enroll.outcome.invited": "Invited",
+  "enroll.outcome.invited": "Invitations sent",
   "enroll.outcome.invited.hint": "An invitation email was sent.",
   "enroll.outcome.placeholder": "Waiting for first sign-in",
   "enroll.outcome.placeholder.hint": "The enrollment takes effect when the person first signs in.",

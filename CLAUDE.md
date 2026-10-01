@@ -36,9 +36,10 @@ create-admin`, and `applyEnrollmentPayload` (pull and webhook). In `oidc` mode p
 - **Access is one pure function**: `canSeeLesson()` in `src/server/access/rules.ts` takes the
   enrollments, the course/lesson state, the cohort releases and `now` as data. Content loaders
   call `requireLessonAccess()`, which calls it. Nothing else decides who sees what.
-- **Generic core, configured edge.** Organisation names, tiers, domains, brand, IdP details live in
+- **Generic core, configured edge.** Organisation names, tiers, domains, IdP details live in
   `.env` (every variable parsed and documented: `src/config/env.ts`, `docs/configuration.md`),
-  `lms.config.ts` or the database. Test: would a second organisation have to edit a `.ts`
+  `lms.config.ts` or the database; brand and look (name, logo, colours, fonts, copy, mail layout,
+  slots) live in the theme directory (`THEME_DIR`, `docs/theming.md`, ADR-019). Test: would a second organisation have to edit a `.ts`
   file to run their fork? Then it is misplaced. Lock reasons are i18n'd from the rule _type_.
 - **Files are private.** Only `/api/files/$fileId` hands out signed GET URLs (≤ 5 min) after an
   access check. Storage sits behind `StorageProvider` (`src/server/services/storage`): `local`
@@ -48,6 +49,10 @@ create-admin`, and `applyEnrollmentPayload` (pull and webhook). In `oidc` mode p
 - **Mail is queued, never sent inline**: mutations `enqueue()` (account mail: `enqueueAccountMail()`,
   flushed at once because a link is useless 15 minutes later); `scripts/notify.ts` (the tick, run by
   `scripts/serve.mjs` or cron) sends immediate items and the daily digest.
+- **The look is data.** Colours, fonts, radii and spacing resolve through CSS variables set from
+  `theme.json`; Tailwind utilities map to them, so a component never holds a hex or a raw palette
+  colour. Replaceable UI is one of seven named slots (`src/theme/slots.ts`), one component each,
+  chosen at build time by the Vite plugin: `<THEME_DIR>/slots/<Name>.tsx` else `src/theme/default/slots/`.
 - **Locale resolution order is fixed**: `?lang` → cookie → IdP `locale` claim → `Accept-Language` → config default.
 
 ## Hard rules
@@ -87,6 +92,8 @@ pnpm dev                          # http://localhost:3003
 pnpm typecheck · pnpm lint · pnpm fmt · pnpm test · pnpm e2e
 pnpm db:generate                  # new migration after editing src/db/schema.ts
 pnpm notify                       # one notification tick (FORCE_DIGEST=true to send the digest now)
+pnpm sota validate-theme [dir]    # check THEME_DIR (theme.json, messages, emails, assets, slots)
+THEME_DIR=examples/themes/ledger pnpm dev   # try a theme; slots need a dev-server restart
 ```
 
 ## Layout
@@ -96,7 +103,8 @@ src/routes/            file routes; _authed = session, _authed/teach = teacher, 
 src/server/auth/       auth.ts (better-auth, both modes) · identity.ts · flows.ts · session.ts (client-safe getSession) · authz.ts (server-only guards)
 src/server/access/     rules.ts (pure) · enrollments.ts (pull, cache, webhook) · require.ts · forum.ts (course/general forum gate)
 src/server/queries/ mutations/ services/   reads · writes+audit · video/, storage/, email/
-src/db/  src/lib/  src/i18n/  src/components/{ui,shell,syllabus,player,editor,forum}  src/config/
+src/db/  src/lib/  src/i18n/  src/components/{ui,shell,syllabus,player,editor,forum,theme}  src/config/
+src/theme/             schema · load (validate, merge, CSS, messages, mail) · assets · vite-plugin · slots.ts (props) · default/ · examples in examples/themes/
 dev/mock-idp/          oidc-provider + mock enrollment source     drizzle/  tests/  docs/
 ```
 
@@ -105,7 +113,7 @@ dev/mock-idp/          oidc-provider + mock enrollment source     drizzle/  test
 - API routes: `createFileRoute("/api/x")({ server: { handlers: { GET, POST } } })`. better-auth is mounted at `/api/auth/*` (callback `/api/auth/callback/oidc`). Server functions
   use `.validator(zodSchema)`; read the request with `getRequest()` from `@tanstack/react-start/server`.
   The root `beforeLoad` also runs on the client, so it calls the `getSession` server fn.
-- `src/db/*`, `src/config/*`, `src/server/{audit.ts,auth/{auth,accounts,flows,identity,invitations,invite-plugin,roles}.ts,access/{claims,enrollments,refs}.ts}`,
+- `src/db/*`, `src/config/*`, `src/theme/*.ts` (not the `.tsx` slots), `src/server/{audit.ts,auth/{auth,accounts,flows,identity,invitations,invite-plugin,roles}.ts,access/{claims,enrollments,refs}.ts}`,
   `src/server/services/{notifications,email,storage}` and `scripts/*` run under Node's native TypeScript (the create-admin script and the sign-in hooks import them): relative imports
   with `.ts` extensions, no `~/` alias, no `enum`, no parameter properties.
 - `DATABASE_URL=pglite://memory` opens an in-memory PGlite (tests); anything else is `pg`.
@@ -117,6 +125,8 @@ dev/mock-idp/          oidc-provider + mock enrollment source     drizzle/  test
   handlers; `src/server/auth/session.ts` is the client-safe surface.
 - Handlers that set cookies must return `new Response(null, { status, headers: { location } })`, never
   `Response.redirect()`: its headers are immutable and the framework cannot append `Set-Cookie`.
+- Slots are compiled in: changing `theme/slots/*.tsx` needs a restart of `vite dev` or a rebuild of the
+  image (`--build-arg THEME_DIR`). `theme.json`, `custom.css`, `messages/`, `emails/`, `assets/` are runtime.
 - `vite dev` loads `.env` once at start; a new variable needs a restart. So does `src/start.ts`
   (the request middleware: CSP nonce, security headers, rate limiter).
 - `src/routeTree.gen.ts` is generated and git-ignored: run `pnpm dev` or `pnpm build` once before `pnpm typecheck`.

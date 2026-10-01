@@ -3,20 +3,29 @@
 SOTA is a place to read, watch and think. The interface should feel like a well-set page: white,
 quiet, legible, with warm ink, one gold accent and nothing that shouts. Light is the default (lessons are
 read); dark is a stored preference. Depth comes from hairlines and spacing, not shadows. The tokens
-in `src/styles.css` are the only source of colour, radius, type and easing in the repo; brand
-overrides (name, logo, accent) come from `lms.config.ts` and are applied as CSS variables at the
-root, never as new utilities.
+are the only source of colour, radius, type, spacing and easing in the repo. Their values live in
+`theme.json` (the shipped default is `src/theme/default/theme.json`; a deployment points `THEME_DIR`
+at its own), reach the page as CSS variables through `/theme/theme.css`, and `src/styles.css` only
+maps them to utilities and derives the optional ones. A theme restyles the app by changing
+variables, never by adding utilities; layout it cannot reach with variables is a slot
+(`docs/theming.md`).
 
 ## Palette roles
+
+The values below are those of the default theme (`src/theme/default/theme.json`), not constants of
+the code. A theme sets `ink`, `paper`, `primary`, `primaryForeground`, `link` and the four state
+colours (each with a `-foreground` twin) per mode; everything marked _derived_ comes from ink and
+paper in `src/styles.css` unless the theme sets it. A theme that sets a derived token in light
+sets it in dark too.
 
 | Token                                       | Light                                            | Dark                              | Use                                                            |
 | ------------------------------------------- | ------------------------------------------------ | --------------------------------- | -------------------------------------------------------------- |
 | `--background`                              | `#ffffff`                                        | `#161514`                         | page canvas                                                    |
-| `--card` / `--popover`                      | `#ffffff`                                        | `#1e1c1a`                         | surfaces, set apart by a hairline, not by a fill               |
+| `--card` / `--popover`                      | _derived_: paper                                 | _derived_: ink 4 % into paper     | surfaces, set apart by a hairline, not by a fill               |
 | `--foreground`                              | `#1e1c19` ink                                    | `#e9e5dc`                         | text                                                           |
-| `--muted-foreground`                        | `#6b665e`                                        | `#a39d92`                         | secondary text, metadata                                       |
-| `--border`                                  | ink at 12 %                                      | paper 10 %                        | hairlines                                                      |
-| `--accent`                                  | ink at 5 %                                       | paper 6 %                         | hover and selected backgrounds                                 |
+| `--muted-foreground`                        | _derived_: ink 65 % over paper                   | _derived_: same                   | secondary text, metadata                                       |
+| `--border`                                  | _derived_: ink at 12 %                           | _derived_: ink at 10 %            | hairlines                                                      |
+| `--accent`                                  | _derived_: ink at 5 %                            | _derived_: ink at 6 %             | hover and selected backgrounds                                 |
 | `--primary`                                 | `#e0a51c` gold, ink text (7.7:1)                 | `#f0c455`                         | **actions and progress only** — one filled button per screen   |
 | `--link`                                    | `#8c5f0a` ochre (5.6:1 on white)                 | `#f0c455`                         | inline links and the focus ring in light; gold is too pale     |
 | `--success` / `--warning` / `--destructive` | `#587a5a` moss · `#c2661d` rust · `#a34a3e` clay | `#8bab8c` · `#dd8f52` · `#c8776b` | states, always paired with a word or glyph, never colour alone |
@@ -26,10 +35,19 @@ Each state colour has a `-foreground` twin for text (`#3f5c41`, `#8a4712`, `#8a3
 light) so words stay above 4.5:1 while the fill stays recognisable. Warning moved off gold when
 gold became the accent.
 
+`--input`, `--muted`, `--secondary` and `--code` are derived the same way (ink at 5–18 %), and
+`--ring` is the link colour in light and the primary in dark. Contrast of derived text stays at or
+above 4.5:1 for any theme whose ink and paper do (muted-foreground mixes 65 % ink).
+
 **Never** a raw Tailwind palette utility (`slate-*`, `gray-*`, `emerald-*`) and never a hex in a
 component: a cool grey or a saturated blue in a view means the theme leaked.
 
 ## Type
+
+Faces are the `--font-sans`, `--font-serif` and `--font-mono` variables from the theme; the names
+below are the default theme's. A theme may ship its own files (`fonts.faces`, served from
+`/theme/assets/`) or name system fonts. Components say `font-serif` for the reading roles and never
+a family.
 
 - **Literata** (variable, `@fontsource-variable/literata`) is the reading face: `h1`, course and
   lesson titles, and the lesson prose (`.prose`). It is a book face, so it carries long text well;
@@ -40,7 +58,7 @@ component: a cool grey or a saturated blue in a view means the theme leaked.
   `tracking-[-0.01em]`; Schibsted is already compact, so Tailwind's `tracking-tight` closes the
   counters. Small labels may use `text-xs uppercase tracking-[0.06em]`, sparingly — section
   eyebrows and status tags, not buttons.
-- Lesson prose: `max-w-[68ch]`, `text-[1.0625rem]`, `leading-[1.65]`; paragraphs separated by
+- Lesson prose: `max-w-measure` (`--measure`, default `68ch`; the `.prose` utility sets it), `text-[1.0625rem]`, `leading-[1.65]`; paragraphs separated by
   space, not indents. Durations, counts and scores use `tabular-nums` on the cell or span that holds
   them, never on a whole table: Schibsted's `tnum` also widens the full stop, so an email address in
   a tabular row reads «example . invalid».
@@ -50,14 +68,22 @@ component: a cool grey or a saturated blue in a view means the theme leaked.
 
 ## Shape and depth
 
-- Two radii and nothing rounder: controls `rounded` = `--radius: 0.25rem`; surfaces (cards,
-  dialogs, the player frame) `rounded-lg` = `--radius-surface: 0.5rem`. Badges are square-ish
+- Two radii and nothing rounder, both theme variables: controls `rounded` = `--radius` (default
+  `0.25rem`); surfaces (cards, dialogs, the player frame) `rounded-lg` = `--radius-surface`
+  (default `0.5rem`). Badges are square-ish
   (`rounded`), not pills. Avatars are the one circle.
 - **No drop shadows, gradients, blur or translucency.** A surface is a hairline border on the
   same white. Hover is a background shift to `--accent`; selected is `--accent` plus a
   2 px left rule in `--primary`; focus is a 2 px `--ring` outline with offset.
 - Progress is a 2 px rule (`ProgressRule`), never a ring or a percentage badge.
 - Lock states are text: a lock glyph plus «Available from 12 March» generated from the rule type.
+
+## Spacing and widths
+
+`--spacing` is Tailwind's base unit (default `0.25rem`), so every `p-*`, `gap-*` and `m-*` scales
+with the theme. `--content-width` (default `72rem`) is the page column, used as `max-w-content`;
+`--measure` is the reading width, `max-w-measure`. Neither `max-w-6xl` nor `68ch` is written in a
+component.
 
 ## Motion
 
@@ -66,7 +92,7 @@ slide on press or open; dialogs fade. `prefers-reduced-motion` keeps opacity and
 
 ## Layout
 
-- Shell: a slim top bar (brand mark, locale, theme, account) over a `max-w-6xl` content column.
+- Shell: a slim top bar (brand mark, locale, theme, account) over a `max-w-content` column. The bar, the footer, the landing, the sign-in frame, the course card, the lesson frame and the empty state are theme slots (`src/theme/default/slots`); a theme may replace any of them.
 - Course page: syllabus rail on the left (`lg:` and up; stacked above on phones) — chapters as
   eyebrows, lessons as rows with a glyph column (✓ done · ● current · ○ todo · lock), a thin
   vertical rule ties the list together. Content column on the right.

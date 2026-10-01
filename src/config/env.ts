@@ -36,6 +36,7 @@ const rawSchema = z.object({
   COOKIE_DOMAIN: text(),
   TRUST_PROXY: flag(),
   DEFAULT_LOCALE: opt(z.enum(["ca", "es", "en"])),
+  THEME_DIR: text(),
 
   AUTH_MODE: opt(z.enum(AUTH_MODES)),
   ALLOW_SIGNUP: flag(),
@@ -138,6 +139,10 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
     cookieDomain: raw.COOKIE_DOMAIN ?? null,
     trustProxy: raw.TRUST_PROXY,
     defaultLocale: raw.DEFAULT_LOCALE ?? null,
+    /** Directory of theme.json, custom.css, messages, emails, assets and slots (docs/theming.md). */
+    themeDir: resolve(raw.THEME_DIR ?? "theme"),
+    /** `THEME_DIR` was set: a missing directory is then an error rather than "use the defaults". */
+    themeDirExplicit: raw.THEME_DIR !== undefined,
     authMode,
     /** Local signup is a `local`-mode feature; OIDC never registers anyone. */
     allowSignup: authMode === "local" && raw.ALLOW_SIGNUP,

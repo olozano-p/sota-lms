@@ -1,7 +1,8 @@
 # Configuration
 
 Everything a deployment changes lives in the environment (`.env`, copied from `.env.example`) or in
-`lms.config.ts` (brand, locales, upload limits, notification defaults; see its comments). This page
+`lms.config.ts` (enabled locales, time zone, upload limits, notification defaults; see its comments) or
+the theme directory (name, logo, colours, fonts, default language, copy, mail layout: `docs/theming.md`). This page
 documents every environment variable.
 
 The environment is parsed with Zod (`src/config/env.ts`) and validated at boot: `pnpm start`
@@ -10,16 +11,17 @@ listing every problem. An empty value (`KEY=`) counts as unset.
 
 ## Core
 
-| Variable             | Default                                    | Notes                                                                                                                                                                      |
-| -------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `APP_URL`            | `http://localhost:$PORT`                   | Public origin, without a trailing slash. Used in links in mail, as the auth base URL and for CORS-style origin checks. `https://` makes cookies `Secure` and enables HSTS. |
-| `PORT`               | `3003`                                     | Port of the Node server.                                                                                                                                                   |
-| `DATABASE_URL`       | `postgres://sota:sota@localhost:5433/sota` | Postgres connection string. `pglite://memory` opens an in-memory database (tests only).                                                                                    |
-| `SESSION_SECRET`     | dev value outside production               | **Required in production**, at least 32 characters (`openssl rand -base64 32`). Signs sessions, one-time links and storage tokens. Changing it signs everyone out.         |
-| `DEFAULT_LOCALE`     | `lms.config.ts` → `locales.default`        | `ca`, `es` or `en`, used when `?lang`, the cookie, the IdP claim and `Accept-Language` give nothing. Ignored if the locale is not enabled in `lms.config.ts`.              |
-| `COOKIE_DOMAIN`      | unset                                      | Widens the **locale** cookie to a parent domain (`.example.org`). The session cookie is always host-only.                                                                  |
-| `TRUST_PROXY`        | `false`                                    | `true` behind a reverse proxy: the last `X-Forwarded-For` hop is the client address for rate limiting.                                                                     |
-| `NOTIFY_INTERVAL_MS` | `900000`                                   | Interval of the notification tick run by `scripts/serve.mjs`; `0` when cron runs `pnpm notify`.                                                                            |
+| Variable             | Default                                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `APP_URL`            | `http://localhost:$PORT`                   | Public origin, without a trailing slash. Used in links in mail, as the auth base URL and for CORS-style origin checks. `https://` makes cookies `Secure` and enables HSTS.                                                                                                                                                                                                                                               |
+| `PORT`               | `3003`                                     | Port of the Node server.                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `DATABASE_URL`       | `postgres://sota:sota@localhost:5433/sota` | Postgres connection string. `pglite://memory` opens an in-memory database (tests only).                                                                                                                                                                                                                                                                                                                                  |
+| `SESSION_SECRET`     | dev value outside production               | **Required in production**, at least 32 characters (`openssl rand -base64 32`). Signs sessions, one-time links and storage tokens. Changing it signs everyone out.                                                                                                                                                                                                                                                       |
+| `DEFAULT_LOCALE`     | theme `defaultLocale` (`ca`)               | `ca`, `es` or `en`, used when `?lang`, the cookie, the IdP claim and `Accept-Language` give nothing. Wins over `theme.json`; ignored if the locale is not enabled in `lms.config.ts`.                                                                                                                                                                                                                                    |
+| `THEME_DIR`          | `./theme`                                  | Theme directory (`theme.json`, `custom.css`, `messages/`, `emails/`, `assets/`, `slots/`). Unset: `./theme` when it exists, else the shipped look; set and missing is an error. Read at boot and checked by `pnpm sota validate-theme`. Slots are compiled in at **build** time from the directory the build sees (`docker build --build-arg THEME_DIR=...`); everything else is read at runtime. See `docs/theming.md`. |
+| `COOKIE_DOMAIN`      | unset                                      | Widens the **locale** cookie to a parent domain (`.example.org`). The session cookie is always host-only.                                                                                                                                                                                                                                                                                                                |
+| `TRUST_PROXY`        | `false`                                    | `true` behind a reverse proxy: the last `X-Forwarded-For` hop is the client address for rate limiting.                                                                                                                                                                                                                                                                                                                   |
+| `NOTIFY_INTERVAL_MS` | `900000`                                   | Interval of the notification tick run by `scripts/serve.mjs`; `0` when cron runs `pnpm notify`.                                                                                                                                                                                                                                                                                                                          |
 
 ## Authentication (ADR-013, ADR-016)
 
@@ -91,3 +93,14 @@ The variable names predate the `enrollment` model (ADR-014) and are kept.
 `NODE_ENV=production` (set by the Docker image) switches on the production requirements above and the
 strict CSP. `FORCE_DIGEST=true` is read only by `pnpm notify`. The mock IdP in `dev/mock-idp` reads its own
 `MOCK_IDP_*` variables (`MOCK_IDP_PORT`, `MOCK_IDP_ISSUER`, `MOCK_IDP_ENTITLEMENT_CLAIM`).
+
+## `lms.config.ts` and the theme
+
+`lms.config.ts` holds the non-visual, non-secret settings: `locales.enabled` and `locales.cookieName`,
+`timeZone`, `embedAllowlist`, `uploads`, `notifications`, `forum`. It does not hold anything an
+organisation would call its look: since Phase 3 the keys `brand` (name, logo, colours, project link),
+`contactEmail` (now `supportEmail`) and `locales.default` (now `defaultLocale`) live in
+`theme/theme.json`. A fork that still sets them fails at boot with a message naming the new place.
+
+The theme directory is `THEME_DIR`; `pnpm sota validate-theme` checks it and `pnpm sota validate-config`
+summarises it. Fields, slots, mail templates and the build-time/runtime split: `docs/theming.md`.

@@ -1,0 +1,23 @@
+/* sota@lab: phosphor on black. Colours, fonts and radii come from theme.json. */
+body {
+  font-size: 0.9375rem;
+  letter-spacing: 0.01em;
+}
+h1,
+h2,
+h3 {
+  text-transform: lowercase;
+}
+h1::before {
+  content: "> ";
+  color: var(--primary);
+}
+.border,
+.border-b,
+.border-t {
+  border-style: dashed;
+}
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}

@@ -7,9 +7,8 @@ import { getLesson } from "~/server/queries/lessons";
 import { saveProgress, setLessonCompleted } from "~/server/mutations/progress";
 import { Blocks } from "~/components/player/Blocks";
 import { LockNotice } from "~/components/LockNotice";
-import { Alert } from "~/components/ui/alert";
+import { Slot } from "~/components/theme/Slot";
 import { Button, buttonVariants } from "~/components/ui/button";
-import { Eyebrow } from "~/components/ui/eyebrow";
 import { ProgressRule } from "~/components/ui/progress-rule";
 import { cn } from "~/lib/cn";
 
@@ -105,21 +104,98 @@ function LessonView({ data }: { data: NonNullable<Awaited<ReturnType<typeof getL
   }, [prev, next, course.slug, navigate]);
 
   return (
-    <article className="mx-auto flex w-full max-w-3xl flex-col gap-8 pb-24">
-      <header className="flex flex-col gap-3">
-        <Link to="/courses/$courseSlug" params={{ courseSlug: course.slug }} className="text-sm">
-          ← {course.title}
-        </Link>
-        <Eyebrow>
-          {chapter.title} · {t("lesson.position", { index: position.index, total: position.total })}
-        </Eyebrow>
-        <h1 className="text-4xl leading-tight">{lesson.title}</h1>
-        {lesson.summary ? <p className="text-lg text-muted-foreground">{lesson.summary}</p> : null}
-        {privileged && lesson.status === "draft" ? (
-          <Alert variant="warning">{t("lesson.preview")}</Alert>
-        ) : null}
-      </header>
-
+    <Slot
+      name="LessonLayout"
+      course={{ slug: course.slug, title: course.title }}
+      chapter={{ title: chapter.title }}
+      lesson={{ title: lesson.title, summary: lesson.summary }}
+      position={position}
+      draftPreview={privileged && lesson.status === "draft"}
+      footer={
+        <>
+          {decision.ok && !privileged ? (
+            <div className="flex flex-wrap items-center gap-3 border-t pt-6">
+              {completed ? (
+                <>
+                  <span className="inline-flex items-center gap-2 text-sm text-success-foreground">
+                    <Check className="size-4" aria-hidden="true" />
+                    {t("lesson.done")}
+                  </span>
+                  <Button variant="ghost" size="sm" loading={busy} onClick={() => setDone(false)}>
+                    {t("lesson.markUndone")}
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" loading={busy} onClick={() => setDone(true)}>
+                  <Check aria-hidden="true" />
+                  {t("lesson.markDone")}
+                </Button>
+              )}
+            </div>
+          ) : null}
+          <footer className="fixed inset-x-0 bottom-0 z-10 border-t bg-background">
+            <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
+              {prev ? (
+                <Link
+                  to="/courses/$courseSlug/$lessonSlug"
+                  params={{ courseSlug: course.slug, lessonSlug: prev.slug }}
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "sm" }),
+                    "max-w-[40%] text-foreground no-underline hover:no-underline",
+                  )}
+                  title={prev.title}
+                >
+                  <ArrowLeft aria-hidden="true" />
+                  <span className="truncate">{t("lesson.previous")}</span>
+                </Link>
+              ) : (
+                <span />
+              )}
+              <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+                <ProgressRule
+                  value={position.index / position.total}
+                  label={t("lesson.position", { index: position.index, total: position.total })}
+                  className="max-w-48"
+                />
+                <span
+                  className="sr-only sm:not-sr-only sm:text-xs sm:text-muted-foreground"
+                  title={t("lesson.keyboardHint")}
+                >
+                  {t("lesson.position", { index: position.index, total: position.total })}
+                </span>
+              </div>
+              {next ? (
+                <Link
+                  to="/courses/$courseSlug/$lessonSlug"
+                  params={{ courseSlug: course.slug, lessonSlug: next.slug }}
+                  className={cn(
+                    buttonVariants({ variant: next.locked ? "ghost" : "default", size: "sm" }),
+                    "max-w-[40%] no-underline hover:no-underline",
+                    next.locked ? "text-muted-foreground" : "text-primary-foreground",
+                  )}
+                  title={next.locked ? t("lesson.nextLocked") : next.title}
+                >
+                  <span className="truncate">{t("lesson.next")}</span>
+                  {next.locked ? <Lock aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
+                </Link>
+              ) : (
+                <Link
+                  to="/courses/$courseSlug"
+                  params={{ courseSlug: course.slug }}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "max-w-[40%] text-foreground no-underline hover:no-underline",
+                  )}
+                  title={t("lesson.finished")}
+                >
+                  <span className="truncate">{t("lesson.backToCourse")}</span>
+                </Link>
+              )}
+            </div>
+          </footer>
+        </>
+      }
+    >
       {decision.ok && blocks ? (
         <Blocks
           blocks={blocks}
@@ -130,88 +206,6 @@ function LessonView({ data }: { data: NonNullable<Awaited<ReturnType<typeof getL
       ) : (
         <LockNotice decision={decision} />
       )}
-
-      {decision.ok && !privileged ? (
-        <div className="flex flex-wrap items-center gap-3 border-t pt-6">
-          {completed ? (
-            <>
-              <span className="inline-flex items-center gap-2 text-sm text-success-foreground">
-                <Check className="size-4" aria-hidden="true" />
-                {t("lesson.done")}
-              </span>
-              <Button variant="ghost" size="sm" loading={busy} onClick={() => setDone(false)}>
-                {t("lesson.markUndone")}
-              </Button>
-            </>
-          ) : (
-            <Button variant="outline" loading={busy} onClick={() => setDone(true)}>
-              <Check aria-hidden="true" />
-              {t("lesson.markDone")}
-            </Button>
-          )}
-        </div>
-      ) : null}
-
-      <footer className="fixed inset-x-0 bottom-0 z-10 border-t bg-background">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
-          {prev ? (
-            <Link
-              to="/courses/$courseSlug/$lessonSlug"
-              params={{ courseSlug: course.slug, lessonSlug: prev.slug }}
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "sm" }),
-                "max-w-[40%] text-foreground no-underline hover:no-underline",
-              )}
-              title={prev.title}
-            >
-              <ArrowLeft aria-hidden="true" />
-              <span className="truncate">{t("lesson.previous")}</span>
-            </Link>
-          ) : (
-            <span />
-          )}
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-            <ProgressRule
-              value={position.index / position.total}
-              label={t("lesson.position", { index: position.index, total: position.total })}
-              className="max-w-48"
-            />
-            <span
-              className="sr-only sm:not-sr-only sm:text-xs sm:text-muted-foreground"
-              title={t("lesson.keyboardHint")}
-            >
-              {t("lesson.position", { index: position.index, total: position.total })}
-            </span>
-          </div>
-          {next ? (
-            <Link
-              to="/courses/$courseSlug/$lessonSlug"
-              params={{ courseSlug: course.slug, lessonSlug: next.slug }}
-              className={cn(
-                buttonVariants({ variant: next.locked ? "ghost" : "default", size: "sm" }),
-                "max-w-[40%] no-underline hover:no-underline",
-                next.locked ? "text-muted-foreground" : "text-primary-foreground",
-              )}
-              title={next.locked ? t("lesson.nextLocked") : next.title}
-            >
-              <span className="truncate">{t("lesson.next")}</span>
-              {next.locked ? <Lock aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
-            </Link>
-          ) : (
-            <Link
-              to="/courses/$courseSlug"
-              params={{ courseSlug: course.slug }}
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "max-w-[40%] text-foreground no-underline hover:no-underline",
-              )}
-              title={t("lesson.finished")}
-            >
-              <span className="truncate">{t("lesson.backToCourse")}</span>
-            </Link>
-          )}
-        </div>
-      </footer>
-    </article>
+    </Slot>
   );
 }

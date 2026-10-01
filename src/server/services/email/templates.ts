@@ -5,6 +5,9 @@
 import { translate } from "../../../i18n/translate.ts";
 import type { Locale } from "../../../i18n/locale.ts";
 import type { MessageKey } from "../../../i18n/ca.ts";
+import { emailPalette, escapeHtml, fillTemplate } from "../../../theme/email.ts";
+import { localize, type LoadedTheme } from "../../../theme/load.ts";
+import { getTheme } from "../../../theme/runtime.ts";
 
 export type NotificationKind =
   | "submission_received"
@@ -44,22 +47,35 @@ interface Rendered {
   html: string;
 }
 
-const esc = (s: string) =>
-  s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+interface Ctx {
+  brand: string;
+  kind: string;
+  locale: Locale;
+  theme: LoadedTheme;
+}
 
+/**
+ * Text part by code; HTML part from the theme's template for `kind` (`emails/<kind>.html`), else
+ * its `layout.html`, else the shipped one (docs/theming.md).
+ */
 function layout(
-  brand: string,
+  ctx: Ctx,
   title: string,
   lines: string[],
   cta: { label: string; url: string },
 ): Rendered {
+  const { brand, theme } = ctx;
   const text = [title, "", ...lines, "", `${cta.label}: ${cta.url}`, "", `— ${brand}`].join("\n");
-  const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#ffffff;color:#1e1c19;font:16px/1.5 Georgia,serif">
-<div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid rgba(30,28,25,.12);border-radius:8px;padding:28px">
-<h1 style="font-size:22px;font-weight:500;margin:0 0 16px">${esc(title)}</h1>
-${lines.map((l) => `<p style="margin:0 0 12px">${esc(l)}</p>`).join("")}
-<p style="margin:24px 0 0"><a href="${esc(cta.url)}" style="display:inline-block;padding:10px 16px;background:#e0a51c;color:#1e1c19;text-decoration:none;border-radius:4px;font-family:system-ui,sans-serif;font-size:14px">${esc(cta.label)}</a></p>
-</div><p style="max-width:560px;margin:16px auto 0;font:12px system-ui,sans-serif;color:#6b665e">${esc(brand)}</p></body></html>`;
+  const html = fillTemplate(theme.emails.byName[ctx.kind] ?? theme.emails.layout, {
+    ...emailPalette(theme.config),
+    brand,
+    title,
+    lines: lines.map((l) => `<p style="margin:0 0 12px">${escapeHtml(l)}</p>`).join(""),
+    ctaLabel: cta.label,
+    ctaUrl: cta.url,
+    tagline: localize(theme.config.tagline, ctx.locale, theme.config.defaultLocale) ?? "",
+    supportEmail: theme.config.supportEmail ?? "",
+  });
   return { subject: title, text, html };
 }
 
@@ -68,63 +84,43 @@ export function renderNotification(
   payload: NotificationPayload,
   locale: Locale,
   brand: string,
+  theme: LoadedTheme = getTheme(),
 ): Rendered {
+  const overrides = theme.messages[locale];
   const t = (key: MessageKey, params?: Record<string, string | number>) =>
-    translate(locale, key, params);
+    translate(locale, key, params, overrides);
+  const ctx: Ctx = { brand, kind, locale, theme };
   const p = {
     course: payload.courseTitle || t("mail.forum.general"),
     subject: payload.subject ?? "",
     detail: payload.detail ?? "",
     brand,
   };
+  const L = (name: string) => `mail.${name}` as MessageKey;
+  const mail = (prefix: string, extra: string[] = []) =>
+    layout(ctx, t(L(`${prefix}.title`), p), [t(L(`${prefix}.body`), p), ...extra], {
+      label: t(L(`${prefix}.cta`)),
+      url: payload.url,
+    });
   switch (kind) {
     case "submission_received":
-      return layout(brand, t("mail.submission.title", p), [t("mail.submission.body", p)], {
-        label: t("mail.submission.cta"),
-        url: payload.url,
-      });
+      return mail("submission");
     case "feedback_returned":
-      return layout(
-        brand,
-        t("mail.feedback.title", p),
-        [t("mail.feedback.body", p), ...(payload.detail ? [payload.detail] : [])],
-        { label: t("mail.feedback.cta"), url: payload.url },
-      );
+      return mail("feedback", payload.detail ? [payload.detail] : []);
     case "chapter_released":
-      return layout(brand, t("mail.release.title", p), [t("mail.release.body", p)], {
-        label: t("mail.release.cta"),
-        url: payload.url,
-      });
+      return mail("release");
     case "forum_reply":
-      return layout(brand, t("mail.forumReply.title", p), [t("mail.forumReply.body", p)], {
-        label: t("mail.forumReply.cta"),
-        url: payload.url,
-      });
+      return mail("forumReply");
     case "forum_thread":
-      return layout(brand, t("mail.forumThread.title", p), [t("mail.forumThread.body", p)], {
-        label: t("mail.forumThread.cta"),
-        url: payload.url,
-      });
+      return mail("forumThread");
     case "auth_magic_link":
-      return layout(brand, t("mail.auth.magic.title", p), [t("mail.auth.magic.body", p)], {
-        label: t("mail.auth.magic.cta"),
-        url: payload.url,
-      });
+      return mail("auth.magic");
     case "auth_verify_email":
-      return layout(brand, t("mail.auth.verify.title", p), [t("mail.auth.verify.body", p)], {
-        label: t("mail.auth.verify.cta"),
-        url: payload.url,
-      });
+      return mail("auth.verify");
     case "auth_reset_password":
-      return layout(brand, t("mail.auth.reset.title", p), [t("mail.auth.reset.body", p)], {
-        label: t("mail.auth.reset.cta"),
-        url: payload.url,
-      });
+      return mail("auth.reset");
     case "auth_invite":
-      return layout(brand, t("mail.auth.invite.title", p), [t("mail.auth.invite.body", p)], {
-        label: t("mail.auth.invite.cta"),
-        url: payload.url,
-      });
+      return mail("auth.invite");
   }
 }
 
@@ -134,15 +130,17 @@ export function renderDigest(
   locale: Locale,
   brand: string,
   homeUrl: string,
+  theme: LoadedTheme = getTheme(),
 ): Rendered {
+  const overrides = theme.messages[locale];
   const t = (key: MessageKey, params?: Record<string, string | number>) =>
-    translate(locale, key, params);
+    translate(locale, key, params, overrides);
   const lines = items.map((i) => {
-    const r = renderNotification(i.kind, i.payload, locale, brand);
+    const r = renderNotification(i.kind, i.payload, locale, brand, theme);
     return `• ${r.subject} — ${i.payload.url}`;
   });
   return layout(
-    brand,
+    { brand, kind: "digest", locale, theme },
     t("mail.digest.title", { n: items.length }),
     [t("mail.digest.body"), ...lines],
     { label: t("mail.digest.cta"), url: homeUrl },

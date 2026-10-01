@@ -1,0 +1,46 @@
+{
+  "name": "The Ledger",
+  "tagline": {
+    "ca": "Un quadern de lectura lenta",
+    "es": "Un cuaderno de lectura lenta",
+    "en": "A notebook for slow reading"
+  },
+  "defaultLocale": "en",
+  "supportEmail": "desk@ledger.example.invalid",
+  "projectUrl": null,
+  "legalLinks": [
+    { "label": { "ca": "Privadesa", "es": "Privacidad", "en": "Privacy" }, "href": "/privacy" },
+    { "label": "Colophon", "href": "https://ledger.example.invalid/colophon" }
+  ],
+  "colors": {
+    "light": {
+      "ink": "#2a1d17",
+      "paper": "#f5eedf",
+      "primary": "#7a1f2b",
+      "primaryForeground": "#fbf4e6",
+      "link": "#7a1f2b",
+      "success": "#4d6b45",
+      "successForeground": "#33502d",
+      "warning": "#9a5b12",
+      "warningForeground": "#744207",
+      "destructive": "#9c2f2f",
+      "destructiveForeground": "#7d1f1f",
+      "info": "#3f5f78",
+      "infoForeground": "#2f4a5f"
+    },
+    "dark": {
+      "ink": "#eadfc8",
+      "paper": "#1b1511",
+      "primary": "#d9a35b",
+      "primaryForeground": "#1b1511",
+      "link": "#e0b273"
+    }
+  },
+  "fonts": {
+    "sans": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, \"Book Antiqua\", Georgia, serif",
+    "serif": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, \"Book Antiqua\", Georgia, serif",
+    "mono": "\"Courier New\", Courier, monospace"
+  },
+  "radius": { "control": "0", "surface": "0" },
+  "spacing": { "unit": "0.24rem", "contentWidth": "56rem", "proseWidth": "60ch" }
+}

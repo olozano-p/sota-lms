@@ -49,7 +49,7 @@ Agent rules: `CLAUDE.md`.
 ## Run it locally
 
 ```bash
-git clone https://github.com/olozano-p/sota-lms && cd sota-lms
+git clone <repository-url> sota && cd sota
 cp .env.example .env
 docker compose -f compose.dev.yml up
 ```

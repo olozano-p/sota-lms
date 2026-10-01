@@ -67,3 +67,15 @@ describe("parseEnv", () => {
     expect(() => parseEnv({ MAIL_TRANSPORT: "smtp" })).toThrow(/SMTP_HOST/);
   });
 });
+
+describe("THEME_DIR", () => {
+  it("defaults to ./theme (not explicit) and resolves a given path", () => {
+    const d = parseEnv({});
+    expect(d.themeDir).toMatch(/\/theme$/);
+    expect(d.themeDirExplicit).toBe(false);
+    const e = parseEnv({ THEME_DIR: "examples/themes/ledger" });
+    expect(e.themeDir).toMatch(/examples\/themes\/ledger$/);
+    expect(e.themeDirExplicit).toBe(true);
+    expect(parseEnv({ THEME_DIR: "" }).themeDirExplicit).toBe(false);
+  });
+});

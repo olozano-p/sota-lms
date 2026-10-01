@@ -643,11 +643,11 @@ export const es: Record<MessageKey, string> = {
   "teach.cohorts.drip.noStart": "El grupo no tiene fecha de inicio: indica una.",
   "teach.cohorts.drip.confirm":
     "Este grupo ya tiene fechas de publicación por capítulo. Aplicar la regla las sustituirá todas; las de lecciones no se tocan.",
-  "teach.cohorts.drip.done": "Se han programado {n} fechas de publicación.",
+  "teach.cohorts.drip.done": "Fechas de publicación programadas: {n}.",
   "teach.cohorts.enrollAll": "Matricula a todo el grupo",
   "teach.cohorts.enrollAll.lead":
     "Matricula en el curso a todo el alumnado del grupo, también a quien se añadió sin matrícula.",
-  "teach.cohorts.enrollAll.done": "Se han matriculado {n} personas.",
+  "teach.cohorts.enrollAll.done": "Personas matriculadas: {n}.",
   "teach.cohorts.enrollEmails.lead":
     "Pega una lista de correos: se matriculan en el curso a través de este grupo.",
   "enroll.title": "Matricula por correo",
@@ -662,13 +662,13 @@ export const es: Record<MessageKey, string> = {
   "enroll.submit": "Matricular",
   "enroll.nothing": "No se ha encontrado ninguna dirección.",
   "enroll.invalid": "No válidas",
-  "enroll.outcome.enrolled": "Matriculadas",
+  "enroll.outcome.enrolled": "Matrículas creadas",
   "enroll.outcome.enrolled.hint": "Ya tienen acceso al curso.",
-  "enroll.outcome.already": "Ya matriculadas",
+  "enroll.outcome.already": "Ya tenían matrícula",
   "enroll.outcome.already.hint": "No se ha cambiado nada.",
-  "enroll.outcome.invited": "Invitadas",
+  "enroll.outcome.invited": "Invitaciones enviadas",
   "enroll.outcome.invited.hint": "Se ha enviado un correo de invitación.",
-  "enroll.outcome.placeholder": "Pendientes del primer acceso",
+  "enroll.outcome.placeholder": "Esperando el primer acceso",
   "enroll.outcome.placeholder.hint":
     "La matrícula se activará cuando la persona entre por primera vez.",
 };

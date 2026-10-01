@@ -639,11 +639,11 @@ export const ca = {
   "teach.cohorts.drip.noStart": "El grup no té data d'inici: indica'n una.",
   "teach.cohorts.drip.confirm":
     "Aquest grup ja té dates de publicació per capítol. Aplicar la regla les substituirà totes; les de lliçons no es toquen.",
-  "teach.cohorts.drip.done": "S'han programat {n} dates de publicació.",
+  "teach.cohorts.drip.done": "Dates de publicació programades: {n}.",
   "teach.cohorts.enrollAll": "Matricula tot el grup",
   "teach.cohorts.enrollAll.lead":
     "Matricula al curs tot l'alumnat del grup, també qui s'hi va afegir sense matrícula.",
-  "teach.cohorts.enrollAll.done": "S'han matriculat {n} persones.",
+  "teach.cohorts.enrollAll.done": "Persones matriculades: {n}.",
   "teach.cohorts.enrollEmails.lead":
     "Enganxa una llista de correus: es matriculen al curs a través d'aquest grup.",
   "enroll.title": "Matricula per correu",
@@ -658,13 +658,13 @@ export const ca = {
   "enroll.submit": "Matricula",
   "enroll.nothing": "No s'ha trobat cap adreça.",
   "enroll.invalid": "No vàlides",
-  "enroll.outcome.enrolled": "Matriculades",
+  "enroll.outcome.enrolled": "Matrícules creades",
   "enroll.outcome.enrolled.hint": "Ja tenen accés al curs.",
-  "enroll.outcome.already": "Ja matriculades",
+  "enroll.outcome.already": "Ja tenien matrícula",
   "enroll.outcome.already.hint": "No s'ha canviat res.",
-  "enroll.outcome.invited": "Convidades",
+  "enroll.outcome.invited": "Invitacions enviades",
   "enroll.outcome.invited.hint": "S'ha enviat un correu d'invitació.",
-  "enroll.outcome.placeholder": "Pendents del primer accés",
+  "enroll.outcome.placeholder": "Esperant el primer accés",
   "enroll.outcome.placeholder.hint":
     "La matrícula s'activarà quan la persona entri per primer cop.",
 } as const;

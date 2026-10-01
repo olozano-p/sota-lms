@@ -1,17 +1,12 @@
 /**
- * Deployment configuration. Copy and edit in your fork, or mount your own file over this path in
- * the Docker image. Anything that names an organisation belongs here or in `.env`, never in src/.
+ * Non-visual deployment configuration. Copy and edit in your fork, or mount your own file over this
+ * path in the Docker image. Anything that names an organisation belongs here, in `.env` or in the
+ * theme (`theme/theme.json`: name, logo, colours, fonts, default language), never in src/.
  */
 import { defineConfig } from "./src/config/schema.ts";
 
 export default defineConfig({
-  brand: {
-    name: "SOTA",
-    logo: null,
-    colors: {},
-  },
   locales: {
-    default: "ca",
     enabled: ["ca", "es", "en"],
     cookieName: "sota_locale",
   },
@@ -40,5 +35,4 @@ export default defineConfig({
     imageMaxBytes: 5 * 1024 * 1024,
     pageSize: 25,
   },
-  contactEmail: null,
 });

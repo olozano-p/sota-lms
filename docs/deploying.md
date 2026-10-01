@@ -12,11 +12,12 @@ the walkthrough. It was followed end to end against an empty database before it 
 - Docker with the Compose plugin (`docker compose version`).
 - Two files in an empty directory: `compose.yml` (copy it from the repository root) and the `.env`
   below. Nothing else.
-- The SOTA image. The default in `compose.yml` is `ghcr.io/olozano-p/sota-lms:latest`; until a
-  release is published there, build it once from a checkout and point Compose at it:
+- The SOTA image. `compose.yml` reads it from `SOTA_IMAGE` and defaults to the placeholder
+  `ghcr.io/OWNER/sota:latest`, which does not exist: set `SOTA_IMAGE` (in `.env` or the shell) to
+  the image you publish to your registry, or build it once from a checkout and point Compose at it:
 
   ```bash
-  docker build -t sota:local /path/to/sota-lms
+  docker build -t sota:local /path/to/sota
   export SOTA_IMAGE=sota:local
   ```
 
@@ -24,7 +25,7 @@ the walkthrough. It was followed end to end against an empty database before it 
 
 ```bash
 mkdir sota && cd sota
-cp /path/to/sota-lms/compose.yml .
+cp /path/to/sota/compose.yml .
 cat > .env <<EOF
 APP_URL=http://localhost:3003
 SESSION_SECRET=$(openssl rand -base64 32)
@@ -100,11 +101,13 @@ by cohort).
 
 ## Customising
 
-- **Brand, languages, time zone, upload limits**: copy `lms.config.ts` next to `compose.yml`, edit
+- **Languages enabled, time zone, upload limits**: copy `lms.config.ts` next to `compose.yml`, edit
   it and uncomment its volume line in `compose.yml`.
-- **Theme folder**: `compose.yml` has a commented-out mount for `./theme` at `/app/theme`. The
-  folder is reserved for the theming phase: nothing reads it yet, and
-  `node scripts/sota.ts validate-theme` says so.
+- **Look and feel** (name, logo, colours, fonts, copy, mail layout, assets, custom CSS): put a
+  `theme/` folder next to `compose.yml`, uncomment its mount in `compose.yml`, restart, and check it
+  with `docker compose exec app node scripts/sota.ts validate-theme`. Starting points are in
+  `examples/themes/`; every field is in `docs/theming.md`. Replacing a React slot needs the theme in
+  the image build (`docker build --build-arg THEME_DIR=...`), see ADR-019.
 - **Files** are in the `uploads` volume; with `STORAGE_DRIVER=s3` use any private S3-compatible bucket.
 
 ## Operating it

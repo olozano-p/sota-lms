@@ -5,7 +5,7 @@ page is the reference.
 
 SOTA is one Node process plus PostgreSQL, behind a reverse proxy that terminates TLS. Files live
 in a directory the process owns (default) or in an S3-compatible bucket. Everything specific to
-your organisation lives in `.env` and `lms.config.ts`.
+your organisation lives in `.env`, `lms.config.ts` and the `theme/` directory (docs/theming.md).
 
 ## Before you start
 
@@ -22,12 +22,12 @@ your organisation lives in `.env` and `lms.config.ts`.
 5. **Vimeo** token if teachers should validate videos (`docs/video-vimeo.md`).
 
 Copy `.env.example` to `.env` and fill every value; `SESSION_SECRET` is ≥ 32 random bytes. Edit
-`lms.config.ts` (brand, locales, embed allowlist, upload limits, digest hour).
+`lms.config.ts` (enabled locales, embed allowlist, upload limits, digest hour) and `theme/theme.json` (name, logo, colours, fonts, default language).
 
 ## Option A — Docker (default)
 
 ```bash
-git clone https://github.com/olozano-p/sota-lms && cd sota-lms
+git clone <repository-url> sota && cd sota
 cp .env.example .env && $EDITOR .env lms.config.ts   # also set POSTGRES_PASSWORD
 docker build -t sota:local . && SOTA_IMAGE=sota:local docker compose up -d
 ```

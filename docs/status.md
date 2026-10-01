@@ -1,5 +1,37 @@
 # Status
 
+## 2026-10-01 · Phase 3 — theming (ADR-019) and Phase 2 cleanups
+
+- **Cleanups.** Enrollment email lookup is case-insensitive (`lower(person.email)`); `isUnchanged`
+  also compares `validFrom`; the "N release dates" and outcome labels are neutral wording in ca/es/en;
+  migration `0005` adds `quiz_kind_chk`; `compose.yml` takes `SOTA_IMAGE` with the placeholder default
+  `ghcr.io/OWNER/sota:latest` (docs/deploying.md) and nothing in the repo names a person or deployment
+  (the footer link default is gone: `projectUrl` is a theme field, null by default).
+- **Theme directory** (`THEME_DIR`, default `./theme`, layered over `src/theme/default/`): `theme.json`
+  (zod, strict, CSS-safe grammars), `custom.css` last, `messages/*.json` deep-merged over the typed
+  catalogues, `emails/*.html` (`layout.html` or per kind, `{{name}}` escaped / `{{{lines}}}`), `assets/`
+  at `/theme/assets/*` (segment grammar, realpath containment, type allow-list, nosniff, sandboxed
+  SVG), `slots/<Name>.tsx` for seven slots. Boot (`serve.mjs`), `vite dev|build` and
+  `pnpm sota validate-theme [dir] [--strict]` fail with every problem listed; `validate-config` summarises it.
+- **Slots are compiled in** by a Vite plugin (virtual module, theme file else default); everything else
+  is runtime. Trade-off and rejected alternatives: ADR-019. The image carries the theme it was built
+  with as `/app/theme` (`--build-arg THEME_DIR`); a bind mount replaces all but the slots.
+- **Brand left `lms.config.ts`** (`brand`, `contactEmail`, `locales.default` are rejected with a pointer
+  to `theme.json`). `src/styles.css` holds no raw colours or font stacks; tokens (colour, font, radius,
+  `--spacing`, content width, prose measure) come from `theme.css`; Tailwind maps to them; derived
+  tokens (card, border, muted...) follow ink and paper unless the theme sets them.
+- **Examples** `examples/themes/ledger` and `terminal` (different fonts, palette, radii, widths, Header
+  slot, messages, mail layout); `src/theme/examples.test.ts` loads both and asserts every token family differs;
+  CI validates both with `--strict`. Screenshots of default, ledger and terminal (landing, login,
+  courses, course, lesson, lesson dark) were taken and look radically different.
+- Docs: `docs/theming.md` (every field, every slot contract), `docs/configuration.md`, `docs/DESIGN.md`, `CLAUDE.md`.
+- Not done / left: signing in under `vite dev` returns 500 (`withClientIp` in `src/server/client-ip.ts`
+  hits a private-field error with `new Request`; pre-existing, found by the screenshot run; production
+  build signs in fine); `pnpm e2e` and the Docker image build were not run; mobile widths, the assets
+  route against a real file in a browser, contrast of every example's derived muted text and the
+  Spanish/Catalan message overrides were not checked visually; messages cannot add keys, only reword;
+  a theme that sets an optional derived token in one mode only gets a warning, not an error.
+
 ## 2026-10-01 · Phase 1 exit and Phase 2 — enrollment tools, drip rule, deploy walkthrough (ADR-018)
 
 - **Manual enrollment** (`mutations/enrollments.ts` + `enrollments-core.ts`): one address or a pasted

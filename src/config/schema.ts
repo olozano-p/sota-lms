@@ -1,6 +1,7 @@
 /**
- * Shape of `lms.config.ts`. Runs under plain Node (migrate, seed) and in the bundle, so no alias
- * imports here. Everything a deploying organisation may want to change lives in this file.
+ * Shape of `lms.config.ts`: the non-visual deployment config. Runs under plain Node (migrate, seed)
+ * and in the bundle, so no alias imports here. Names, logo, colours, fonts and the default
+ * language belong to the theme (`theme/theme.json`, docs/theming.md).
  */
 import { z } from "zod";
 
@@ -8,27 +9,7 @@ export const LOCALE_CODES = ["ca", "es", "en"] as const;
 export type LocaleCode = (typeof LOCALE_CODES)[number];
 
 export const lmsConfigSchema = z.object({
-  brand: z.object({
-    /** Product name shown in the shell and emails. */
-    name: z.string().min(1),
-    /** Optional path under `public/` to a logo; the built-in mark is used when absent. */
-    logo: z.string().nullable().default(null),
-    /** Where the footer's "Made with SOTA" points; your fork or the upstream project. */
-    projectUrl: z.string().url().default("https://github.com/olozano-p/sota-lms"),
-    /** Optional accent overrides (hex). Applied as CSS variables; tokens stay semantic. */
-    colors: z
-      .object({
-        primary: z.string().optional(),
-        primaryForeground: z.string().optional(),
-        link: z.string().optional(),
-        primaryDark: z.string().optional(),
-        primaryForegroundDark: z.string().optional(),
-        linkDark: z.string().optional(),
-      })
-      .default({}),
-  }),
   locales: z.object({
-    default: z.enum(LOCALE_CODES),
     enabled: z.array(z.enum(LOCALE_CODES)).min(1),
     /** Cookie name; set the domain in `.env` (`COOKIE_DOMAIN`) so a parent site can share it. */
     cookieName: z.string().default("sota_locale"),
@@ -61,13 +42,25 @@ export const lmsConfigSchema = z.object({
       pageSize: z.number().int().min(5).max(100).default(25),
     })
     .prefault({}),
-  /** Address shown in SECURITY.md-style footers and error pages. */
-  contactEmail: z.string().email().nullable().default(null),
 });
 
 export type LmsConfig = z.infer<typeof lmsConfigSchema>;
 export type LmsConfigInput = z.input<typeof lmsConfigSchema>;
 
+/** Keys that used to live here and are now part of the theme (docs/theming.md, ADR-019). */
+const MOVED = {
+  brand: "name, logo, colours and project link are in theme/theme.json",
+  contactEmail: "it is `supportEmail` in theme/theme.json",
+} as const;
+
 export function defineConfig(input: LmsConfigInput): LmsConfig {
+  const raw = input as Record<string, unknown>;
+  for (const [key, where] of Object.entries(MOVED))
+    if (key in raw) throw new Error(`lms.config.ts: \`${key}\` moved: ${where}`);
+  const locales = raw.locales as Record<string, unknown> | undefined;
+  if (locales && "default" in locales)
+    throw new Error(
+      "lms.config.ts: `locales.default` moved: it is `defaultLocale` in theme/theme.json",
+    );
   return lmsConfigSchema.parse(input);
 }

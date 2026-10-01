@@ -1,0 +1,39 @@
+{
+  "name": "sota@lab",
+  "tagline": "learn --verbose",
+  "defaultLocale": "en",
+  "supportEmail": "ops@lab.example.invalid",
+  "projectUrl": "https://example.invalid/sota",
+  "legalLinks": [{ "label": "licence", "href": "https://lab.example.invalid/licence" }],
+  "colors": {
+    "light": {
+      "ink": "#c8f7d4",
+      "paper": "#07110c",
+      "primary": "#3dff8b",
+      "primaryForeground": "#03150a",
+      "link": "#6dffa8",
+      "success": "#3dff8b",
+      "successForeground": "#8dffb8",
+      "warning": "#ffb454",
+      "warningForeground": "#ffc884",
+      "destructive": "#ff6b7a",
+      "destructiveForeground": "#ff98a3",
+      "info": "#5cc8ff",
+      "infoForeground": "#8fdaff"
+    },
+    "dark": {
+      "ink": "#c8f7d4",
+      "paper": "#030806",
+      "primary": "#3dff8b",
+      "primaryForeground": "#03150a",
+      "link": "#6dffa8"
+    }
+  },
+  "fonts": {
+    "sans": "ui-monospace, \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+    "serif": "ui-monospace, \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+    "mono": "ui-monospace, \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace"
+  },
+  "radius": { "control": "0.75rem", "surface": "1.5rem" },
+  "spacing": { "unit": "0.28rem", "contentWidth": "82rem", "proseWidth": "76ch" }
+}

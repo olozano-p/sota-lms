@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
+import { Slot, useBrand } from "~/components/theme/Slot";
 
-/** The narrow centred column every sign-in screen shares. */
+/** The frame every sign-in screen shares; the look is the `LoginPage` theme slot. */
 export function AuthLayout({
   title,
   lead,
@@ -10,13 +11,10 @@ export function AuthLayout({
   lead?: string;
   children: ReactNode;
 }) {
+  const brand = useBrand();
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-6 py-10">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl">{title}</h1>
-        {lead ? <p className="text-muted-foreground">{lead}</p> : null}
-      </div>
+    <Slot name="LoginPage" brand={brand} title={title} lead={lead ?? null}>
       {children}
-    </div>
+    </Slot>
   );
 }

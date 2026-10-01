@@ -31,9 +31,8 @@ product direction (SOTA owning identity) rather than missing pieces.
 ## Missing relative to the brief
 
 - `/api/v1` service API (enrollments PUT/DELETE, progress, courses), OpenAPI document, bearer token.
-- Theming: `theme/` directory, `theme.json`, slots, email overrides, example themes (brand is
-  `lms.config.ts` + CSS tokens today).
-- `sota export/import`, GHCR publish on tag. (The `sota` CLI with `migrate`, `seed`, `create-admin` and `validate-config` and manual enrollment by email list/cohort exist since Phase 1; `validate-theme` waits for Phase 3.)
+- ~~Theming~~ (done in Phase 3, ADR-019).
+- `sota export/import`, GHCR publish on tag. (The `sota` CLI with `migrate`, `seed`, `create-admin` and `validate-config` and manual enrollment by email list/cohort exist since Phase 1; `validate-theme` since Phase 3.)
 
 ## Conflicts (need a decision, not code)
 
@@ -54,8 +53,8 @@ course|all_courses|cohort, rule, source external|admin)` with access rules in `l
 
 A search for the reference organisation's name, domain and acronyms across the tree (excluding
 `node_modules`, `.git`, `data`) found none. The repo currently meets the "nothing deployment-specific" rule.
-The only default worth reviewing is `timeZone: "Europe/Madrid"` and `locales.default: "ca"` in
-`lms.config.ts`, which are configuration, not code.
+The only default worth reviewing is `timeZone: "Europe/Madrid"` and the default locale in
+`lms.config.ts` (now `defaultLocale` in the theme), which are configuration, not code.
 
 ## Delete list
 

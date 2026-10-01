@@ -9,7 +9,8 @@ name: sota-prod
 
 services:
   app:
-    image: ${SOTA_IMAGE:-ghcr.io/olozano-p/sota-lms:latest}
+    # OWNER is a placeholder: set SOTA_IMAGE in .env to the image you build or pull (docs/deploying.md).
+    image: ${SOTA_IMAGE:-ghcr.io/OWNER/sota:latest}
     restart: unless-stopped
     env_file: .env
     environment:
@@ -28,7 +29,7 @@ services:
       - uploads:/app/data/uploads
       # Optional, uncomment to use them:
       # - ./lms.config.ts:/app/lms.config.ts:ro   # brand, locales, time zone, upload limits
-      # - ./theme:/app/theme:ro                   # reserved: nothing reads it before Phase 3
+      # - ./theme:/app/theme:ro                   # theme.json, custom.css, messages, emails, assets (docs/theming.md)
 
   postgres:
     image: postgres:16-alpine

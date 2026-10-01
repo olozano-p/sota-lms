@@ -1,7 +1,7 @@
 # SOTA — Build Spec (v1)
 
 > **Decisions log (2026-09-11).** The open questions of §11 were settled as follows; each has an
-> ADR in `docs/decisions/`: name **SOTA** (repo `olozano-p/sota-lms`) · licence
+> ADR in `docs/decisions/`: name **SOTA** · licence
 > **MIT** (ADR-006) · content **Markdown** (ADR-007) · hand-written UI primitives instead of
 > shadcn (ADR-008) · Postgres 16 + PGlite in tests (ADR-002) · admin-grant write-back deferred to
 > v1.1 · a cohort belongs to one course · `pass_threshold` supported, nullable · audio in object
@@ -63,28 +63,28 @@ These are constraints on _how_ the project is built, not features:
 
 ## 2. Stack — **DECISION**
 
-| Concern          | Choice                                                                                                              | Notes                                                                                                      |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Framework        | TanStack Start (React, file-based routes, server functions)                                                         | SSR + server functions replace a separate API layer for the app's own needs                                |
-| Router / data    | TanStack Router + TanStack Query                                                                                    | Loaders on routes; Query for client-side mutations and cache                                               |
-| Forms            | TanStack Form + Zod                                                                                                 | Zod schemas shared between server functions and forms                                                      |
-| Tables (admin)   | TanStack Table                                                                                                      |                                                                                                            |
-| DB               | PostgreSQL 16                                                                                                       |                                                                                                            |
-| ORM              | Drizzle ORM + drizzle-kit migrations                                                                                | Schema is the source of truth; migrations committed                                                        |
-| Auth             | Generic OIDC relying party (`openid-client`)                                                                        | Reference IdP: better-auth with OIDC Provider plugin. Mock IdP in docker-compose for dev                   |
-| Video            | `VideoProvider` interface; `VimeoProvider` is the v1 implementation                                                 | See §5                                                                                                     |
-| Files            | `StorageProvider`: local directory (default) or S3-compatible (`@aws-sdk/client-s3`)                                | Signed URLs only; the local driver honours them at `/api/storage/$token` (ADR-012)                         |
-| Email            | SMTP via `nodemailer`                                                                                               | Any relay. Templates in `src/server/services/email/templates`                                              |
-| Styling          | Tailwind + hand-written primitives (ADR-008); brand tokens (logo, colours, name) from `lms.config.ts`               |                                                                                                            |
-| Rich text        | Markdown storage (ADR-007), edited in place with Tiptap (ADR-010)                                                   | Bare YouTube/Vimeo links become players; images via `/api/files`                                           |
-| i18n             | JSON message catalogs, locale resolution order: `?lang` → cookie → IdP `locale` claim → `Accept-Language` → default | Cookie domain configurable so a parent site can set it                                                     |
-| Runtime / deploy | Node 22. Official: Docker image + `compose.yml` behind a reverse proxy                                              | The reference deployment's rsync/nginx deploy is a documented _alternative_ in Appendix A, not the default |
-| Repo conventions | AI-first: lean `CLAUDE.md`, ADRs under `docs/adr/`, no decorative comments, no over-engineering                     |                                                                                                            |
+| Concern          | Choice                                                                                                                    | Notes                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Framework        | TanStack Start (React, file-based routes, server functions)                                                               | SSR + server functions replace a separate API layer for the app's own needs                                |
+| Router / data    | TanStack Router + TanStack Query                                                                                          | Loaders on routes; Query for client-side mutations and cache                                               |
+| Forms            | TanStack Form + Zod                                                                                                       | Zod schemas shared between server functions and forms                                                      |
+| Tables (admin)   | TanStack Table                                                                                                            |                                                                                                            |
+| DB               | PostgreSQL 16                                                                                                             |                                                                                                            |
+| ORM              | Drizzle ORM + drizzle-kit migrations                                                                                      | Schema is the source of truth; migrations committed                                                        |
+| Auth             | Generic OIDC relying party (`openid-client`)                                                                              | Reference IdP: better-auth with OIDC Provider plugin. Mock IdP in docker-compose for dev                   |
+| Video            | `VideoProvider` interface; `VimeoProvider` is the v1 implementation                                                       | See §5                                                                                                     |
+| Files            | `StorageProvider`: local directory (default) or S3-compatible (`@aws-sdk/client-s3`)                                      | Signed URLs only; the local driver honours them at `/api/storage/$token` (ADR-012)                         |
+| Email            | SMTP via `nodemailer`                                                                                                     | Any relay. Templates in `src/server/services/email/templates`                                              |
+| Styling          | Tailwind + hand-written primitives (ADR-008); brand tokens (logo, colours, fonts, name) from `theme/theme.json` (ADR-019) |                                                                                                            |
+| Rich text        | Markdown storage (ADR-007), edited in place with Tiptap (ADR-010)                                                         | Bare YouTube/Vimeo links become players; images via `/api/files`                                           |
+| i18n             | JSON message catalogs, locale resolution order: `?lang` → cookie → IdP `locale` claim → `Accept-Language` → default       | Cookie domain configurable so a parent site can set it                                                     |
+| Runtime / deploy | Node 22. Official: Docker image + `compose.yml` behind a reverse proxy                                                    | The reference deployment's rsync/nginx deploy is a documented _alternative_ in Appendix A, not the default |
+| Repo conventions | AI-first: lean `CLAUDE.md`, ADRs under `docs/adr/`, no decorative comments, no over-engineering                           |                                                                                                            |
 
 Configuration surface (all of it, nothing else):
 
 - `.env`: validated at boot (`src/config/env.ts`), every variable documented in `docs/configuration.md`: `AUTH_MODE`, `ALLOW_SIGNUP`, `BREAK_GLASS_ADMIN_EMAIL`, `OIDC_*`, `ENTITLEMENT_CLAIM`, `DEFAULT_LOCALE`, `DATABASE_URL`, `SESSION_SECRET`, `ENTITLEMENTS_*`, `STORAGE_*`, `S3_*`, `SMTP_*`, `MAIL_*`, `VIMEO_ACCESS_TOKEN`, `APP_URL`, `COOKIE_DOMAIN`.
-- `lms.config.ts` (committed, per-deployment fork or mounted): brand name, logo path, colour tokens, default locale, enabled locales, allowed embed domains, upload limits/mime allowlist, notification defaults, `forum` (general forum switch, post image limit, page size).
+- `lms.config.ts` (committed, per-deployment fork or mounted): enabled locales, allowed embed domains, upload limits/mime allowlist, notification defaults, `forum` (general forum switch, post image limit, page size).
 
 ---
 
@@ -387,7 +387,7 @@ and hosts are placeholders). None of it appears in core source.
 - **Video:** the organisation's Vimeo account, embeds restricted to `learn.example.org`.
 - **Email:** the organisation's SMTP relay, `MAIL_FROM=lms@example.org`.
 - **Locales:** ca (default), es, en; same resolution order as the main site.
-- **Brand:** the organisation's logo and colour tokens in `lms.config.ts`.
+- **Brand:** the organisation's logo, colours and fonts in `theme/theme.json` (ADR-019).
 - **Deploy:** a VPS shared with the main site; nginx reverse proxy; either the official Docker image or the rsync + `deploy.sh` pattern already used for the main site (documented as an alternative in `docs/deploy.md`).
 - **Trust boundary reminder:** the main site handles payments (Stripe/Bizum), the Fase 2 accounting sync, and the ledger. The LMS receives only `sub`, profile fields, roles and enrollments — no payment data ever crosses.
 

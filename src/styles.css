@@ -20,6 +20,9 @@
 /* Tokens (docs/DESIGN.md). Semantic roles only; components never see a hex. */
 @theme inline {
   --ease: cubic-bezier(0.2, 0, 0, 1);
+  /* Page column and prose measure, set by the theme: `max-w-content`, `max-w-measure`. */
+  --container-content: var(--content-width);
+  --container-measure: var(--measure);
   --font-sans: var(--font-sans);
   --font-serif: var(--font-serif);
   --font-mono: var(--font-mono);
@@ -61,75 +64,41 @@
 }
 
 :root {
-  --font-sans:
-    "Schibsted Grotesk Variable", ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
-  --font-serif: "Literata Variable", Georgia, "Iowan Old Style", "Times New Roman", serif;
-  --font-mono:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
-    monospace;
-  --radius: 0.25rem;
-  --radius-surface: 0.5rem;
-
-  /* Paper and ink. `--brand-*` may be overridden from lms.config.ts (see BrandStyle). */
-  --ink: #1e1c19;
-  --paper: #ffffff;
-  --brand-primary: #e0a51c;
-  --brand-primary-foreground: #1e1c19;
-  --brand-link: #8c5f0a;
-
+  /* Everything a theme sets lives in theme.json (default: src/theme/default/theme.json) and arrives
+     through /theme/theme.css, loaded after this file: --ink, --paper, --brand-primary,
+     --brand-primary-foreground, --brand-link, the state colours, --font-*, --radius,
+     --radius-surface, --spacing, --content-width and --measure. Below, only what is derived. */
   --background: var(--paper);
   --foreground: var(--ink);
-  --card: #ffffff;
+  --card: var(--paper);
   --card-foreground: var(--ink);
-  --popover: #ffffff;
+  --popover: var(--card);
   --popover-foreground: var(--ink);
   --muted: --alpha(var(--ink) / 5%);
-  --muted-foreground: #6b665e;
+  --muted-foreground: color-mix(in oklab, var(--ink) 65%, var(--paper));
   --accent: --alpha(var(--ink) / 5%);
   --accent-foreground: var(--ink);
   --border: --alpha(var(--ink) / 12%);
   --input: --alpha(var(--ink) / 18%);
   --primary: var(--brand-primary);
   --primary-foreground: var(--brand-primary-foreground);
-  --ring: var(--brand-link); /* gold is too light for a 3:1 focus ring on white */
+  --ring: var(--brand-link); /* the accent is often too light for a 3:1 focus ring on paper */
   --secondary: --alpha(var(--ink) / 6%);
   --secondary-foreground: var(--ink);
   --link: var(--brand-link);
-  --success: #587a5a;
-  --success-foreground: #3f5c41;
-  --warning: #c2661d;
-  --warning-foreground: #8a4712;
-  --destructive: #a34a3e;
-  --destructive-foreground: #8a3a30;
-  --info: #4b6a8a;
-  --info-foreground: #3c5670;
   --code: --alpha(var(--ink) / 5%);
 }
 
+/* A theme that sets one of these in light must set it in dark too: a theme.css `:root` value
+   comes later than this rule and would win in both modes. */
 .dark {
-  --ink: #e9e5dc;
-  --paper: #161514;
-  --brand-primary: #f0c455;
-  --brand-primary-foreground: #161514;
-  --brand-link: #f0c455;
-  --ring: var(--brand-primary);
-
-  --card: #1e1c1a;
-  --popover: #1e1c1a;
+  --card: color-mix(in oklab, var(--ink) 4%, var(--paper));
   --muted: --alpha(var(--ink) / 6%);
-  --muted-foreground: #a39d92;
   --accent: --alpha(var(--ink) / 6%);
   --border: --alpha(var(--ink) / 10%);
   --input: --alpha(var(--ink) / 16%);
+  --ring: var(--brand-primary);
   --secondary: --alpha(var(--ink) / 7%);
-  --success: #8bab8c;
-  --success-foreground: #a9c4aa;
-  --warning: #dd8f52;
-  --warning-foreground: #e8ab7c;
-  --destructive: #c8776b;
-  --destructive-foreground: #dc9c92;
-  --info: #93accb;
-  --info-foreground: #adc1da;
   --code: --alpha(var(--ink) / 6%);
 }
 
@@ -179,7 +148,7 @@
 
 /* Lesson prose, rendered from sanitised Markdown (src/lib/markdown.ts). Literata, book measure. */
 @utility prose {
-  @apply max-w-[68ch] font-serif text-[1.0625rem] leading-[1.65];
+  @apply max-w-measure font-serif text-[1.0625rem] leading-[1.65];
   & > * + * {
     margin-top: 1em;
   }

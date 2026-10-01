@@ -26,7 +26,12 @@ const I18nContext = createContext<I18n | null>(null);
 
 const asDate = (d: Date | string) => (d instanceof Date ? d : new Date(d));
 
-export function createI18n(locale: Locale, timeZone: string): I18n {
+/** `messages` are the theme's overrides for `locale` (docs/theming.md); they win over the catalogue. */
+export function createI18n(
+  locale: Locale,
+  timeZone: string,
+  messages?: Readonly<Record<string, string>>,
+): I18n {
   const tag = INTL_TAG[locale];
   const date = new Intl.DateTimeFormat(tag, {
     day: "numeric",
@@ -46,7 +51,7 @@ export function createI18n(locale: Locale, timeZone: string): I18n {
   const number = new Intl.NumberFormat(tag);
   return {
     locale,
-    t: (key, params) => translate(locale, key, params),
+    t: (key, params) => translate(locale, key, params, messages),
     fmtDate: (d) => date.format(asDate(d)),
     fmtDayMonth: (d) => dayMonth.format(asDate(d)),
     fmtDateTime: (d) => dateTime.format(asDate(d)),
@@ -73,13 +78,15 @@ export function createI18n(locale: Locale, timeZone: string): I18n {
 export function I18nProvider({
   locale,
   timeZone,
+  messages,
   children,
 }: {
   locale: Locale;
   timeZone: string;
+  messages?: Readonly<Record<string, string>>;
   children: ReactNode;
 }) {
-  const value = useMemo(() => createI18n(locale, timeZone), [locale, timeZone]);
+  const value = useMemo(() => createI18n(locale, timeZone, messages), [locale, timeZone, messages]);
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 

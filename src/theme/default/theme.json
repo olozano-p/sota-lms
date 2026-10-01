@@ -1,0 +1,50 @@
+{
+  "name": "SOTA",
+  "tagline": null,
+  "logo": null,
+  "favicon": null,
+  "defaultLocale": "ca",
+  "supportEmail": null,
+  "projectUrl": null,
+  "legalLinks": [],
+  "colors": {
+    "light": {
+      "ink": "#1e1c19",
+      "paper": "#ffffff",
+      "primary": "#e0a51c",
+      "primaryForeground": "#1e1c19",
+      "link": "#8c5f0a",
+      "success": "#587a5a",
+      "successForeground": "#3f5c41",
+      "warning": "#c2661d",
+      "warningForeground": "#8a4712",
+      "destructive": "#a34a3e",
+      "destructiveForeground": "#8a3a30",
+      "info": "#4b6a8a",
+      "infoForeground": "#3c5670"
+    },
+    "dark": {
+      "ink": "#e9e5dc",
+      "paper": "#161514",
+      "primary": "#f0c455",
+      "primaryForeground": "#161514",
+      "link": "#f0c455",
+      "success": "#8bab8c",
+      "successForeground": "#a9c4aa",
+      "warning": "#dd8f52",
+      "warningForeground": "#e8ab7c",
+      "destructive": "#c8776b",
+      "destructiveForeground": "#dc9c92",
+      "info": "#93accb",
+      "infoForeground": "#adc1da"
+    }
+  },
+  "fonts": {
+    "sans": "\"Schibsted Grotesk Variable\", ui-sans-serif, system-ui, \"Segoe UI\", Helvetica, Arial, sans-serif",
+    "serif": "\"Literata Variable\", Georgia, \"Iowan Old Style\", \"Times New Roman\", serif",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
+    "faces": []
+  },
+  "radius": { "control": "0.25rem", "surface": "0.5rem" },
+  "spacing": { "unit": "0.25rem", "contentWidth": "72rem", "proseWidth": "68ch" }
+}

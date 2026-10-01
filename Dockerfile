@@ -7,7 +7,13 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
+# Slots (theme/slots/*.tsx) are compiled into the bundle, so the theme a deployment ships with must
+# be in the build context: ./theme by default, or another directory with --build-arg THEME_DIR=...
+# An ARG reaches `pnpm build` as an environment variable; empty means "./theme if it exists".
+ARG THEME_DIR=
 RUN pnpm build
+# What the image carries as /app/theme (a bind mount over it replaces everything but the slots).
+RUN mkdir -p /out/theme && d="${THEME_DIR:-theme}"; if [ -d "$d" ]; then cp -R "$d/." /out/theme/; fi
 
 FROM node:24-alpine
 WORKDIR /app
@@ -22,12 +28,14 @@ COPY src/db ./src/db
 COPY src/config ./src/config
 COPY src/lib ./src/lib
 COPY src/i18n ./src/i18n
+COPY src/theme ./src/theme
 COPY src/server/services ./src/server/services
 # What `sota create-admin` and the sign-in hooks import under plain Node.
 COPY src/server/auth ./src/server/auth
 COPY src/server/access ./src/server/access
 COPY src/server/audit.ts src/server/client-ip.ts ./src/server/
 COPY lms.config.ts ./lms.config.ts
+COPY --from=build /out/theme ./theme
 # The only runtime write is STORAGE_DIR (local storage driver); logs go to stdout. The directory
 # exists in the image so a named volume mounted there inherits node's ownership.
 RUN mkdir -p /app/data/uploads && chown node:node /app/data/uploads

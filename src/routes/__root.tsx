@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   createRootRoute,
   ErrorComponent,
@@ -17,7 +17,10 @@ import { getSession } from "~/server/auth/session";
 import { AppShell } from "~/components/shell/AppShell";
 import { AccountNav } from "~/components/shell/AccountNav";
 import { THEME_BOOT_SCRIPT } from "~/components/shell/ThemeToggle";
-import { brandStyle } from "~/components/shell/BrandStyle";
+import { BrandProvider } from "~/components/theme/Slot";
+import { getPublicTheme } from "~/server/theme";
+import type { PublicTheme } from "~/theme/load";
+import type { ThemeBrand } from "~/theme/slots";
 import { buttonVariants } from "~/components/ui/button";
 import { cn } from "~/lib/cn";
 
@@ -25,26 +28,9 @@ interface RootSearch {
   lang?: string;
 }
 
-const brandCss = brandStyle(lmsConfig.brand.colors);
-
 export const Route = createRootRoute({
   validateSearch: (search: Record<string, unknown>): RootSearch =>
     typeof search.lang === "string" ? { lang: search.lang } : {},
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: lmsConfig.brand.name },
-      { name: "application-name", content: lmsConfig.brand.name },
-      { name: "color-scheme", content: "light dark" },
-    ],
-    links: [
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-      { rel: "stylesheet", href: appCss },
-    ],
-    scripts: [{ children: THEME_BOOT_SCRIPT }],
-    styles: brandCss ? [{ children: brandCss }] : [],
-  }),
   // The session (and what the sign-in UI may render) lands in the router context so every child
   // route can guard on it.
   beforeLoad: async () => {
@@ -52,11 +38,35 @@ export const Route = createRootRoute({
     return { session, auth: session.auth };
   },
   loaderDeps: ({ search }) => ({ lang: search.lang }),
-  loader: async ({ context, deps }): Promise<{ locale: Locale }> => ({
-    locale: await getLocale({
+  loader: async ({ context, deps }): Promise<{ locale: Locale; theme: PublicTheme }> => {
+    const locale = await getLocale({
       data: { lang: deps.lang, claim: context.session.user?.locale ?? null },
-    }),
-  }),
+    });
+    return { locale, theme: await getPublicTheme({ data: { locale } }) };
+  },
+  // The theme stylesheet comes after the app stylesheet so its variables and custom.css win.
+  head: ({ loaderData }) => {
+    const theme = loaderData?.theme;
+    const name = theme?.name ?? "SOTA";
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { title: name },
+        { name: "application-name", content: name },
+        ...(theme?.tagline ? [{ name: "description", content: theme.tagline }] : []),
+        { name: "color-scheme", content: "light dark" },
+      ],
+      links: [
+        theme?.faviconUrl
+          ? { rel: "icon", href: theme.faviconUrl }
+          : { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+        { rel: "stylesheet", href: appCss },
+        ...(theme ? [{ rel: "stylesheet", href: theme.cssUrl }] : []),
+      ],
+      scripts: [{ children: THEME_BOOT_SCRIPT }],
+    };
+  },
   component: RootComponent,
   errorComponent: RootError,
   notFoundComponent: NotFound,
@@ -71,7 +81,18 @@ function HydrationMarker() {
 }
 
 function RootComponent() {
-  const { locale } = Route.useLoaderData();
+  const { locale, theme } = Route.useLoaderData();
+  const brand = useMemo<ThemeBrand>(
+    () => ({
+      name: theme.name,
+      tagline: theme.tagline,
+      logoUrl: theme.logoUrl,
+      supportEmail: theme.supportEmail,
+      projectUrl: theme.projectUrl,
+      legalLinks: theme.legalLinks,
+    }),
+    [theme],
+  );
   const { session } = Route.useRouteContext();
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { staleTime: 2000 } } }),
@@ -79,14 +100,16 @@ function RootComponent() {
   return (
     <RootDocument lang={locale}>
       <QueryClientProvider client={queryClient}>
-        <I18nProvider locale={locale} timeZone={lmsConfig.timeZone}>
-          <AppShell
-            brand={lmsConfig.brand}
-            locales={lmsConfig.locales.enabled}
-            nav={<AccountNav user={session.user} />}
-          >
-            <Outlet />
-          </AppShell>
+        <I18nProvider locale={locale} timeZone={lmsConfig.timeZone} messages={theme.messages}>
+          <BrandProvider brand={brand}>
+            <AppShell
+              brand={brand}
+              locales={lmsConfig.locales.enabled}
+              nav={<AccountNav user={session.user} />}
+            >
+              <Outlet />
+            </AppShell>
+          </BrandProvider>
           <HydrationMarker />
         </I18nProvider>
       </QueryClientProvider>

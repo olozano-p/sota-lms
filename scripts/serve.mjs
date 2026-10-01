@@ -9,7 +9,10 @@ import { Readable } from "node:stream";
 // Fail at boot, with every problem listed, rather than on the first request.
 try {
   const { validateEnv } = await import("../src/config/env.ts");
-  validateEnv();
+  const env = validateEnv();
+  const { loadTheme } = await import("../src/theme/load.ts");
+  const theme = loadTheme(env.themeDir, { explicit: env.themeDirExplicit });
+  for (const w of theme.warnings) console.warn(`theme warning: ${w}`);
 } catch (e) {
   console.error(e.message);
   process.exit(1);

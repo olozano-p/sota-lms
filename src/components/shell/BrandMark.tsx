@@ -2,7 +2,7 @@ import { cn } from "~/lib/cn";
 
 /**
  * Default mark: an open book drawn as two leaning strokes and a spine. Replaced by
- * `brand.logo` from lms.config.ts when a deployment supplies one.
+ * the theme's `logo` (theme.json) when a deployment supplies one.
  */
 export function BrandMark({
   className,

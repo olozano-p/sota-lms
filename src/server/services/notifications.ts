@@ -17,6 +17,7 @@ import {
 } from "../../db/schema.ts";
 import { lmsConfig } from "../../config/index.ts";
 import { env } from "../../config/env.ts";
+import { getTheme } from "../../theme/runtime.ts";
 import { isLocale } from "../../i18n/locale.ts";
 import { dateInZone } from "../../lib/dates.ts";
 import { sendMail } from "./email/mailer.ts";
@@ -87,7 +88,7 @@ export async function sendImmediate(): Promise<number> {
             n.kind,
             payload,
             localeOf(known?.locale ?? payload.locale),
-            lmsConfig.brand.name,
+            getTheme().config.name,
           );
           await sendMail({ to: email, ...mail });
         }
@@ -105,7 +106,7 @@ export async function sendImmediate(): Promise<number> {
           n.kind as NotificationKind,
           n.payload as NotificationPayload,
           localeOf(to.locale),
-          lmsConfig.brand.name,
+          getTheme().config.name,
         );
         await sendMail({ to: to.email, ...mail });
       }
@@ -143,7 +144,7 @@ export async function sendDigests(): Promise<number> {
             payload: i.payload as NotificationPayload,
           })),
           localeOf(to.locale),
-          lmsConfig.brand.name,
+          getTheme().config.name,
           `${env.appUrl}/courses`,
         );
         await sendMail({ to: to.email, ...mail });

@@ -1,0 +1,25 @@
+/* The Ledger: ruled paper. Colours, fonts and radii come from theme.json. */
+body {
+  font-size: 1.0625rem;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 1.9rem,
+    color-mix(in srgb, var(--ink) 6%, transparent) 1.9rem,
+    color-mix(in srgb, var(--ink) 6%, transparent) calc(1.9rem + 1px)
+  );
+}
+h1,
+h2,
+h3 {
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+}
+h1 {
+  border-bottom: 3px double var(--border);
+  padding-bottom: 0.4em;
+}
+.border-b {
+  border-bottom-style: double;
+  border-bottom-width: 3px;
+}
