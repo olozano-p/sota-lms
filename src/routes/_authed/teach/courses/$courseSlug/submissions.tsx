@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Download } from "lucide-react";
 import { useI18n } from "~/i18n";
 import { listSubmissions } from "~/server/queries/assignments";
+import { listCourseCohorts } from "~/server/queries/cohorts";
 import { reviewSubmission } from "~/server/mutations/assignments";
 import { Markdown } from "~/components/player/Markdown";
 import { Badge } from "~/components/ui/badge";
@@ -15,46 +16,77 @@ import { Textarea } from "~/components/ui/input";
 import { Select } from "~/components/ui/select";
 
 export const Route = createFileRoute("/_authed/teach/courses/$courseSlug/submissions")({
-  validateSearch: z.object({ status: z.enum(["submitted", "reviewed", "returned"]).optional() }),
-  loaderDeps: ({ search }) => ({ status: search.status }),
+  validateSearch: z.object({
+    status: z.enum(["submitted", "reviewed", "returned"]).optional(),
+    cohort: z.string().min(1).optional(),
+  }),
+  loaderDeps: ({ search }) => ({ status: search.status, cohort: search.cohort }),
   loader: async ({ params, deps }) => {
-    const data = await listSubmissions({
-      data: { courseSlug: params.courseSlug, status: deps.status },
-    });
+    const [data, cohorts] = await Promise.all([
+      listSubmissions({
+        data: { courseSlug: params.courseSlug, status: deps.status, cohortSlug: deps.cohort },
+      }),
+      listCourseCohorts({ data: { courseSlug: params.courseSlug } }),
+    ]);
     if (!data) throw notFound();
-    return data;
+    return { ...data, cohorts: cohorts?.cohorts ?? [] };
   },
   component: SubmissionsPage,
 });
 
 function SubmissionsPage() {
   const { t, fmtDateTime } = useI18n();
-  const { submissions } = Route.useLoaderData();
-  const { status } = Route.useSearch();
+  const { submissions, cohorts } = Route.useLoaderData();
+  const { status, cohort } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <p className="max-w-2xl text-sm text-muted-foreground">{t("teach.submissions.lead")}</p>
-        <Field label={t("teach.submissions.filter")}>
-          {(c) => (
-            <Select
-              {...c}
-              value={status ?? ""}
-              onChange={(e) =>
-                navigate({ search: { status: (e.target.value || undefined) as typeof status } })
-              }
-              className="w-48"
-            >
-              <option value="">{t("teach.submissions.all")}</option>
-              {(["submitted", "reviewed", "returned"] as const).map((s) => (
-                <option key={s} value={s}>
-                  {t(`assignment.status.${s}`)}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
+        <div className="flex flex-wrap items-end gap-3">
+          {cohorts.length ? (
+            <Field label={t("teach.submissions.cohort")}>
+              {(c) => (
+                <Select
+                  {...c}
+                  value={cohort ?? ""}
+                  onChange={(e) =>
+                    navigate({ search: { status, cohort: e.target.value || undefined } })
+                  }
+                  className="w-56"
+                >
+                  <option value="">{t("teach.submissions.cohort.all")}</option>
+                  {cohorts.map((g) => (
+                    <option key={g.slug} value={g.slug}>
+                      {g.title}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+          ) : null}
+          <Field label={t("teach.submissions.filter")}>
+            {(c) => (
+              <Select
+                {...c}
+                value={status ?? ""}
+                onChange={(e) =>
+                  navigate({
+                    search: { cohort, status: (e.target.value || undefined) as typeof status },
+                  })
+                }
+                className="w-48"
+              >
+                <option value="">{t("teach.submissions.all")}</option>
+                {(["submitted", "reviewed", "returned"] as const).map((s) => (
+                  <option key={s} value={s}>
+                    {t(`assignment.status.${s}`)}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        </div>
       </div>
       {submissions.length === 0 ? <Empty title={t("teach.submissions.empty")} /> : null}
       <ul className="flex flex-col gap-4">
