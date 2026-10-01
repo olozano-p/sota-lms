@@ -22,6 +22,9 @@ const COURSE = "introduccio-a-la-contemplacio";
 const COHORT = "tardor-2026";
 const DAY_MS = 86_400_000;
 
+/** Name of the ID-token claim carrying the enrollments, to try ENTITLEMENT_CLAIM in the app. */
+const ENTITLEMENT_CLAIM = process.env.MOCK_IDP_ENTITLEMENT_CLAIM ?? "enrollments";
+
 const PULL_TOKEN = process.env.ENTITLEMENTS_PULL_TOKEN ?? "sota-dev-pull-token";
 const WEBHOOK_SECRET = process.env.ENTITLEMENTS_WEBHOOK_SECRET ?? "sota-dev-webhook-secret";
 
@@ -89,7 +92,7 @@ const provider = new Provider(ISSUER, {
     {
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
-      redirect_uris: [`${APP_URL}/auth/callback`],
+      redirect_uris: [`${APP_URL}/api/auth/callback/oidc`],
       post_logout_redirect_uris: [APP_URL, `${APP_URL}/`],
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
@@ -99,7 +102,7 @@ const provider = new Provider(ISSUER, {
   pkce: { required: () => true },
   claims: {
     openid: ["sub"],
-    profile: ["name", "locale", "roles"],
+    profile: ["name", "locale", "roles", ENTITLEMENT_CLAIM],
     email: ["email", "email_verified"],
   },
   features: {
@@ -128,6 +131,12 @@ const provider = new Provider(ISSUER, {
           name: user.name,
           locale: user.locale,
           roles: user.roles,
+          // [{course, cohort?, until?}]: what the app reads when ENTITLEMENT_CLAIM is set.
+          [ENTITLEMENT_CLAIM]: user.enrollments().map((e) => ({
+            course: e.course,
+            ...(e.cohort ? { cohort: e.cohort } : {}),
+            ...(e.valid_until ? { until: e.valid_until } : {}),
+          })),
         };
       },
     };
@@ -143,7 +152,15 @@ const provider = new Provider(ISSUER, {
       accountId: ctx.oidc.session.accountId,
     });
     grant.addOIDCScope("openid profile email");
-    grant.addOIDCClaims(["sub", "email", "email_verified", "name", "locale", "roles"]);
+    grant.addOIDCClaims([
+      "sub",
+      "email",
+      "email_verified",
+      "name",
+      "locale",
+      "roles",
+      ENTITLEMENT_CLAIM,
+    ]);
     await grant.save();
     return grant;
   },

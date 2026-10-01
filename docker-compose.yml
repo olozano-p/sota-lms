@@ -52,11 +52,12 @@ services:
       APP_URL: http://localhost:3003
       DATABASE_URL: postgres://sota:sota@postgres:5432/sota
       SESSION_SECRET: dev-only-session-secret-please-change-me-0123456789
+      AUTH_MODE: oidc
       OIDC_ISSUER: http://localhost:3013
       OIDC_CLIENT_ID: sota
       OIDC_CLIENT_SECRET: sota-dev-secret
-      OIDC_END_SESSION_URL: http://localhost:3013/session/end
       OIDC_ROLES_CLAIM: roles
+      ENTITLEMENT_CLAIM: enrollments
       ENTITLEMENTS_PULL_URL: http://mock-idp:3013/entitlements/v1
       ENTITLEMENTS_PULL_TOKEN: sota-dev-pull-token
       ENTITLEMENTS_WEBHOOK_SECRET: sota-dev-webhook-secret
