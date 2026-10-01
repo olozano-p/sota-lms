@@ -1,5 +1,8 @@
 # Deploying SOTA
 
+New here? `docs/deploying.md` is the walkthrough from an empty machine to a finished course; this
+page is the reference.
+
 SOTA is one Node process plus PostgreSQL, behind a reverse proxy that terminates TLS. Files live
 in a directory the process owns (default) or in an S3-compatible bucket. Everything specific to
 your organisation lives in `.env` and `lms.config.ts`.
@@ -25,16 +28,16 @@ Copy `.env.example` to `.env` and fill every value; `SESSION_SECRET` is ≥ 32 r
 
 ```bash
 git clone https://github.com/olozano-p/sota-lms && cd sota-lms
-cp .env.example .env && $EDITOR .env lms.config.ts
-docker compose -f docker-compose.prod.yml up -d --build
+cp .env.example .env && $EDITOR .env lms.config.ts   # also set POSTGRES_PASSWORD
+docker build -t sota:local . && SOTA_IMAGE=sota:local docker compose up -d
 ```
 
-The image runs `src/db/migrate.ts` on start (`MIGRATE=true`) and never seeds unless `SEED=true`.
+The image runs `scripts/sota.ts migrate` on start (`MIGRATE=true`) and never seeds unless `SEED=true`.
 It listens on `127.0.0.1:3003`; put `deploy/nginx.conf` (or the equivalent for Caddy/Traefik) in
 front, with `TRUST_PROXY=true` so rate limiting sees the client address. Upgrades:
 
 ```bash
-git pull && docker compose -f docker-compose.prod.yml up -d --build
+git pull && docker build -t sota:local . && SOTA_IMAGE=sota:local docker compose up -d
 ```
 
 Migrations are forward-only and run before the new code serves traffic; take a `pg_dump` first.
