@@ -534,6 +534,22 @@ export const ca = {
   "mail.forumThread.title": "Nou fil a «{course}»",
   "mail.forumThread.body": "{detail} ha obert el fil «{subject}» al fòrum del curs.",
   "mail.forumThread.cta": "Obre el fil",
+  "mail.auth.magic.title": "Enllaç per entrar a {brand}",
+  "mail.auth.magic.body":
+    "Fes clic al botó per iniciar la sessió. L'enllaç caduca d'aquí a 10 minuts i només es pot fer servir una vegada. Si no l'has demanat tu, ignora aquest missatge.",
+  "mail.auth.magic.cta": "Inicia la sessió",
+  "mail.auth.verify.title": "Confirma el teu correu electrònic",
+  "mail.auth.verify.body":
+    "Per acabar de crear el compte a {brand}, confirma que aquesta adreça és teva. Si no t'hi has registrat, ignora aquest missatge.",
+  "mail.auth.verify.cta": "Confirma el correu",
+  "mail.auth.reset.title": "Restableix la contrasenya",
+  "mail.auth.reset.body":
+    "Hem rebut una sol·licitud per restablir la contrasenya del teu compte a {brand}. L'enllaç caduca d'aquí a una hora. Si no l'has demanada tu, ignora aquest missatge.",
+  "mail.auth.reset.cta": "Estableix una contrasenya nova",
+  "mail.auth.invite.title": "Et conviden a {brand}",
+  "mail.auth.invite.body":
+    "{detail} t'ha convidat a {brand}. Fes clic al botó per triar una contrasenya i activar el compte. L'enllaç caduca d'aquí a 7 dies.",
+  "mail.auth.invite.cta": "Activa el compte",
 
   "forum.error.locked": "El fil està tancat.",
   "forum.error.citedMissing": "El missatge citat ja no existeix.",
@@ -542,6 +558,74 @@ export const ca = {
   "forum.error.ownPost": "No pots reaccionar al teu propi missatge.",
   "forum.error.imageType": "Només s'hi poden posar imatges.",
   "forum.error.imageTooLarge": "La imatge és massa gran.",
+
+  "auth.email": "Correu electrònic",
+  "auth.password": "Contrasenya",
+  "auth.passwordNew": "Contrasenya nova",
+  "auth.passwordConfirm": "Repeteix la contrasenya",
+  "auth.passwordHint": "Mínim {n} caràcters.",
+  "auth.name": "Nom",
+  "auth.backToLogin": "Torna a l'inici de sessió",
+  "auth.login.title": "Entra",
+  "auth.login.lead": "Entra amb el teu correu i la teva contrasenya.",
+  "auth.login.submit": "Entra",
+  "auth.login.forgot": "Has oblidat la contrasenya?",
+  "auth.login.signup": "Crea un compte",
+  "auth.magic.title": "Prefereixes no escriure la contrasenya?",
+  "auth.magic.submit": "Envia'm un enllaç per entrar",
+  "auth.magic.sent":
+    "Si l'adreça està registrada, t'hi enviarem un enllaç per entrar. Revisa la safata d'entrada.",
+  "auth.oidc.lead": "Per entrar, continuaràs al teu proveïdor d'identitat.",
+  "auth.breakGlass.title": "Accés d'emergència",
+  "auth.breakGlass.lead":
+    "Només per a l'administració quan el proveïdor d'identitat no està disponible.",
+  "auth.signup.title": "Crea un compte",
+  "auth.signup.lead": "Registra't amb el teu correu per començar.",
+  "auth.signup.submit": "Crea el compte",
+  "auth.signup.sent": "Revisa la safata d'entrada: t'hem enviat un enllaç per confirmar el correu.",
+  "auth.signup.haveAccount": "Ja tens un compte?",
+  "auth.forgot.title": "Recupera la contrasenya",
+  "auth.forgot.lead":
+    "Escriu el teu correu i, si hi ha un compte associat, t'enviarem un enllaç per triar-ne una de nova.",
+  "auth.forgot.submit": "Envia l'enllaç",
+  "auth.forgot.sent":
+    "Si l'adreça està registrada, t'hi enviarem un enllaç per canviar la contrasenya.",
+  "auth.reset.title": "Tria una contrasenya nova",
+  "auth.reset.submit": "Desa la contrasenya",
+  "auth.reset.done": "Contrasenya canviada. Ja pots entrar amb la nova.",
+  "auth.invite.title": "Accepta la invitació",
+  "auth.invite.lead":
+    "T'han convidat amb l'adreça {email}. Tria una contrasenya per activar el compte.",
+  "auth.invite.submit": "Activa el compte",
+  "auth.error.login": "No hem pogut iniciar la sessió. Torna-ho a provar.",
+  "auth.error.generic": "Alguna cosa ha fallat. Torna-ho a provar.",
+  "auth.error.invalidCredentials": "Correu o contrasenya incorrectes.",
+  "auth.error.emailNotVerified": "Encara no has confirmat el correu. Revisa la safata d'entrada.",
+  "auth.error.rateLimited": "Massa intents. Espera una estona i torna-ho a provar.",
+  "auth.error.localDisabled": "Aquest accés no està disponible.",
+  "auth.error.signupDisabled": "El registre està tancat.",
+  "auth.error.passwordTooShort": "La contrasenya és massa curta.",
+  "auth.error.passwordMismatch": "Les dues contrasenyes no coincideixen.",
+  "auth.error.invalidInvitation":
+    "Aquesta invitació no és vàlida, ha caducat o ja s'ha fet servir. Demana'n una de nova a l'administració.",
+  "auth.error.invalidToken": "Aquest enllaç no és vàlid o ha caducat. Demana'n un de nou.",
+  "admin.invite.title": "Convida una persona",
+  "admin.invite.role": "Rol",
+  "admin.invite.localeDefault": "Per defecte",
+  "admin.invite.submit": "Envia la invitació",
+  "admin.invite.sent": "Invitació enviada.",
+  "admin.invite.error":
+    "No s'ha pogut enviar la invitació. Potser aquesta persona ja té un compte.",
+  "admin.invite.pending": "Invitacions pendents",
+  "admin.invite.none": "No hi ha cap invitació pendent.",
+  "admin.invite.expires": "Caduca",
+  "admin.invite.revoke": "Revoca",
+  "admin.person.rolesEdit": "Rols",
+  "admin.person.rolesSaved": "Rols desats.",
+  "admin.person.rolesError":
+    "No s'han pogut desar els rols. L'últim administrador no es pot treure.",
+  "admin.person.rolesFromIdp":
+    "Els rols provenen del proveïdor d'identitat i aquí només es poden consultar.",
 } as const;
 
 export type MessageKey = keyof typeof ca;

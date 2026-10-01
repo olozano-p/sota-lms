@@ -537,6 +537,22 @@ export const es: Record<MessageKey, string> = {
   "mail.forumThread.title": "Nuevo hilo en «{course}»",
   "mail.forumThread.body": "{detail} ha abierto el hilo «{subject}» en el foro del curso.",
   "mail.forumThread.cta": "Abrir el hilo",
+  "mail.auth.magic.title": "Enlace para entrar en {brand}",
+  "mail.auth.magic.body":
+    "Haz clic en el botón para iniciar sesión. El enlace caduca en 10 minutos y solo se puede usar una vez. Si no lo has pedido tú, ignora este mensaje.",
+  "mail.auth.magic.cta": "Iniciar sesión",
+  "mail.auth.verify.title": "Confirma tu correo electrónico",
+  "mail.auth.verify.body":
+    "Para terminar de crear tu cuenta en {brand}, confirma que esta dirección es tuya. Si no te has registrado, ignora este mensaje.",
+  "mail.auth.verify.cta": "Confirmar el correo",
+  "mail.auth.reset.title": "Restablece tu contraseña",
+  "mail.auth.reset.body":
+    "Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en {brand}. El enlace caduca en una hora. Si no la has hecho tú, ignora este mensaje.",
+  "mail.auth.reset.cta": "Elegir una contraseña nueva",
+  "mail.auth.invite.title": "Te invitan a {brand}",
+  "mail.auth.invite.body":
+    "{detail} te ha invitado a {brand}. Haz clic en el botón para elegir una contraseña y activar tu cuenta. El enlace caduca en 7 días.",
+  "mail.auth.invite.cta": "Activar la cuenta",
 
   "forum.error.locked": "El hilo está cerrado.",
   "forum.error.citedMissing": "El mensaje citado ya no existe.",
@@ -545,4 +561,73 @@ export const es: Record<MessageKey, string> = {
   "forum.error.ownPost": "No puedes reaccionar a tu propio mensaje.",
   "forum.error.imageType": "Solo se pueden insertar imágenes.",
   "forum.error.imageTooLarge": "La imagen es demasiado grande.",
+
+  "auth.email": "Correo electrónico",
+  "auth.password": "Contraseña",
+  "auth.passwordNew": "Contraseña nueva",
+  "auth.passwordConfirm": "Repite la contraseña",
+  "auth.passwordHint": "Mínimo {n} caracteres.",
+  "auth.name": "Nombre",
+  "auth.backToLogin": "Volver al inicio de sesión",
+  "auth.login.title": "Entra",
+  "auth.login.lead": "Entra con tu correo y tu contraseña.",
+  "auth.login.submit": "Entra",
+  "auth.login.forgot": "¿Has olvidado la contraseña?",
+  "auth.login.signup": "Crea una cuenta",
+  "auth.magic.title": "¿Prefieres no escribir la contraseña?",
+  "auth.magic.submit": "Envíame un enlace para entrar",
+  "auth.magic.sent":
+    "Si la dirección está registrada, te enviaremos un enlace para entrar. Revisa tu bandeja de entrada.",
+  "auth.oidc.lead": "Para entrar, continuarás en tu proveedor de identidad.",
+  "auth.breakGlass.title": "Acceso de emergencia",
+  "auth.breakGlass.lead":
+    "Solo para la administración cuando el proveedor de identidad no está disponible.",
+  "auth.signup.title": "Crea una cuenta",
+  "auth.signup.lead": "Regístrate con tu correo para empezar.",
+  "auth.signup.submit": "Crea la cuenta",
+  "auth.signup.sent":
+    "Revisa tu bandeja de entrada: te hemos enviado un enlace para confirmar el correo.",
+  "auth.signup.haveAccount": "¿Ya tienes una cuenta?",
+  "auth.forgot.title": "Recupera la contraseña",
+  "auth.forgot.lead":
+    "Escribe tu correo y, si hay una cuenta asociada, te enviaremos un enlace para elegir una nueva.",
+  "auth.forgot.submit": "Enviar el enlace",
+  "auth.forgot.sent":
+    "Si la dirección está registrada, te enviaremos un enlace para cambiar la contraseña.",
+  "auth.reset.title": "Elige una contraseña nueva",
+  "auth.reset.submit": "Guardar la contraseña",
+  "auth.reset.done": "Contraseña cambiada. Ya puedes entrar con la nueva.",
+  "auth.invite.title": "Acepta la invitación",
+  "auth.invite.lead":
+    "Te han invitado con la dirección {email}. Elige una contraseña para activar la cuenta.",
+  "auth.invite.submit": "Activar la cuenta",
+  "auth.error.login": "No hemos podido iniciar la sesión. Inténtalo de nuevo.",
+  "auth.error.generic": "Algo ha fallado. Inténtalo de nuevo.",
+  "auth.error.invalidCredentials": "Correo o contraseña incorrectos.",
+  "auth.error.emailNotVerified": "Aún no has confirmado el correo. Revisa tu bandeja de entrada.",
+  "auth.error.rateLimited": "Demasiados intentos. Espera un rato e inténtalo de nuevo.",
+  "auth.error.localDisabled": "Este acceso no está disponible.",
+  "auth.error.signupDisabled": "El registro está cerrado.",
+  "auth.error.passwordTooShort": "La contraseña es demasiado corta.",
+  "auth.error.passwordMismatch": "Las dos contraseñas no coinciden.",
+  "auth.error.invalidInvitation":
+    "Esta invitación no es válida, ha caducado o ya se ha usado. Pide una nueva a la administración.",
+  "auth.error.invalidToken": "Este enlace no es válido o ha caducado. Pide uno nuevo.",
+  "admin.invite.title": "Invita a una persona",
+  "admin.invite.role": "Rol",
+  "admin.invite.localeDefault": "Por defecto",
+  "admin.invite.submit": "Enviar la invitación",
+  "admin.invite.sent": "Invitación enviada.",
+  "admin.invite.error":
+    "No se ha podido enviar la invitación. Quizá esta persona ya tiene una cuenta.",
+  "admin.invite.pending": "Invitaciones pendientes",
+  "admin.invite.none": "No hay ninguna invitación pendiente.",
+  "admin.invite.expires": "Caduca",
+  "admin.invite.revoke": "Revoca",
+  "admin.person.rolesEdit": "Roles",
+  "admin.person.rolesSaved": "Roles guardados.",
+  "admin.person.rolesError":
+    "No se han podido guardar los roles. No se puede quitar al último administrador.",
+  "admin.person.rolesFromIdp":
+    "Los roles provienen del proveedor de identidad y aquí solo se pueden consultar.",
 };

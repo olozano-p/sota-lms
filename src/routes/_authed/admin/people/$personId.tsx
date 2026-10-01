@@ -14,6 +14,7 @@ import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { Table, TBody, Td, Th, THead, Tr } from "~/components/ui/table";
 import { Eyebrow } from "~/components/ui/eyebrow";
+import { RoleEditor } from "~/components/admin/RoleEditor";
 import { RoleBadges } from "~/components/admin/RoleBadges";
 
 export const Route = createFileRoute("/_authed/admin/people/$personId")({
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/_authed/admin/people/$personId")({
 function PersonPage() {
   const { t, fmtDateTime, fmtRelative } = useI18n();
   const { person, enrollments } = Route.useLoaderData();
+  const { auth } = Route.useRouteContext();
   const router = useRouter();
   const grant = useServerFn(grantEnrollment);
   const revoke = useServerFn(revokeEnrollment);
@@ -100,7 +102,7 @@ function PersonPage() {
       <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <Eyebrow>{t("admin.person.sub")}</Eyebrow>
-          <dd className="mt-1 font-mono text-xs">{person.idpSub}</dd>
+          <dd className="mt-1 font-mono text-xs">{person.externalSub ?? "—"}</dd>
         </div>
         <div>
           <Eyebrow>{t("admin.people.roles")}</Eyebrow>
@@ -123,6 +125,12 @@ function PersonPage() {
           </dd>
         </div>
       </dl>
+
+      {auth.mode === "local" ? (
+        <RoleEditor key={person.roles.join(",")} personId={person.id} roles={person.roles} />
+      ) : (
+        <p className="max-w-2xl text-sm text-muted-foreground">{t("admin.person.rolesFromIdp")}</p>
+      )}
 
       {notice ? <Alert variant={notice.kind}>{notice.text}</Alert> : null}
 

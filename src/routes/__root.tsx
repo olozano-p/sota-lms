@@ -45,8 +45,12 @@ export const Route = createRootRoute({
     scripts: [{ children: THEME_BOOT_SCRIPT }],
     styles: brandCss ? [{ children: brandCss }] : [],
   }),
-  // The session lands in the router context so every child route can guard on it.
-  beforeLoad: async () => ({ session: await getSession() }),
+  // The session (and what the sign-in UI may render) lands in the router context so every child
+  // route can guard on it.
+  beforeLoad: async () => {
+    const session = await getSession();
+    return { session, auth: session.auth };
+  },
   loaderDeps: ({ search }) => ({ lang: search.lang }),
   loader: async ({ context, deps }): Promise<{ locale: Locale }> => ({
     locale: await getLocale({
