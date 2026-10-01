@@ -3,12 +3,13 @@
  * first user, what an OIDC profile writes onto `person`, and what happens after an OIDC sign-in.
  * Plain-Node safe (relative imports with .ts extensions).
  */
-import { eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { db, type DbOrTx } from "../../db/index.ts";
-import { authAccount, person, type Role } from "../../db/schema.ts";
+import { authAccount, cohortMember, enrollment, person, type Role } from "../../db/schema.ts";
 import { env } from "../../config/env.ts";
 import { isLocale } from "../../i18n/locale.ts";
 import { syncClaimEnrollments } from "../access/claims.ts";
+import { audit } from "../audit.ts";
 import { syncEnrollments } from "../access/enrollments.ts";
 import { mapRoles } from "./roles.ts";
 
@@ -99,12 +100,68 @@ export async function applyOidcIdentity(
 }
 
 /**
+ * The service API may hold enrollments for a `sub` that never signed in, on a placeholder person
+ * (`external_sub` set, no `external_iss`, no account). When that sub signs in under a different
+ * email than the placeholder's, better-auth creates a second person; this moves the placeholder's
+ * enrollments and cohort places to the signed-in person and deletes the placeholder. A row that
+ * would collide with one the person already has (same course, cohort and source) is dropped.
+ */
+export async function adoptSubPlaceholder(
+  personId: string,
+  sub: string,
+  tx: DbOrTx = db,
+): Promise<boolean> {
+  const placeholders = await tx
+    .select({ id: person.id })
+    .from(person)
+    .where(
+      and(
+        eq(person.externalSub, sub),
+        ne(person.id, personId),
+        sql`${person.externalIss} is null`,
+        sql`not exists (select 1 from ${authAccount} where ${authAccount.userId} = ${person.id})`,
+      ),
+    );
+  if (!placeholders.length) return false;
+  await tx.transaction(async (t) => {
+    for (const { id } of placeholders) {
+      const rows = await t.select().from(enrollment).where(eq(enrollment.personId, id));
+      const mine = await t.select().from(enrollment).where(eq(enrollment.personId, personId));
+      const taken = new Set(mine.map((r) => `${r.courseId}|${r.cohortId ?? ""}|${r.source}`));
+      for (const r of rows) {
+        const slot = `${r.courseId}|${r.cohortId ?? ""}|${r.source}`;
+        if (taken.has(slot)) continue;
+        taken.add(slot);
+        await t.update(enrollment).set({ personId }).where(eq(enrollment.id, r.id));
+      }
+      const places = await t.select().from(cohortMember).where(eq(cohortMember.personId, id));
+      if (places.length)
+        await t
+          .insert(cohortMember)
+          .values(places.map((m) => ({ cohortId: m.cohortId, personId, role: m.role })))
+          .onConflictDoNothing();
+      await t.delete(person).where(eq(person.id, id));
+      await audit(t, {
+        actorId: null,
+        actor: "oidc-login",
+        action: "person.adopt_placeholder",
+        entity: "person",
+        entityId: personId,
+        after: { placeholderId: id, sub, enrollmentsMoved: rows.length },
+      });
+    }
+  });
+  return true;
+}
+
+/**
  * After a verified OIDC sign-in: mirror the identity, reconcile claim enrollments when
  * `ENTITLEMENT_CLAIM` is set and present, refresh from the pull source when configured, and
  * re-apply the IdP's roles last (the pull payload may carry its own). The IdP's roles and identity
  * are authoritative, so their failure propagates; enrollment sync failures are logged, not fatal.
  */
 export async function completeOidcLogin(personId: string, profile: OidcProfile): Promise<void> {
+  await adoptSubPlaceholder(personId, profile.sub);
   await applyOidcIdentity(personId, profile);
   const claimName = env.oidc.entitlementClaim;
   if (claimName && claimName in profile.claims) {

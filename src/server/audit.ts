@@ -6,6 +6,8 @@ export async function audit(
   tx: DbOrTx,
   entry: {
     actorId: string | null;
+    /** Non-person actor (the service API, the sync): recorded in the diff as `actor`. */
+    actor?: string;
     action: string;
     entity: string;
     entityId?: string | null;
@@ -19,8 +21,12 @@ export async function audit(
     entity: entry.entity,
     entityId: entry.entityId ?? null,
     diff:
-      entry.before === undefined && entry.after === undefined
+      entry.before === undefined && entry.after === undefined && !entry.actor
         ? null
-        : { before: entry.before ?? null, after: entry.after ?? null },
+        : {
+            ...(entry.actor ? { actor: entry.actor } : {}),
+            before: entry.before ?? null,
+            after: entry.after ?? null,
+          },
   });
 }
