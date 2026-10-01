@@ -244,7 +244,16 @@ export async function putServiceEnrollment(
         } else {
           // A concurrent request inserted the same external_id between our read and write.
           existing = await find();
-          if (!existing || existing.personId !== p.id)
+          if (!existing) {
+            // The slot's unique index fired: another external_id took it concurrently.
+            const other = await slotTaken();
+            throw new ServiceApiError(
+              409,
+              "duplicate_enrollment",
+              `this user already has the webhook enrollment "${other?.externalId}" for that course and cohort`,
+            );
+          }
+          if (existing.personId !== p.id)
             throw new ServiceApiError(409, "external_id_conflict", "external_id is in use");
           before = row = existing;
         }
@@ -279,7 +288,7 @@ export async function putServiceEnrollment(
         changed = true;
       }
     }
-    if (cohortId)
+    if (cohortId && changed)
       await tx
         .insert(cohortMember)
         .values({ cohortId, personId: p.id, role: "student" })

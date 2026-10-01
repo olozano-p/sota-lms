@@ -360,6 +360,16 @@ describe("PUT /enrollments/{external_id}", () => {
     expect(
       (await put("v-1", { user: { sub: "s" }, course: "intro", valid_until: "tomorrow" })).status,
     ).toBe(422);
+    expect(
+      (
+        await put("v-1", {
+          user: { sub: "s" },
+          course: "intro",
+          valid_from: "2027-01-01T00:00:00Z",
+          valid_until: "2026-01-01T00:00:00Z",
+        })
+      ).status,
+    ).toBe(422);
     expect((await put("v-1", null, { raw: "{not json" })).status).toBe(400);
     const big = await put("v-1", null, { raw: JSON.stringify({ pad: "x".repeat(70_000) }) });
     expect(big.status).toBe(413);

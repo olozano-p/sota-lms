@@ -103,8 +103,9 @@ export async function applyOidcIdentity(
  * The service API may hold enrollments for a `sub` that never signed in, on a placeholder person
  * (`external_sub` set, no `external_iss`, no account). When that sub signs in under a different
  * email than the placeholder's, better-auth creates a second person; this moves the placeholder's
- * enrollments and cohort places to the signed-in person and deletes the placeholder. A row that
- * would collide with one the person already has (same course, cohort and source) is dropped.
+ * enrollments and cohort places to the signed-in person and deletes the placeholder. Rows of every
+ * source move; of two rows in the same course, cohort and source the better one (active, then the
+ * later end) is kept and the other is deleted.
  */
 export async function adoptSubPlaceholder(
   personId: string,
@@ -127,11 +128,20 @@ export async function adoptSubPlaceholder(
     for (const { id } of placeholders) {
       const rows = await t.select().from(enrollment).where(eq(enrollment.personId, id));
       const mine = await t.select().from(enrollment).where(eq(enrollment.personId, personId));
-      const taken = new Set(mine.map((r) => `${r.courseId}|${r.cohortId ?? ""}|${r.source}`));
+      const better = (a: (typeof rows)[number], b: (typeof rows)[number]) =>
+        (a.status === "active") !== (b.status === "active")
+          ? a.status === "active"
+          : (a.validUntil?.getTime() ?? Infinity) > (b.validUntil?.getTime() ?? Infinity);
+      const bySlot = new Map(mine.map((r) => [`${r.courseId}|${r.cohortId ?? ""}|${r.source}`, r]));
       for (const r of rows) {
         const slot = `${r.courseId}|${r.cohortId ?? ""}|${r.source}`;
-        if (taken.has(slot)) continue;
-        taken.add(slot);
+        const held = bySlot.get(slot);
+        // On a collision the better row (active, then the later end) survives.
+        if (held) {
+          if (!better(r, held)) continue;
+          await t.delete(enrollment).where(eq(enrollment.id, held.id));
+        }
+        bySlot.set(slot, r);
         await t.update(enrollment).set({ personId }).where(eq(enrollment.id, r.id));
       }
       const places = await t.select().from(cohortMember).where(eq(cohortMember.personId, id));

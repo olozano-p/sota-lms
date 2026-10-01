@@ -27,7 +27,7 @@ Two auth modes (`AUTH_MODE=local|oidc`, ADR-013, ADR-016, ADR-017) and the `enro
   role mutations (`mutations/people.ts`), manual enrollment by email (`mutations/enrollments.ts`: in `oidc`
   mode a placeholder student with null `external_sub`, adopted by email at first sign-in), `pnpm
 create-admin`, `applyEnrollmentPayload` (pull and webhook) and the service API's placeholder people
-  (`mutations/service-enrollments-core.ts`, merged into the real person by `adoptSubPlaceholder` at sign-in). In `oidc` mode people and roles are the IdP's and are overwritten at every sign-in; no local
+  (`mutations/service-enrollments-core.ts`, merged into the real person by `adoptSubPlaceholder` at sign-in, which moves the placeholder's rows of every source, `manual` included). In `oidc` mode people and roles are the IdP's and are overwritten at every sign-in; no local
   login, signup, magic link or invitation exists except the optional break-glass admin. In `local` mode
   signup follows `ALLOW_SIGNUP` and the first admin comes from `pnpm create-admin` (ADR-017). Sessions are
   better-auth's (`getAuth()` in `src/server/auth/auth.ts`); guards in `authz.ts` stay the only entry for

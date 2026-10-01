@@ -43,13 +43,25 @@ function issues(error: z.ZodError) {
   return error.issues.map((i) => ({ path: i.path.join("."), message: i.message }));
 }
 
+/** Reads at most MAX_BODY_BYTES, counting while streaming so a chunked body cannot buffer unbounded. */
 async function readBody(request: Request): Promise<string | Response> {
-  const declared = Number(request.headers.get("content-length") ?? 0);
-  if (declared > MAX_BODY_BYTES) return problem(413, "payload_too_large", "request body too large");
-  const raw = await request.text();
-  if (Buffer.byteLength(raw) > MAX_BODY_BYTES)
-    return problem(413, "payload_too_large", "request body too large");
-  return raw;
+  const tooLarge = () => problem(413, "payload_too_large", "request body too large");
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) return tooLarge();
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_BODY_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      return tooLarge();
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString("utf8");
 }
 
 export async function handleApiV1(request: Request): Promise<Response> {

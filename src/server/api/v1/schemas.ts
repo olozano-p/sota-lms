@@ -58,6 +58,13 @@ export const putEnrollmentBody = z
       .nullish()
       .describe("Exclusive end of access; absent or null is open-ended."),
   })
+  .refine(
+    (b) => !b.valid_from || !b.valid_until || new Date(b.valid_until) > new Date(b.valid_from),
+    {
+      message: "valid_until must be after valid_from",
+      path: ["valid_until"],
+    },
+  )
   .meta({ id: "PutEnrollmentRequest" });
 
 const ref = z.object({ slug: z.string(), external_ref: z.string().nullable() });

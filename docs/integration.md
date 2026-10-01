@@ -42,7 +42,7 @@ WEBHOOK_HMAC_SECRET=<openssl rand -hex 32>     # optional but recommended: signe
 With `API_SERVICE_TOKEN` empty every `/api/v1` route except `/api/v1/health` answers `404`. With
 `WEBHOOK_HMAC_SECRET` set, every authenticated call must also be signed (below). Always use HTTPS.
 
-All bodies are JSON (`Content-Type: application/json`, at most 64 KiB), all answers are JSON, and every
+All bodies are JSON (`Content-Type: application/json`, at most 64 KiB), answers are JSON (except the rate limiter's plain-text `429`), and every
 error has the shape `{"error": {"code": "...", "message": "...", "issues": [...]}}`. Calls are rate
 limited to 300 a minute per client address (`429` with `Retry-After`).
 
@@ -77,7 +77,7 @@ signature = hex( HMAC_SHA256( WEBHOOK_HMAC_SECRET,
 - `METHOD` is upper case (`PUT`); `path` is the request path exactly as sent, from the leading
   `/api/v1`, without scheme, host or query string (`/api/v1/enrollments/ord-1042-line-1`; percent-encode
   an `external_id` the way you send it and sign the encoded form); `raw body` is the bytes you send, empty
-  for `GET` and `DELETE`. Sign the exact string you transmit: re-serialising the JSON invalidates it.
+  for `GET` and `DELETE`. The server signs the path it receives, so a proxy that rewrites the path breaks signatures: keep `/api/v1` intact. Sign the exact string you transmit: re-serialising the JSON invalidates it.
 - Method and path are part of the signature so that a signature captured for one request cannot be
   reused for another resource (a `DELETE` has no body to bind it to).
 - The older `POST /api/webhooks/entitlements` signs `"{timestamp}.{body}"` and also needs `X-Event-Id`
@@ -217,6 +217,7 @@ _published_ ones; `completed_at` is when the last published lesson was completed
   the `sub` (shown in the admin with a made-up `…@placeholder.invalid` address that never gets mail)
   and merged into the person who signs in with that `sub`, whatever address the IdP releases. Either
   way the enrollment is waiting for them at first sign-in.
+- **Sign-in merge.** A `sub`-only placeholder is merged at first sign-in: its enrollments (of every source) move to the person, and where both hold a row for the same course, cohort and source the better one (active, then the later end) is kept.
 - **Other sources.** `manual` (admins) and `claims` (ID token) enrollments are never read, changed or
   deleted by the API. Revoking an API enrollment does not close a course the person also holds a
   `manual` or `claims` enrollment for.
