@@ -44,19 +44,47 @@ export async function enqueue(
   await tx.insert(notification).values({ personId, kind, payload, immediate });
 }
 
-/** Account mail one address may be sent per window, whoever asks (a throttle on mail flooding). */
-export const ACCOUNT_MAIL_LIMIT = 5;
+/**
+ * Account mail one address may be sent per window, whoever asks: at most `ACCOUNT_MAIL_PER_KIND`
+ * of each kind (so a flood of magic-link requests cannot use up the address's password-reset mail)
+ * and `ACCOUNT_MAIL_LIMIT` in all. Counted from the queue, so it is approximate under concurrency.
+ */
+export const ACCOUNT_MAIL_PER_KIND = 5;
+export const ACCOUNT_MAIL_LIMIT = 12;
 export const ACCOUNT_MAIL_WINDOW_MS = 60 * 60 * 1000;
+
+/** True when the address has used up its account mail for the window (see `enqueueAccountMail`). */
+export async function accountMailThrottled(
+  tx: DbOrTx,
+  toEmail: string,
+  kind: AccountMailKind,
+  now = new Date(),
+): Promise<boolean> {
+  const rows = await tx
+    .select({ kind: notification.kind, n: sql<number>`count(*)`.mapWith(Number) })
+    .from(notification)
+    .where(
+      and(
+        eq(notification.toEmail, toEmail.toLowerCase()),
+        inArray(notification.kind, [...ACCOUNT_MAIL_KINDS]),
+        gt(notification.createdAt, new Date(now.getTime() - ACCOUNT_MAIL_WINDOW_MS)),
+      ),
+    )
+    .groupBy(notification.kind);
+  const total = rows.reduce((sum, r) => sum + r.n, 0);
+  const ofKind = rows.find((r) => r.kind === kind)?.n ?? 0;
+  return ofKind >= ACCOUNT_MAIL_PER_KIND || total >= ACCOUNT_MAIL_LIMIT;
+}
 
 /**
  * Queues account mail (magic link, verification, reset, invitation) for an address that may not
  * have a person row yet. Not subject to `notifications.enabled` or to a person's opt-out: the
  * recipient asked for it. The caller kicks `sendImmediate()` so the link arrives in seconds.
  *
- * An address that already has `ACCOUNT_MAIL_LIMIT` of these in the last hour gets nothing more and
- * the function returns false: neither a script hammering the magic-link endpoint nor an admin
- * re-inviting in a loop can make SOTA flood a mailbox. The caller decides what to tell its user
- * (the magic-link endpoint says nothing, so that it reveals nothing about the address).
+ * An address over its limit (`accountMailThrottled`) gets nothing more and the function returns
+ * false: neither a script hammering the magic-link endpoint nor an admin re-inviting in a loop can
+ * make SOTA flood a mailbox. The caller decides what to tell its user (the magic-link endpoint says
+ * nothing, so that it reveals nothing about the address).
  */
 export async function enqueueAccountMail(
   tx: DbOrTx,
@@ -65,22 +93,13 @@ export async function enqueueAccountMail(
   payload: NotificationPayload,
   now = new Date(),
 ): Promise<boolean> {
-  const to = toEmail.toLowerCase();
-  const [recent] = await tx
-    .select({ n: sql<number>`count(*)`.mapWith(Number) })
-    .from(notification)
-    .where(
-      and(
-        eq(notification.toEmail, to),
-        inArray(notification.kind, [...ACCOUNT_MAIL_KINDS]),
-        gt(notification.createdAt, new Date(now.getTime() - ACCOUNT_MAIL_WINDOW_MS)),
-      ),
-    );
-  if ((recent?.n ?? 0) >= ACCOUNT_MAIL_LIMIT) {
-    logger.warn("account mail throttled", { kind, limit: ACCOUNT_MAIL_LIMIT });
+  if (await accountMailThrottled(tx, toEmail, kind, now)) {
+    logger.warn("account mail throttled", { kind });
     return false;
   }
-  await tx.insert(notification).values({ toEmail: to, kind, payload, immediate: true });
+  await tx
+    .insert(notification)
+    .values({ toEmail: toEmail.toLowerCase(), kind, payload, immediate: true });
   return true;
 }
 

@@ -614,6 +614,8 @@ export const notification = pgTable(
   },
   (t) => [
     index("notification_pending_idx").on(t.sentAt, t.personId),
+    /** The per-address throttle on account mail counts recent rows by address. */
+    index("notification_to_email_idx").on(t.toEmail, t.createdAt),
     check("notification_recipient_chk", sql`${t.personId} is not null or ${t.toEmail} is not null`),
   ],
 );

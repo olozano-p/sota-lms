@@ -3,16 +3,17 @@
  * functions so that nothing server-only is reachable from the client bundle through a plain export;
  * callers authorise the actor and own the transaction (CLAUDE.md invariants).
  */
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import type { DbOrTx } from "~/db";
-import { person, type Role } from "~/db/schema";
+import { invitation, person, type Role } from "~/db/schema";
 import { env } from "~/config/env";
 import { isLocale } from "~/i18n/locale";
 import { audit } from "~/server/audit";
 import type { SessionUser } from "~/server/auth/authz";
 import { hasCredential } from "~/server/auth/identity";
 import { issueInvitation } from "~/server/auth/invitations";
-import { enqueueAccountMail } from "~/server/services/notifications";
+import { logger } from "~/lib/log";
+import { accountMailThrottled, enqueueAccountMail } from "~/server/services/notifications";
 
 export interface InviteInput {
   email: string;
@@ -29,7 +30,7 @@ export async function createInvitation(
   tx: DbOrTx,
   actor: Pick<SessionUser, "id" | "name">,
   input: InviteInput,
-): Promise<{ personId: string; token: string; expiresAt: Date; mailQueued: boolean }> {
+): Promise<{ personId: string; token: string | null; expiresAt: Date; mailQueued: boolean }> {
   const [existing] = await tx
     .select({ id: person.id })
     .from(person)
@@ -52,13 +53,30 @@ export async function createInvitation(
       .returning({ id: person.id });
     personId = created!.id;
   }
-  const { token, expiresAt } = await issueInvitation(tx, personId, actor.id);
-  const mailQueued = await enqueueAccountMail(tx, input.email, "auth_invite", {
-    courseTitle: "",
-    url: `${env.appUrl}/accept-invite?token=${encodeURIComponent(token)}`,
-    detail: actor.name,
-    ...(locale ? { locale } : {}),
-  });
+  // Decide on the mail before touching the invitation: issuing a new token replaces the pending
+  // one, and a link nobody was mailed would kill the one the invitee already holds.
+  let mailQueued = false;
+  let expiresAt: Date;
+  let token: string | null = null;
+  if (await accountMailThrottled(tx, input.email, "auth_invite")) {
+    logger.warn("account mail throttled", { kind: "auth_invite" });
+    const [pending] = await tx
+      .select({ expiresAt: invitation.expiresAt })
+      .from(invitation)
+      .where(and(eq(invitation.personId, personId), isNull(invitation.acceptedAt)))
+      .limit(1);
+    expiresAt = pending?.expiresAt ?? new Date();
+  } else {
+    const issued = await issueInvitation(tx, personId, actor.id);
+    expiresAt = issued.expiresAt;
+    token = issued.token;
+    mailQueued = await enqueueAccountMail(tx, input.email, "auth_invite", {
+      courseTitle: "",
+      url: `${env.appUrl}/accept-invite?token=${encodeURIComponent(issued.token)}`,
+      detail: actor.name,
+      ...(locale ? { locale } : {}),
+    });
+  }
   await audit(tx, {
     actorId: actor.id,
     action: "person.invite",

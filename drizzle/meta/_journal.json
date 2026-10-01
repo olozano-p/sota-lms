@@ -43,6 +43,13 @@
       "when": 1790857739694,
       "tag": "0005_typical_raza",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790862822517,
+      "tag": "0006_public_gravity",
+      "breakpoints": true
     }
   ]
 }

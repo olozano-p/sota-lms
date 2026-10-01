@@ -141,13 +141,16 @@ request gets `429` with `Retry-After: 60`. The counters live in memory and start
 | other `/api/auth/` (session, sign-out, OIDC callback)                                                                                            | 120        | per client                      |
 | `/auth/`                                                                                                                                         | 60         | per client                      |
 | `/api/storage/` (signed file transfer)                                                                                                           | 600        | per client                      |
+| `/api/health`, `/api/v1/health` (probes)                                                                                                         | 600        | per client                      |
 | `/api/v1/` (service API)                                                                                                                         | 300        | per client, apart from the rest |
 | `/api/webhooks/` (complete-set push channel)                                                                                                     | 60         | per client                      |
 | `/_serverFn/` (every admin and teacher action)                                                                                                   | 600        | per client                      |
 | other `/api/`                                                                                                                                    | 240        | per client                      |
 
-Account mail (magic link, verification, password reset, invitation) is throttled **per address**:
-at most five messages an hour to one address, whoever asks. The magic-link endpoint answers as usual
-and sends nothing past the limit (it never reveals whether an address is known); an invitation past the
-limit is still created and the admin is told that no mail was queued (`mailQueued: false`, also in
-the `person.invite` audit row), so it can be resent later or the link shared by other means.
+Account mail (magic link, verification, password reset, invitation) is throttled **per address**: at most
+five messages of each kind and twelve in all per hour, whoever asks (so a flood of magic-link requests cannot
+use up the address's password-reset mail). The count comes from the queue and is approximate under concurrent
+requests. The magic-link endpoint answers as usual and sends nothing past the limit (it never reveals whether an
+address is known). An invitation past the limit is not re-issued, so the link the invitee already holds keeps
+working; the admin is told that no mail was queued (`mailQueued: false`, also in the `person.invite` audit row)
+and can resend later.

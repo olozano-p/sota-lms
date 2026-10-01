@@ -16,7 +16,7 @@ const { runMigrations } = await import("../src/db/migrate.ts");
 const s = await import("../src/db/schema.ts");
 const { getAuth } = await import("../src/server/auth/auth.ts");
 const { allowRequest, limitFor } = await import("../src/server/security.ts");
-const { ACCOUNT_MAIL_LIMIT, ACCOUNT_MAIL_WINDOW_MS, enqueueAccountMail } =
+const { ACCOUNT_MAIL_LIMIT, ACCOUNT_MAIL_PER_KIND, ACCOUNT_MAIL_WINDOW_MS, enqueueAccountMail } =
   await import("../src/server/services/notifications.ts");
 const { createInvitation } = await import("../src/server/mutations/people-core.ts");
 
@@ -65,7 +65,9 @@ describe("endpoint coverage", () => {
       perMinute: 60,
     });
     expect(limitFor("/_serverFn/abc")?.perMinute).toBe(600);
-    expect(limitFor("/api/health")?.bucket).toBe("/api/");
+    expect(limitFor("/api/health")).toEqual({ bucket: "/api/health", perMinute: 600 });
+    expect(limitFor("/api/v1/health")?.bucket).toBe("/api/v1/health");
+    expect(limitFor("/api/files/x")?.bucket).toBe("/api/");
     expect(limitFor("/courses/intro")).toBeNull();
   });
 });
@@ -95,7 +97,7 @@ describe("enforcement", () => {
     for (let i = 0; i < 600; i++)
       expect(allowRequest(req("10.9.2.1"), "/_serverFn/x", t0)).toBe(true);
     expect(allowRequest(req("10.9.2.1"), "/_serverFn/x", t0)).toBe(false);
-    expect(allowRequest(req("10.9.2.1"), "/api/health", t0)).toBe(true);
+    expect(allowRequest(req("10.9.2.1"), "/api/files/x", t0)).toBe(true);
   });
 });
 
@@ -104,17 +106,28 @@ describe("per-address mail throttle", () => {
   const queued = (email: string) =>
     db.select().from(s.notification).where(eq(s.notification.toEmail, email));
 
-  it("queues five account mails an hour per address, then refuses, whatever the kind", async () => {
+  it("queues five of a kind an hour per address, twelve in all, then refuses", async () => {
     const now = new Date();
-    const kinds = ["auth_magic_link", "auth_invite", "auth_reset_password"] as const;
-    for (let i = 0; i < ACCOUNT_MAIL_LIMIT; i++)
+    for (let i = 0; i < ACCOUNT_MAIL_PER_KIND; i++)
       expect(
-        await enqueueAccountMail(db, "Flood@Example.invalid", kinds[i % 3]!, payload, now),
+        await enqueueAccountMail(db, "Flood@Example.invalid", "auth_magic_link", payload, now),
       ).toBe(true);
     expect(
       await enqueueAccountMail(db, "flood@example.invalid", "auth_magic_link", payload, now),
     ).toBe(false);
+    expect(await queued("flood@example.invalid")).toHaveLength(ACCOUNT_MAIL_PER_KIND);
+    // A flood of one kind leaves the address's password-reset mail alone.
+    expect(
+      await enqueueAccountMail(db, "flood@example.invalid", "auth_reset_password", payload, now),
+    ).toBe(true);
+    // The overall cap holds across kinds.
+    const kinds = ["auth_invite", "auth_verify_email", "auth_reset_password"] as const;
+    let accepted = 0;
+    for (let i = 0; i < 30; i++)
+      if (await enqueueAccountMail(db, "flood@example.invalid", kinds[i % 3]!, payload, now))
+        accepted++;
     expect(await queued("flood@example.invalid")).toHaveLength(ACCOUNT_MAIL_LIMIT);
+    expect(accepted).toBe(ACCOUNT_MAIL_LIMIT - ACCOUNT_MAIL_PER_KIND - 1);
     // Another address is unaffected, and the window slides.
     expect(
       await enqueueAccountMail(db, "other@example.invalid", "auth_magic_link", payload, now),
@@ -131,7 +144,7 @@ describe("per-address mail throttle", () => {
       .insert(s.person)
       .values({ email: "known@example.invalid", name: "Known", roles: ["student"] });
     const statuses: number[] = [];
-    for (let i = 0; i < ACCOUNT_MAIL_LIMIT + 3; i++) {
+    for (let i = 0; i < ACCOUNT_MAIL_PER_KIND + 3; i++) {
       const res = await auth.handler(
         new Request("http://localhost:3003/api/auth/sign-in/magic-link", {
           method: "POST",
@@ -142,7 +155,7 @@ describe("per-address mail throttle", () => {
       statuses.push(res.status);
     }
     expect(new Set(statuses)).toEqual(new Set([200]));
-    expect(await queued("known@example.invalid")).toHaveLength(ACCOUNT_MAIL_LIMIT);
+    expect(await queued("known@example.invalid")).toHaveLength(ACCOUNT_MAIL_PER_KIND);
   });
 
   it("reports a throttled invitation instead of pretending the mail went out", async () => {
@@ -157,10 +170,16 @@ describe("per-address mail throttle", () => {
       roles: ["student" as const],
     };
     const results = [];
-    for (let i = 0; i < ACCOUNT_MAIL_LIMIT + 1; i++)
+    for (let i = 0; i < ACCOUNT_MAIL_PER_KIND + 1; i++)
       results.push(await db.transaction((tx) => createInvitation(tx, actor, input)));
     expect(results.map((r) => r.mailQueued)).toEqual([true, true, true, true, true, false]);
     const audits = await db.select().from(s.auditLog).where(eq(s.auditLog.action, "person.invite"));
     expect(audits.filter((a) => (a.diff as any).after.mailQueued === false)).toHaveLength(1);
+    // The refused re-invite did not replace the link the invitee was last mailed.
+    const { findOpenInvitation } = await import("../src/server/auth/invitations.ts");
+    expect(results[5]!.token).toBeNull();
+    expect(await findOpenInvitation(results[4]!.token!)).toMatchObject({
+      email: "invitee@example.invalid",
+    });
   });
 });

@@ -102,6 +102,10 @@ const LIMITS: { prefix: string; perMinute: number; group?: string }[] = [
   { prefix: "/auth/", perMinute: 60 },
   // Signed file GET/PUT (local driver): a page of inline images costs a redirect plus a fetch each.
   { prefix: "/api/storage/", perMinute: 600 },
+  // Probes (Docker healthcheck, proxy, uptime monitor) must not be starved by browser traffic that
+  // shares their key behind a proxy without TRUST_PROXY.
+  { prefix: "/api/health", perMinute: 600 },
+  { prefix: "/api/v1/health", perMinute: 600 },
   // Service API: one integration's bursts (a bulk back-fill) in one bucket, apart from browser traffic.
   { prefix: "/api/v1/", perMinute: 300 },
   // The signed push channel of the complete-set contract: a handful of calls a minute is normal.

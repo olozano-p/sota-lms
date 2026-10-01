@@ -1,0 +1,1 @@
+CREATE INDEX "notification_to_email_idx" ON "notification" USING btree ("to_email","created_at");
