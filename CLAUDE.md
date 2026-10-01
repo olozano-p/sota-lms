@@ -7,6 +7,12 @@ contract. It never sells, registers or authenticates anyone. Product spec: `docs
 Decisions: `docs/decisions/` (append, never rewrite). Visual rules: `docs/DESIGN.md`. When a
 document and the code disagree, the code is right and the document gets fixed.
 
+## Direction (in progress)
+
+SOTA is moving to two auth modes (`AUTH_MODE=local|oidc`, ADR-013) and an `enrollment` table in place
+of `entitlement` (ADR-014); the forum stays (ADR-015). Gap list: `docs/audit.md`; progress:
+`docs/status.md`. The invariants below describe the code as it is today and are rewritten per phase.
+
 ## Load-bearing invariants
 
 - **Every write goes through `src/server/mutations/*`**, starting with `requireUser()` /

@@ -1,6 +1,6 @@
 # ADR-003 · SOTA is an OIDC relying party with its own short session
 
-**Date** 2026-09-11 · **Status** accepted
+**Date** 2026-09-11 · **Status** superseded by ADR-013
 
 ## Decision
 
