@@ -135,7 +135,7 @@ admin) or run the whole stack with `docker compose -f compose.dev.yml up`.
 | `pnpm notify`                                             | one notification tick (mail and digest)                                                    |
 | `pnpm mock-idp`                                           | run the development IdP + enrollment source alone                                          |
 
-Releases: bump `package.json` and `CHANGELOG.md`, tag `vX.Y.Z` and push the tag;
+Releases: bump `package.json` and `CHANGELOG.md` on main, tag `vX.Y.Z` and push the tag;
 `.github/workflows/release.yml` runs CI and publishes the image.
 
 ## Contributing and licence

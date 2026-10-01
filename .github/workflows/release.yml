@@ -3,7 +3,8 @@ name: Release
 # Pushing a tag `vX.Y.Z` (the maintainer's step, after bumping package.json and CHANGELOG.md) runs
 # the full CI pipeline, then builds the Docker image and publishes it to GitHub Container Registry
 # as ghcr.io/<owner>/sota with the tags X.Y.Z, X.Y, X and latest (pre-releases such as v1.1.0-rc.1
-# get only their own tag). Nothing here creates the tag or pushes code.
+# get only their own tag). Only commits on main are released, so `latest` never moves backwards.
+# Nothing here creates the tag or pushes code.
 
 on:
   push:
@@ -38,6 +39,16 @@ jobs:
           --health-cmd "pg_isready -U sota" --health-interval 5s --health-timeout 3s --health-retries 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: The tag is on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "${GITHUB_REF_NAME} is not on main: release from main" >&2
+            exit 1
+          fi
 
       - name: The tag matches package.json
         run: |

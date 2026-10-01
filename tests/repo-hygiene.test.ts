@@ -130,6 +130,7 @@ describe("release workflow", () => {
     expect(wf).toContain("flavor: latest=auto");
     expect(wf).toContain("packages: write");
     expect(wf).toMatch(/package\.json version/);
+    expect(wf).toContain("merge-base --is-ancestor");
     expect(read(".github/workflows/ci.yml")).toContain("workflow_call:");
   });
   it("is the image compose.yml and the docs point at", () => {

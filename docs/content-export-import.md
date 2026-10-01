@@ -49,5 +49,11 @@ releases. No database id appears: references are slugs, bundle-local keys (`a1`,
 - **Audit.** One `content.import` row per course that changed, actor `cli:import`, with counts and the
   first 100 changes (`docs/audit-log.md`).
 
+Things to know: media is written to storage as the import goes and storage is not transactional, so a failed
+import can leave unreferenced files under `courses/<id>/` (harmless, content-addressed, reused by the next run);
+the whole bundle is read into memory, so very large media sets want a machine with room; and `export` stops
+with a list of problems when existing data does not fit the bundle format (a slug outside the allowed grammar, a
+malformed embed URL), naming the course, chapter or lesson to fix.
+
 The operator who can run the command and reach `DATABASE_URL` is the authority; there is no web
 endpoint for import.

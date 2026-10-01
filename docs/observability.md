@@ -44,8 +44,7 @@ a log collector). The application keeps no log files.
 
 ## Health
 
-`GET /api/health` (alias `GET /api/v1/health`), no authentication, subject to the
-normal /api rate limit:
+`GET /api/health` (alias `GET /api/v1/health`), no authentication, in a rate-limit bucket of its own (600 a minute per client):
 
 ```json
 { "status": "ok", "version": "1.0.0", "db": "ok", "dbLatencyMs": 3 }
@@ -57,3 +56,7 @@ normal /api rate limit:
 proxy or uptime monitor should use the status code; alert on `dbLatencyMs` if you want an early warning.
 The endpoint does not check the storage backend or the mail server: a failing upload or message shows
 up as an `error` or `warn` line.
+
+The response names the running version, which helps whoever fingerprints a deployment. If that matters to you,
+answer `/api/health` from the reverse proxy instead (a fixed `200`) and keep the application's endpoint for
+internal probes.

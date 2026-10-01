@@ -59,8 +59,9 @@ API, and a container image published on every version tag.
 ### Security
 
 - Rate limits cover better-auth's credential, mail and recovery endpoints (including
-  `verify-password`), the legacy webhook and server functions; account mail is throttled to five
-  messages an hour per address, whoever asks.
+  `verify-password`), the legacy webhook and server functions; account mail is throttled per
+  address (five of a kind and twelve in all per hour, whoever asks), and a refused re-invite leaves the
+  pending link working.
 - Assignment and quiz blocks may only reference their own course, and audio/file blocks only keys
   under the course's storage prefix; the container lookup for assignments and quizzes is scoped to
   the course.

@@ -548,6 +548,10 @@ describe("atomicity and validation", () => {
       expect(text).toMatch(/unknown media "m99"/);
       expect(text).toMatch(/chapter slug "start" appears twice/);
     }
+    const twice = structuredClone(good);
+    const rel = twice.courses[0]!.cohorts![0]!.releases;
+    rel.push({ ...rel[0]! });
+    expect(() => parseBundle(twice)).toThrow(/release target "more" appears twice/);
     const reserved = structuredClone(good);
     reserved.courses[0]!.chapters[0]!.lessons[0]!.slug = "forum";
     expect(() => parseBundle(reserved)).toThrow(/reserved/);

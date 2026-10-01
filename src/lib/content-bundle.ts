@@ -311,13 +311,18 @@ export function parseBundle(input: unknown): Bundle {
             `${at}: quiz ${q.key} question ${i + 1} is single choice with several correct options`,
           );
       });
-    for (const g of c.cohorts ?? [])
+    for (const g of c.cohorts ?? []) {
+      dup(
+        `${at}: cohort ${g.slug} release target`,
+        g.releases.map((r) => r.chapter ?? r.lesson!),
+      );
       for (const r of g.releases) {
         if (r.chapter && !c.chapters.some((ch) => ch.slug === r.chapter))
           problems.push(`${at}: cohort ${g.slug} releases unknown chapter "${r.chapter}"`);
         if (r.lesson && !lessons.has(r.lesson))
           problems.push(`${at}: cohort ${g.slug} releases unknown lesson "${r.lesson}"`);
       }
+    }
   }
   if (problems.length) throw new BundleError(problems);
   return bundle;

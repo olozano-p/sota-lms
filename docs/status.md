@@ -6,14 +6,15 @@
   better-auth endpoints and checks each credential, mail and recovery one is in the strict bucket. Gaps found
   and closed: `verify-password`, change-password/email, set-password, delete-user, verify-email (strict);
   `/api/webhooks/` (60/min) and `/_serverFn/` (600/min, which carried invitation and bulk enrollment) had only
-  the generic bucket. New per-address throttle on account mail (5/hour/address across kinds,
-  `enqueueAccountMail` returns false; the magic-link endpoint answers as usual and sends nothing; an invitation
+  the generic bucket; health probes got a bucket of their own. Percent-encoded and doubled-slash paths do not
+  reach better-auth's handlers (checked), so prefix matching on the raw path is enough. New per-address throttle on account mail (5 of a kind and 12 in all per hour,
+  `enqueueAccountMail` returns false; a refused re-invite no longer replaces the pending link; the magic-link endpoint answers as usual and sends nothing; an invitation
   records `mailQueued: false`). Table in `docs/configuration.md`.
 - **Audit of every enrollment write** (`src/server/audit.ts`, `docs/audit-log.md`, `tests/enrollment-audit.test.ts`):
   the pull, the webhook and the login sync wrote none; the claims sync only counts. Now each path appends a row with
   per-row before/after (`sync:webhook|pull|claims`, service API, manual grant/revoke, bulk list, cohort enrollment,
   placement, removal, cohort deletion, placeholder merge, seed), capped at 100 changes with `total`/`truncated`.
-  A repeat sync writes nothing. Found on the way and fixed: a sync without `valid_from` reset the stored start on
+  A sync that changes only the person (created, sub adopted, roles) is audited too; a repeat writes nothing. Found on the way and fixed: a sync without `valid_from` reset the stored start on
   every run (it now keeps it), and the webhook applied its writes outside a transaction.
 - **`pnpm sota export|import`** (ADR-021, `docs/content-export-import.md`): versioned JSON (`sota-content/v1`, zod) plus
   `media/` in a plain directory. No ids in the bundle (slugs, local keys, media ids, `sota-media:` tokens in Markdown);
@@ -39,7 +40,7 @@
   covers the schema, no deployment-specific name is in the tree, the plain-Node modules load under `node`, and the
   release workflow's shape.
 - Not done / left: the release workflow and the CI `e2e` job were not run on GitHub (YAML parsed, steps reproduced
-  locally, the tag/version check and the multi-arch build were not); the Playwright suites were not run in this phase
+  locally, the tag/version/main checks and the multi-arch build were not); the Playwright suites were not run in this phase
   (their ports belong to a running dev stack); no UI shows `mailQueued` or the audit detail yet (the admin audit page
   prints the JSON); import covers no cohort members, teachers or forum content by design; deleted content is never
   removed by an import; quiz and assignment matching is by title; nothing removes the `ENTITLEMENTS_WEBHOOK_SECRET`
