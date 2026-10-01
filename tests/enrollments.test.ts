@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../src/db/index.ts";
 import { runMigrations } from "../src/db/migrate.ts";
 import { cohort, course, enrollment, person } from "../src/db/schema.ts";
-import { upsertManualEnrollment } from "../src/server/mutations/enrollments.ts";
+import { upsertManualEnrollment } from "../src/server/mutations/enrollments-core.ts";
 
 let personId: string;
 let courseId: string;

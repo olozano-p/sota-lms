@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, eq, isNotNull, ne } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { db, type DbOrTx } from "~/db";
+import { db } from "~/db";
 import {
   COHORT_STATUSES,
   chapter,
@@ -12,12 +12,11 @@ import {
   lesson,
   person,
 } from "~/db/schema";
-import { lmsConfig } from "~/config";
-import { dripSchedule } from "~/lib/drip";
 import { SLUG_PATTERN, slugify } from "~/lib/slug";
 import { audit } from "~/server/audit";
-import { requireCourseTeacher, type SessionUser } from "~/server/auth/authz";
-import { upsertManualEnrollment } from "./enrollments";
+import { requireCourseTeacher } from "~/server/auth/authz";
+import { upsertManualEnrollment } from "./enrollments-core";
+import { applyDripRule } from "./cohorts-core";
 
 const id = z.string().uuid();
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -310,62 +309,6 @@ export const deleteRelease = createServerFn({ method: "POST" })
       return { ok: true };
     });
   });
-
-/**
- * Expands "N chapters every D days from the start" into one chapter-level `cohort_release` row per
- * chapter, replacing the cohort's earlier chapter releases (lesson-level ones stay). The rule
- * itself is not stored: access keeps reading the dates. Callers authorise and own the transaction.
- */
-export async function applyDripRule(
-  tx: DbOrTx,
-  actor: Pick<SessionUser, "id">,
-  input: {
-    cohortId: string;
-    everyDays: number;
-    chaptersPerStep: number;
-    /** `YYYY-MM-DD`; defaults to the cohort's `starts_at`. */
-    startDate: string | null;
-  },
-) {
-  const [g] = await tx.select().from(cohort).where(eq(cohort.id, input.cohortId)).limit(1);
-  if (!g) throw new Error("cohort not found");
-  const startDate = input.startDate ?? g.startsAt;
-  if (!startDate) throw new Error("the cohort has no start date; give one");
-  const chapters = await tx
-    .select({ id: chapter.id })
-    .from(chapter)
-    .where(eq(chapter.courseId, g.courseId))
-    .orderBy(asc(chapter.sort), asc(chapter.createdAt));
-  const schedule = dripSchedule({
-    chapterIds: chapters.map((c) => c.id),
-    startDate,
-    everyDays: input.everyDays,
-    chaptersPerStep: input.chaptersPerStep,
-    timeZone: lmsConfig.timeZone,
-  });
-  await tx
-    .delete(cohortRelease)
-    .where(and(eq(cohortRelease.cohortId, g.id), isNotNull(cohortRelease.chapterId)));
-  const rows = schedule.length
-    ? await tx
-        .insert(cohortRelease)
-        .values(schedule.map((r) => ({ cohortId: g.id, ...r })))
-        .returning()
-    : [];
-  await audit(tx, {
-    actorId: actor.id,
-    action: "cohort.release.drip",
-    entity: "cohort",
-    entityId: g.id,
-    after: {
-      startDate,
-      everyDays: input.everyDays,
-      chaptersPerStep: input.chaptersPerStep,
-      count: rows.length,
-    },
-  });
-  return rows;
-}
 
 export const applyCohortDrip = createServerFn({ method: "POST" })
   .validator(

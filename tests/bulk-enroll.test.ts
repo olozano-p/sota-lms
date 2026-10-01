@@ -12,8 +12,8 @@ const { db } = await import("../src/db/index.ts");
 const { runMigrations } = await import("../src/db/migrate.ts");
 const s = await import("../src/db/schema.ts");
 const { enrollEmails, enrollCohortMembers } =
-  await import("../src/server/mutations/enrollments.ts");
-const { applyDripRule } = await import("../src/server/mutations/cohorts.ts");
+  await import("../src/server/mutations/enrollments-core.ts");
+const { applyDripRule } = await import("../src/server/mutations/cohorts-core.ts");
 
 let actor: { id: string; name: string };
 let courseId: string;

@@ -19,7 +19,7 @@ const { person, authAccount, invitation, auditLog } = await import("../src/db/sc
 const { resetEnvCache } = await import("../src/config/env.ts");
 const { getAuth, pastAbsoluteLimit, SESSION_ABSOLUTE_MS } =
   await import("../src/server/auth/auth.ts");
-const { createInvitation, replaceRoles } = await import("../src/server/mutations/people.ts");
+const { createInvitation, replaceRoles } = await import("../src/server/mutations/people-core.ts");
 const { sendImmediate } = await import("../src/server/services/notifications.ts");
 
 const ORIGIN = "http://localhost:3003";
