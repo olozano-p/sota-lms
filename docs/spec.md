@@ -118,6 +118,7 @@ Versioned JSON contract, `enrollments/v1` (full definition in `docs/entitlements
 
 - **Pull**: `GET ${ENTITLEMENTS_PULL_URL}/{sub}` with `Authorization: Bearer ${ENTITLEMENTS_PULL_TOKEN}`. Called on login and on cache miss (TTL 15 min).
 - **Push**: the enrollment source POSTs to `${APP_URL}/api/webhooks/entitlements` on any change. HMAC-SHA256 over raw body + `X-Timestamp`, `X-Signature`, `X-Event-Id` headers. LMS verifies, stores the event, reconciles, responds 200. Idempotent on `X-Event-Id`.
+- **Service API**: per-enrollment `PUT`/`DELETE /api/v1/enrollments/{external_id}`, `GET /api/v1/courses`, `GET /api/v1/users/{sub}/progress`, `GET /api/v1/health`, OpenAPI at `/api/v1/openapi.json`; bearer `API_SERVICE_TOKEN`, optional HMAC (ADR-020, `docs/integration.md`).
 
 Payload (both channels): the person (`sub`, `email`, `name`, `locale`, `roles`) and the complete list of their enrollments, one per course (and optional cohort), each with `external_id`, `valid_from`, `valid_until` (exclusive) and `status`:
 
@@ -264,6 +265,7 @@ Contributors may add `YouTubeProvider`, `MuxProvider`, `SelfHostedProvider` behi
 /admin                              → people, enrollments, webhook log, audit log
 
 /api/webhooks/entitlements          → POST (HMAC)
+/api/v1/*                           → service API (bearer, optional HMAC), /api/v1/openapi.json
 /api/files/$fileId                  → GET signed redirect (access-checked)
 /api/health
 ```

@@ -47,16 +47,20 @@ invitation endpoint exists.
 Account mail (magic link, confirmation, password reset, invitation) goes through the same mail queue as
 notifications and is flushed immediately; with `MAIL_TRANSPORT=console` the link is printed to the server log.
 
-## Enrollment source (docs/entitlements-contract.md)
+## Enrollment source and service API (docs/entitlements-contract.md, docs/integration.md)
 
-The variable names predate the `enrollment` model (ADR-014) and are kept.
+| Variable                      | Default | Notes                                                                                                                                                                                                                  |
+| ----------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `API_SERVICE_TOKEN`           | unset   | Bearer token of the service API (`/api/v1`), at least 16 characters (`openssl rand -hex 32`). Unset or empty: the API is off and every route except `/api/v1/health` answers 404.                                      |
+| `WEBHOOK_HMAC_SECRET`         | unset   | Signing secret. When set, every authenticated `/api/v1` call needs `X-Timestamp` and `X-Signature`, and `POST /api/webhooks/entitlements` is accepted (unset: it answers 401). Signature rules: `docs/integration.md`. |
+| `ENTITLEMENT_CLAIM`           | unset   | See Authentication above: enrollments carried by the ID token.                                                                                                                                                         |
+| `ENTITLEMENTS_PULL_URL`       | unset   | `GET ${URL}/{sub}` on sign-in and when the 15-minute cache is stale. Unset: no pull. The variable names predate the `enrollment` model (ADR-014) and are kept.                                                         |
+| `ENTITLEMENTS_PULL_TOKEN`     | unset   | Bearer token for the pull. Both pull variables are needed for the pull to run.                                                                                                                                         |
+| `ENTITLEMENTS_WEBHOOK_SECRET` | unset   | **Deprecated** alias of `WEBHOOK_HMAC_SECRET`, read only when that is unset; a boot warning names it (ADR-020).                                                                                                        |
+| `ENTITLEMENTS_WRITE_URL`      | unused  | Reserved for write-back of manual enrollments.                                                                                                                                                                         |
 
-| Variable                      | Default | Notes                                                                                       |
-| ----------------------------- | ------- | ------------------------------------------------------------------------------------------- |
-| `ENTITLEMENTS_PULL_URL`       | unset   | `GET ${URL}/{sub}` on sign-in and when the 15-minute cache is stale. Unset: no pull.        |
-| `ENTITLEMENTS_PULL_TOKEN`     | unset   | Bearer token for the pull. Both pull variables are needed for the pull to run.              |
-| `ENTITLEMENTS_WEBHOOK_SECRET` | unset   | HMAC secret of `POST ${APP_URL}/api/webhooks/entitlements`. Unset: the webhook answers 401. |
-| `ENTITLEMENTS_WRITE_URL`      | unused  | Reserved for write-back of manual enrollments.                                              |
+The complete-set channels (pull, `POST /api/webhooks/entitlements`) and the service API both write
+`webhook` enrollments; do not use both for the same people (ADR-020).
 
 ## Storage
 

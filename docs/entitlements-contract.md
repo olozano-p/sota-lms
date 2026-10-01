@@ -1,7 +1,10 @@
 # Enrollment contract — `enrollments/v1`
 
-(The file name and the `ENTITLEMENTS_*` variables predate ADR-014 and stay so existing deployments
-keep working; the model behind them is `enrollment`.)
+(The file name and the `ENTITLEMENTS_PULL_*` variables predate ADR-014 and stay so existing deployments
+keep working; the model behind them is `enrollment`. The push secret is `WEBHOOK_HMAC_SECRET`;
+`ENTITLEMENTS_WEBHOOK_SECRET` is a deprecated alias, ADR-020. To enroll one person at a time instead of
+sending complete sets, use the service API: `docs/integration.md`. Do not combine both for the same
+people: a complete-set payload revokes the `webhook` rows it does not list.)
 
 SOTA never decides _who may access what_ on its own. An external **enrollment source** (usually
 the system that also runs your identity provider, but not necessarily) tells it, through a small
@@ -88,7 +91,7 @@ POST {APP_URL}/api/webhooks/entitlements
 Content-Type: application/json
 X-Timestamp: 1757583600           # unix seconds
 X-Event-Id:  6f1c…                # unique per event; duplicates are acknowledged, not reprocessed
-X-Signature: hex(HMAC-SHA256(ENTITLEMENTS_WEBHOOK_SECRET, "{X-Timestamp}.{raw body}"))
+X-Signature: hex(HMAC-SHA256(WEBHOOK_HMAC_SECRET, "{X-Timestamp}.{raw body}"))
 ```
 
 Send it on every change (purchase, renewal, cohort placement, expiry, refund). SOTA:

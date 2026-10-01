@@ -101,7 +101,7 @@ The daily digest goes out during the hour configured in `lms.config.ts → notif
 - [ ] Proxy rate limits on `/auth/` and `/api/` (the app's in-process limiter is a fallback).
 - [ ] `STORAGE_DIR` is outside the web root and the release directories, owned by the app user
       only; with S3, the bucket is private, only the app holds the keys, `S3_PUBLIC_ENDPOINT` is HTTPS.
-- [ ] `ENTITLEMENTS_WEBHOOK_SECRET` and `ENTITLEMENTS_PULL_TOKEN` are long and random.
+- [ ] `WEBHOOK_HMAC_SECRET`, `API_SERVICE_TOKEN` (empty if you do not use the service API) and `ENTITLEMENTS_PULL_TOKEN` are long and random.
 - [ ] Vimeo embeds restricted to your hostname.
 - [ ] `/api/health` monitored.
 

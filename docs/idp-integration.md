@@ -24,7 +24,7 @@ the optional break-glass administrator (below). To run without an IdP use `AUTH_
 Set in `.env`: `AUTH_MODE=oidc`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, optionally
 `OIDC_SCOPES`, `OIDC_ROLES_CLAIM`, `OIDC_END_SESSION_URL` and `ENTITLEMENT_CLAIM` (all in
 `docs/configuration.md`). The pull/webhook enrollment channel is separate:
-`docs/entitlements-contract.md`.
+`docs/entitlements-contract.md`; the per-enrollment service API is in `docs/integration.md`.
 
 ## People: who is who
 
@@ -124,7 +124,7 @@ to `/userinfo` for any claim the ID token lacks.
 ## Trying it without an IdP
 
 `docker compose -f compose.dev.yml up` (or `pnpm mock-idp`) runs `dev/mock-idp/server.mjs`: a node-oidc-provider
-instance with four users and the claims above, plus a mock enrollment source. The login page is
+instance with five users and the claims above, plus a mock enrollment source, and one learner (`mock-service-learner`) who has no enrollment of their own, to try the service API. The login page is
 a list of buttons, and an `enrollments` ID-token claim for trying `ENTITLEMENT_CLAIM` (name set by
 `MOCK_IDP_ENTITLEMENT_CLAIM`). Nothing in it is fit for production.
 
