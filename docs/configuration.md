@@ -110,6 +110,25 @@ organisation would call its look: since Phase 3 the keys `brand` (name, logo, co
 The theme directory is `THEME_DIR`; `pnpm sota validate-theme` checks it and `pnpm sota validate-config`
 summarises it. Fields, slots, mail templates and the build-time/runtime split: `docs/theming.md`.
 
+## Container and Compose
+
+Read by the image's start command, `compose.yml` or a single command, not by the application.
+
+| Variable            | Default                     | Notes                                                                                                                              |
+| ------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `SOTA_IMAGE`        | `ghcr.io/OWNER/sota:latest` | The image Compose runs. `OWNER` is a placeholder: use the account that published the release (`docs/deploying.md`) or a local tag. |
+| `HOST_PORT`         | `3003`                      | Port published on `127.0.0.1` by `compose.yml`.                                                                                    |
+| `POSTGRES_USER`     | `sota`                      | Database user of the bundled Postgres; `compose.yml` builds `DATABASE_URL` from these three.                                       |
+| `POSTGRES_PASSWORD` | **required**                | Database password. Compose refuses to start without it.                                                                            |
+| `POSTGRES_DB`       | `sota`                      | Database name.                                                                                                                     |
+| `MIGRATE`           | `true`                      | The image applies migrations before it starts the server; `false` skips them (run `node scripts/sota.ts migrate` yourself).        |
+| `SEED`              | `false`                     | `true` loads the demo course, cohort and mock-IdP users at start (development only).                                               |
+| `ADMIN_PASSWORD`    | prompt                      | Read by `create-admin` instead of prompting, for scripted setups (`docs/deploying.md`).                                            |
+| `FORCE_DIGEST`      | unset                       | `true` makes `pnpm notify` send the daily digest now.                                                                              |
+
+`STORAGE_DIR` defaults to `/app/data/uploads` inside the image (the directory that is writable there), so a volume mounted at that path is all
+`STORAGE_DRIVER=local` needs.
+
 ## Built-in limits
 
 An in-process token bucket per client address (a fallback behind the reverse proxy's own limits;

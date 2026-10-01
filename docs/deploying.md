@@ -12,9 +12,19 @@ the walkthrough. It was followed end to end against an empty database before it 
 - Docker with the Compose plugin (`docker compose version`).
 - Two files in an empty directory: `compose.yml` (copy it from the repository root) and the `.env`
   below. Nothing else.
-- The SOTA image. `compose.yml` reads it from `SOTA_IMAGE` and defaults to the placeholder
-  `ghcr.io/OWNER/sota:latest`, which does not exist: set `SOTA_IMAGE` (in `.env` or the shell) to
-  the image you publish to your registry, or build it once from a checkout and point Compose at it:
+- The SOTA image. Every release tag `vX.Y.Z` is built and published by `.github/workflows/release.yml`
+  to GitHub Container Registry as `ghcr.io/<owner>/sota` (`<owner>` is the lower-cased GitHub user or
+  organisation that owns the repository), tagged `X.Y.Z`, `X.Y`, `X` and `latest`. `compose.yml`
+  reads the image from `SOTA_IMAGE` and defaults to the placeholder `ghcr.io/OWNER/sota:latest`, which
+  does not exist: put the real name in `.env`, preferably pinned to a version:
+
+  ```bash
+  SOTA_IMAGE=ghcr.io/<owner>/sota:1.0.0
+  ```
+
+  A package published for the first time is private; make it public under the repository's _Packages_
+  settings, or `docker login ghcr.io` on the host. Without a registry, build it once from a checkout
+  and point Compose at it:
 
   ```bash
   docker build -t sota:local /path/to/sota
@@ -112,12 +122,14 @@ by cohort).
 
 ## Operating it
 
-| Task                    | Command                                                                                      |
-| ----------------------- | -------------------------------------------------------------------------------------------- |
-| Upgrade                 | `docker compose pull && docker compose up -d` (migrations run on start)                      |
-| Logs                    | `docker compose logs -f app`                                                                 |
-| Another administrator   | `docker compose exec app node scripts/sota.ts create-admin --email ...`                      |
-| Check the configuration | `docker compose exec app node scripts/sota.ts validate-config`                               |
-| Back up                 | `docker compose exec postgres pg_dump -U sota -Fc sota > sota.dump` and the `uploads` volume |
+| Task                    | Command                                                                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Upgrade                 | change the tag in `SOTA_IMAGE`, `docker compose pull && docker compose up -d` (migrations run on start; take a backup first) |
+| Logs                    | `docker compose logs -f app`                                                                                                 |
+| Another administrator   | `docker compose exec app node scripts/sota.ts create-admin --email ...`                                                      |
+| Check the configuration | `docker compose exec app node scripts/sota.ts validate-config`                                                               |
+| Back up and restore     | `docs/backup-restore.md` (database dump, `uploads` volume, `.env`, restore drill)                                            |
+| Copy a course elsewhere | `docker compose exec app node scripts/sota.ts export /tmp/x --course slug`, `docs/content-export-import.md`                  |
+| Health and logs         | `curl localhost:3003/api/health`, JSON logs on stdout: `docs/observability.md`                                               |
 
 In a checkout the same commands are `pnpm sota <command>`.

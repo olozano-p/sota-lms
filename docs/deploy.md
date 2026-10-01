@@ -32,7 +32,8 @@ cp .env.example .env && $EDITOR .env lms.config.ts   # also set POSTGRES_PASSWOR
 docker build -t sota:local . && SOTA_IMAGE=sota:local docker compose up -d
 ```
 
-The image runs `scripts/sota.ts migrate` on start (`MIGRATE=true`) and never seeds unless `SEED=true`.
+Released versions are also published to GHCR (`ghcr.io/<owner>/sota:X.Y.Z`, `docs/deploying.md`): set
+`SOTA_IMAGE` to one of those instead of building. The image runs `scripts/sota.ts migrate` on start (`MIGRATE=true`) and never seeds unless `SEED=true`.
 It listens on `127.0.0.1:3003`; put `deploy/nginx.conf` (or the equivalent for Caddy/Traefik) in
 front, with `TRUST_PROXY=true` so rate limiting sees the client address. Upgrades:
 

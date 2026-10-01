@@ -18,6 +18,8 @@ RUN mkdir -p /out/theme && d="${THEME_DIR:-theme}"; if [ -d "$d" ]; then cp -R "
 FROM node:24-alpine
 WORKDIR /app
 ENV NODE_ENV=production
+# Local storage lives in the one directory the image makes writable (mount a volume over it).
+ENV STORAGE_DIR=/app/data/uploads
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod

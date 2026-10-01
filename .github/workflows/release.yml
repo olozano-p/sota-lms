@@ -1,0 +1,105 @@
+name: Release
+
+# Pushing a tag `vX.Y.Z` (the maintainer's step, after bumping package.json and CHANGELOG.md) runs
+# the full CI pipeline, then builds the Docker image and publishes it to GitHub Container Registry
+# as ghcr.io/<owner>/sota with the tags X.Y.Z, X.Y, X and latest (pre-releases such as v1.1.0-rc.1
+# get only their own tag). Nothing here creates the tag or pushes code.
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+", "v[0-9]+.[0-9]+.[0-9]+-*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  image:
+    runs-on: ubuntu-latest
+    needs: ci
+    permissions:
+      contents: read
+      packages: write
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sota
+          POSTGRES_PASSWORD: sota
+          POSTGRES_DB: sota
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sota" --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The tag matches package.json
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "tag ${GITHUB_REF_NAME} does not match package.json version ${version}" >&2
+            exit 1
+          fi
+
+      - name: Image name (GHCR needs lower case)
+        id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/sota" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ steps.name.outputs.image }}
+          flavor: latest=auto
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      # Build once for this runner and boot it against an empty database before anything is published.
+      - name: Build for the smoke test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: sota:smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test (empty Postgres, migrations, health)
+        run: |
+          docker run -d --name sota-smoke --network host \
+            -e DATABASE_URL=postgres://sota:sota@127.0.0.1:5432/sota \
+            -e SESSION_SECRET="$(openssl rand -base64 32)" \
+            -e APP_URL=http://127.0.0.1:3003 \
+            sota:smoke
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3003/api/health; then echo; exit 0; fi
+            sleep 2
+          done
+          docker logs sota-smoke
+          exit 1
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
