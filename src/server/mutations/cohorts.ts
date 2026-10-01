@@ -14,7 +14,7 @@ import {
 } from "~/db/schema";
 import { SLUG_PATTERN, slugify } from "~/lib/slug";
 import { audit } from "~/server/audit";
-import { requireCourseTeacher } from "~/server/auth/authz";
+import { requireCourseTeacher, requireUser } from "~/server/auth/authz";
 import { upsertManualEnrollment } from "./enrollments-core";
 import { applyDripRule } from "./cohorts-core";
 
@@ -320,6 +320,7 @@ export const applyCohortDrip = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    await requireUser();
     const user = await requireCourseTeacher(await courseIdOfCohort(data.cohortId));
     const rows = await db.transaction((tx) => applyDripRule(tx, user, data));
     return { count: rows.length };

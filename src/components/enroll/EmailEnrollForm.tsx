@@ -53,9 +53,9 @@ export function EmailEnrollForm({ courseId, cohortSlug, cohorts, showFrom, onDon
       setResult(r);
       setText("");
       onDone?.();
-    } catch (err) {
+    } catch {
       setResult(null);
-      setError((err as Error).message || t("common.error"));
+      setError(t("common.error"));
     } finally {
       setBusy(false);
     }

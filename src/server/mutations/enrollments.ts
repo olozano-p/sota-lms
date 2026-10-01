@@ -8,7 +8,7 @@ import { lmsConfig } from "~/config";
 import { env } from "~/config/env";
 import { addDays, DATE_PATTERN, zonedMidnight } from "~/lib/dates";
 import { audit } from "~/server/audit";
-import { requireCourseTeacher, requireRole } from "~/server/auth/authz";
+import { requireCourseTeacher, requireRole, requireUser } from "~/server/auth/authz";
 import { syncEnrollments } from "~/server/access/enrollments";
 import { sendImmediate } from "~/server/services/notifications";
 import {
@@ -199,6 +199,7 @@ export const enrollCohort = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    await requireUser();
     const [g] = await db
       .select({ courseId: cohort.courseId })
       .from(cohort)

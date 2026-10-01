@@ -36,6 +36,7 @@ export async function applyDripRule(
     .from(chapter)
     .where(eq(chapter.courseId, g.courseId))
     .orderBy(asc(chapter.sort), asc(chapter.createdAt));
+  if (!chapters.length) throw new Error("the course has no chapters to schedule");
   const schedule = dripSchedule({
     chapterIds: chapters.map((c) => c.id),
     startDate,
@@ -43,9 +44,10 @@ export async function applyDripRule(
     chaptersPerStep: input.chaptersPerStep,
     timeZone: lmsConfig.timeZone,
   });
-  await tx
+  const replaced = await tx
     .delete(cohortRelease)
-    .where(and(eq(cohortRelease.cohortId, g.id), isNotNull(cohortRelease.chapterId)));
+    .where(and(eq(cohortRelease.cohortId, g.id), isNotNull(cohortRelease.chapterId)))
+    .returning();
   const rows = schedule.length
     ? await tx
         .insert(cohortRelease)
@@ -57,6 +59,7 @@ export async function applyDripRule(
     action: "cohort.release.drip",
     entity: "cohort",
     entityId: g.id,
+    before: replaced,
     after: {
       startDate,
       everyDays: input.everyDays,
