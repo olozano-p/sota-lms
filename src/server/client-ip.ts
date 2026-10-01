@@ -29,5 +29,14 @@ export const CLIENT_IP_HEADER = "x-sota-client-ip";
 export function withClientIp(request: Request): Request {
   const headers = new Headers(request.headers);
   headers.set(CLIENT_IP_HEADER, clientKey(request));
-  return new Request(request, { headers });
+  const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  // Built from fields, not `new Request(request)`: the dev server's Request wrapper is not cloneable that way.
+  return new Request(request.url, {
+    method: request.method,
+    headers,
+    body: hasBody ? request.body : null,
+    signal: request.signal,
+    redirect: request.redirect,
+    ...(hasBody ? { duplex: "half" } : {}),
+  } as RequestInit);
 }
