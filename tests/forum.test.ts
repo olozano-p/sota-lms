@@ -16,7 +16,7 @@ async function makePerson(sub: string, roles: Role[]): Promise<SessionUser> {
   const [p] = await db
     .insert(person)
     .values({
-      idpSub: sub,
+      externalSub: sub,
       email: `${sub}@example.invalid`,
       name: sub,
       roles,

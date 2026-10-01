@@ -9,7 +9,6 @@ import {
   course,
   enrollment,
   person,
-  session,
   webhookEvent,
 } from "../src/db/schema.ts";
 import { handleEnrollmentWebhook, signWebhook } from "../src/server/access/enrollments.ts";
@@ -102,7 +101,7 @@ describe("processing", () => {
   it("mirrors the person and reconciles webhook enrollments, never touching manual ones", async () => {
     const first = payload();
     expect((await handle(first, headers(first))).status).toBe(200);
-    const [p] = await db.select().from(person).where(eq(person.idpSub, "u-1"));
+    const [p] = await db.select().from(person).where(eq(person.externalSub, "u-1"));
     expect(p?.email).toBe("one@example.invalid");
     expect(p?.roles).toEqual(["student"]);
     expect(p?.entitlementsSyncedAt).toBeTruthy();
@@ -156,7 +155,7 @@ describe("processing", () => {
   it("updates the row in place when the external id is stable", async () => {
     const body = payload({ sub: "u-5", email: "five@example.invalid", name: "Five" });
     await handle(body, headers(body));
-    const [p] = await db.select().from(person).where(eq(person.idpSub, "u-5"));
+    const [p] = await db.select().from(person).where(eq(person.externalSub, "u-5"));
     const [before] = await db.select().from(enrollment).where(eq(enrollment.personId, p!.id));
     const moved = payload({
       sub: "u-5",
@@ -178,7 +177,7 @@ describe("processing", () => {
       enrollments: [{ external_id: "ext-x", course: "no-such-course" }],
     });
     expect((await handle(body, headers(body))).status).toBe(200);
-    const [p] = await db.select().from(person).where(eq(person.idpSub, "u-6"));
+    const [p] = await db.select().from(person).where(eq(person.externalSub, "u-6"));
     expect(await db.select().from(enrollment).where(eq(enrollment.personId, p!.id))).toHaveLength(
       0,
     );
@@ -192,38 +191,47 @@ describe("processing", () => {
       await db.select().from(webhookEvent).where(eq(webhookEvent.externalId, h.eventId!)),
     ).toHaveLength(1);
   });
-  it("invalidates sessions when roles change", async () => {
-    const body = payload({
-      sub: "u-3",
-      email: "three@example.invalid",
-      name: "Three",
-      roles: ["student"],
-    });
-    await handle(body, headers(body));
-    const [p] = await db.select().from(person).where(eq(person.idpSub, "u-3"));
-    await db.insert(session).values({
-      personId: p!.id,
-      absoluteExpiresAt: new Date(NOW.getTime() + 3600_000),
-      roles: ["student"],
-    });
-
-    const same = payload({
-      sub: "u-3",
-      email: "three@example.invalid",
-      name: "Three",
-      roles: ["student"],
-    });
-    await handle(same, headers(same));
-    expect(await db.select().from(session).where(eq(session.personId, p!.id))).toHaveLength(1);
-
-    const promoted = payload({
-      sub: "u-3",
-      email: "three@example.invalid",
-      name: "Three",
-      roles: ["student", "teacher"],
-    });
+  it("applies role changes at once and maps the brief's role names", async () => {
+    const mk = (roles: string[]) =>
+      payload({ sub: "u-3", email: "three@example.invalid", name: "Three", roles });
+    await handle(mk(["learner"]), headers(mk(["learner"])));
+    const [p] = await db.select().from(person).where(eq(person.externalSub, "u-3"));
+    expect(p?.roles).toEqual(["student"]);
+    const promoted = mk(["learner", "instructor", "bogus"]);
     await handle(promoted, headers(promoted));
-    expect(await db.select().from(session).where(eq(session.personId, p!.id))).toHaveLength(0);
+    const [q] = await db.select().from(person).where(eq(person.externalSub, "u-3"));
+    expect(q?.roles).toEqual(["student", "teacher"]);
+  });
+  it("adopts an existing person with the same email without touching their roles", async () => {
+    const [local] = await db
+      .insert(person)
+      .values({ email: "local@example.invalid", name: "Local", roles: ["admin"] })
+      .returning({ id: person.id });
+    const body = payload({ sub: "u-adopt", email: "Local@Example.invalid", roles: [] });
+    expect((await handle(body, headers(body))).status).toBe(200);
+    const [p] = await db.select().from(person).where(eq(person.id, local!.id));
+    expect(p?.externalSub).toBe("u-adopt");
+    expect(p?.roles).toEqual(["admin"]);
+  });
+  it("resolves courses and cohorts by external_ref as well as slug", async () => {
+    const [c] = await db
+      .insert(course)
+      .values({ slug: "c-ref", externalRef: "crm-course-9", title: "C", language: "en" })
+      .returning({ id: course.id });
+    await db
+      .insert(cohort)
+      .values({ courseId: c!.id, slug: "g-ref", externalRef: "crm-cohort-9", title: "G" });
+    const body = payload({
+      sub: "u-ref",
+      email: "ref@example.invalid",
+      enrollments: [{ external_id: "ext-ref", course: "crm-course-9", cohort: "crm-cohort-9" }],
+    });
+    expect((await handle(body, headers(body))).status).toBe(200);
+    const [p] = await db.select().from(person).where(eq(person.externalSub, "u-ref"));
+    const rows = await db.select().from(enrollment).where(eq(enrollment.personId, p!.id));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.courseId).toBe(c!.id);
+    expect(rows[0]?.cohortId).toBeTruthy();
   });
   it("places the person in the cohort of a cohort-scoped enrollment", async () => {
     const [c] = await db
@@ -240,7 +248,7 @@ describe("processing", () => {
       });
     const body = mk();
     expect((await handle(body, headers(body))).status).toBe(200);
-    const [p] = await db.select().from(person).where(eq(person.idpSub, "u-4"));
+    const [p] = await db.select().from(person).where(eq(person.externalSub, "u-4"));
     const members = await db.select().from(cohortMember).where(eq(cohortMember.personId, p!.id));
     expect(members).toHaveLength(1);
     expect(members[0]?.role).toBe("student");
@@ -264,7 +272,7 @@ describe("processing", () => {
       enrollments: [{ external_id: "ext-u-7", course: "c1", cohort: "group-a" }],
     });
     expect((await handle(body, headers(body))).status).toBe(200);
-    const [p] = await db.select().from(person).where(eq(person.idpSub, "u-7"));
+    const [p] = await db.select().from(person).where(eq(person.externalSub, "u-7"));
     expect(await db.select().from(enrollment).where(eq(enrollment.personId, p!.id))).toHaveLength(
       0,
     );

@@ -14,7 +14,7 @@ beforeAll(async () => {
   await runMigrations();
   const [p] = await db
     .insert(person)
-    .values({ idpSub: "enr-1", email: "enr@example.invalid", name: "Enr" })
+    .values({ externalSub: "enr-1", email: "enr@example.invalid", name: "Enr" })
     .returning({ id: person.id });
   const [c] = await db
     .insert(course)

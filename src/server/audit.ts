@@ -1,5 +1,5 @@
-import type { DbOrTx } from "~/db";
-import { auditLog } from "~/db/schema";
+import type { DbOrTx } from "../db/index.ts";
+import { auditLog } from "../db/schema.ts";
 
 /** Every mutation appends one of these inside its own transaction (CLAUDE.md invariants). */
 export async function audit(

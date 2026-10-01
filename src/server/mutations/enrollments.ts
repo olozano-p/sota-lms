@@ -159,12 +159,13 @@ export const resyncPerson = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const admin = await requireRole("admin");
     const [p] = await db
-      .select({ sub: person.idpSub })
+      .select({ sub: person.externalSub })
       .from(person)
       .where(eq(person.id, data.personId))
       .limit(1);
     if (!p) throw new Error("person not found");
-    const result = await syncEnrollments(p.sub);
+    // People who exist only locally have no key at the enrollment source.
+    const result = p.sub ? await syncEnrollments(p.sub) : null;
     await audit(db, {
       actorId: admin.id,
       action: "enrollment.resync",

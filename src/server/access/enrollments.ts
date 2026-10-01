@@ -1,25 +1,25 @@
 /**
  * The enrollments/v1 contract (docs/entitlements-contract.md): pull on login and on cache miss,
- * push through the HMAC-signed webhook. Together with the OIDC callback this module is the only
- * writer of `person` rows and of `enrollment` rows with `source = 'webhook'`. It reconciles those
- * by `external_id` and never creates, changes or deletes a `manual` row (ADR-014).
+ * push through the HMAC-signed webhook. This module is the only writer of `enrollment` rows with
+ * `source = 'webhook'` (login claims live in `claims.ts`) and, with the identity paths in
+ * CLAUDE.md, of `person` rows. It reconciles by `external_id` and never creates, changes or deletes
+ * a `manual` or `claims` row (ADR-014). Plain-Node safe: the sign-in hook and scripts call it.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { db, type DbOrTx } from "~/db";
+import { db, type DbOrTx } from "../../db/index.ts";
 import {
-  cohort,
   cohortMember,
-  course,
   enrollment,
   ENROLLMENT_STATUSES,
   person,
-  session,
   webhookEvent,
-} from "~/db/schema";
-import { env } from "~/config/env";
-import { isLocale } from "~/i18n/locale";
+} from "../../db/schema.ts";
+import { env } from "../../config/env.ts";
+import { isLocale } from "../../i18n/locale.ts";
+import { mapRoles } from "../auth/roles.ts";
+import { loadRefs } from "./refs.ts";
 
 export const ENROLLMENTS_VERSION = "enrollments/v1";
 export const ENROLLMENTS_TTL_MS = 15 * 60 * 1000;
@@ -62,20 +62,7 @@ async function reconcileEnrollments(
   items: EnrollmentPayload["enrollments"],
   now: Date,
 ): Promise<void> {
-  const courseSlugs = [...new Set(items.map((i) => i.course))];
-  const cohortSlugs = [...new Set(items.flatMap((i) => (i.cohort ? [i.cohort] : [])))];
-  const courses = courseSlugs.length
-    ? await tx
-        .select({ id: course.id, slug: course.slug })
-        .from(course)
-        .where(inArray(course.slug, courseSlugs))
-    : [];
-  const cohorts = cohortSlugs.length
-    ? await tx
-        .select({ id: cohort.id, slug: cohort.slug, courseId: cohort.courseId })
-        .from(cohort)
-        .where(inArray(cohort.slug, cohortSlugs))
-    : [];
+  const refs = await loadRefs(tx, items);
   const existing = await tx
     .select()
     .from(enrollment)
@@ -84,9 +71,14 @@ async function reconcileEnrollments(
   const seen = new Set<string>();
   const placements = new Set<string>();
   for (const item of items) {
-    const c = courses.find((x) => x.slug === item.course);
-    const g = item.cohort ? cohorts.find((x) => x.slug === item.cohort) : null;
-    if (!c || (item.cohort && (!g || g.courseId !== c.id))) continue;
+    const c = refs.course(item.course);
+    const g = item.cohort ? refs.cohort(item.cohort) : null;
+    if (!c || (item.cohort && (!g || g.courseId !== c.id))) {
+      console.warn(
+        `enrollment sync: unknown course or cohort reference ${item.course}/${item.cohort ?? ""}`,
+      );
+      continue;
+    }
     const cohortId = g?.id ?? null;
     const values = {
       courseId: c.id,
@@ -126,56 +118,70 @@ async function reconcileEnrollments(
 }
 
 /**
- * Upserts the person and reconciles their `webhook` enrollments in one transaction. A change of
- * roles invalidates the person's sessions so the next request re-logs them in (silently, through
- * the IdP) with the new privileges.
+ * Finds the person for a sub (or, failing that, the one with the same email, which adopts the sub)
+ * or creates it, then reconciles their `webhook` enrollments in one transaction. Roles from the
+ * payload apply to a person matched or created by sub; a person adopted by email keeps their roles,
+ * so a payload cannot demote a locally managed admin. Roles are read live per request, so a change
+ * takes effect at once.
  */
 export async function applyEnrollmentPayload(
   payload: EnrollmentPayload,
   tx: DbOrTx = db,
 ): Promise<string> {
   const now = new Date();
-  const [p] = await tx
-    .insert(person)
-    .values({
-      idpSub: payload.sub,
-      email: payload.email,
-      name: payload.name,
-      locale: isLocale(payload.locale) ? payload.locale : null,
-      roles: payload.roles,
-      entitlementsSyncedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: person.idpSub,
-      set: {
-        email: payload.email,
-        name: payload.name,
-        locale: isLocale(payload.locale) ? payload.locale : null,
-        roles: payload.roles,
-        entitlementsSyncedAt: now,
-      },
-    })
-    .returning({ id: person.id, roles: person.roles });
-  const personId = p!.id;
+  const email = payload.email.toLowerCase();
+  const locale = isLocale(payload.locale) ? payload.locale : null;
+  const roles = mapRoles(payload.roles);
+  const [bySub] = await tx
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.externalSub, payload.sub))
+    .limit(1);
+  let personId: string;
+  if (bySub) {
+    personId = bySub.id;
+    await tx
+      .update(person)
+      .set({ email, name: payload.name, locale, roles, entitlementsSyncedAt: now })
+      .where(eq(person.id, personId));
+  } else {
+    const [byEmail] = await tx
+      .select({ id: person.id })
+      .from(person)
+      .where(eq(person.email, email))
+      .limit(1);
+    if (byEmail) {
+      personId = byEmail.id;
+      await tx
+        .update(person)
+        .set({ externalSub: payload.sub, entitlementsSyncedAt: now })
+        .where(eq(person.id, personId));
+    } else {
+      const [created] = await tx
+        .insert(person)
+        .values({
+          email,
+          name: payload.name,
+          locale,
+          roles,
+          externalSub: payload.sub,
+          entitlementsSyncedAt: now,
+        })
+        .returning({ id: person.id });
+      personId = created!.id;
+    }
+  }
 
   await reconcileEnrollments(tx, personId, payload.enrollments, now);
-
-  const sessions = await tx
-    .select({ id: session.id, roles: session.roles })
-    .from(session)
-    .where(eq(session.personId, personId));
-  const changed = sessions.filter(
-    (s) => s.roles.slice().sort().join(",") !== payload.roles.slice().sort().join(","),
-  );
-  for (const s of changed) await tx.delete(session).where(eq(session.id, s.id));
-
   return personId;
 }
 
 /** Pull channel: `GET ${ENTITLEMENTS_PULL_URL}/{sub}` (the variable names predate ADR-014). Returns null when the source has no record. */
 export async function pullEnrollments(sub: string): Promise<EnrollmentPayload | null> {
-  const res = await fetch(`${env.entitlements.pullUrl}/${encodeURIComponent(sub)}`, {
-    headers: { authorization: `Bearer ${env.entitlements.pullToken}`, accept: "application/json" },
+  const { pullUrl, pullToken } = env.entitlements;
+  if (!pullUrl || !pullToken) return null;
+  const res = await fetch(`${pullUrl}/${encodeURIComponent(sub)}`, {
+    headers: { authorization: `Bearer ${pullToken}`, accept: "application/json" },
     signal: AbortSignal.timeout(8000),
   });
   if (res.status === 404) return null;
@@ -183,7 +189,7 @@ export async function pullEnrollments(sub: string): Promise<EnrollmentPayload | 
   return enrollmentPayloadSchema.parse(await res.json());
 }
 
-/** Pull + apply. Called on login and by `ensureFreshEnrollments`. */
+/** Pull + apply. Called on login and by `ensureFreshEnrollments`; a no-op when no pull URL is configured. */
 export async function syncEnrollments(sub: string): Promise<string | null> {
   const payload = await pullEnrollments(sub);
   if (!payload) return null;
@@ -193,12 +199,12 @@ export async function syncEnrollments(sub: string): Promise<string | null> {
 /** Refreshes when the cache is older than the TTL. Failures are swallowed: the cache self-heals. */
 export async function ensureFreshEnrollments(personId: string): Promise<void> {
   const rows = await db
-    .select({ sub: person.idpSub, syncedAt: person.entitlementsSyncedAt })
+    .select({ sub: person.externalSub, syncedAt: person.entitlementsSyncedAt })
     .from(person)
     .where(eq(person.id, personId))
     .limit(1);
   const row = rows[0];
-  if (!row) return;
+  if (!row?.sub || !env.entitlements.pullUrl) return;
   if (row.syncedAt && Date.now() - row.syncedAt.getTime() < ENROLLMENTS_TTL_MS) return;
   try {
     await syncEnrollments(row.sub);
@@ -230,8 +236,11 @@ export type WebhookOutcome =
 export async function handleEnrollmentWebhook(
   rawBody: string,
   headers: WebhookHeaders,
-  opts: { secret: string; now?: Date; tx?: DbOrTx } = { secret: env.entitlements.webhookSecret },
+  opts: { secret: string | null; now?: Date; tx?: DbOrTx } = {
+    secret: env.entitlements.webhookSecret,
+  },
 ): Promise<WebhookOutcome> {
+  if (!opts.secret) return { status: 401, body: { ok: false, error: "webhook is not configured" } };
   const tx = opts.tx ?? db;
   const now = opts.now ?? new Date();
   if (!headers.timestamp || !headers.signature || !headers.eventId) {
