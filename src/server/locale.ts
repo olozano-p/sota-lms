@@ -5,36 +5,27 @@ import { lmsConfig } from "~/config";
 import { defaultLocale } from "~/config/default-locale";
 import { env } from "~/config/env";
 import { isLocale, type Locale } from "~/i18n/locale";
+import { resolveLocale } from "~/lib/locale-resolve";
 
 const enabled = (l: unknown): l is Locale => isLocale(l) && lmsConfig.locales.enabled.includes(l);
 
-function fromAcceptLanguage(header: string | null): Locale | null {
-  if (!header) return null;
-  for (const part of header.split(",")) {
-    const tag = part.split(";")[0]?.trim().toLowerCase().split("-")[0];
-    if (enabled(tag)) return tag;
-  }
-  return null;
-}
-
 /**
- * Locale resolution order (docs/spec.md §2): `?lang` → cookie → IdP `locale` claim →
+ * Locale resolution order (docs/spec.md §2): `?lang` → cookie → the person's stored locale (`claim`) →
  * `Accept-Language` → config default. `?lang` also persists to the cookie so a link from a parent
  * site sticks.
  */
 export const getLocale = createServerFn({ method: "GET" })
   .validator(z.object({ lang: z.string().optional(), claim: z.string().nullable().optional() }))
   .handler(async ({ data }): Promise<Locale> => {
-    const { cookieName } = lmsConfig.locales;
-    if (enabled(data.lang)) {
-      setLocaleCookie(data.lang);
-      return data.lang;
-    }
-    const cookie = getCookie(cookieName);
-    if (enabled(cookie)) return cookie;
-    if (enabled(data.claim)) return data.claim;
-    const negotiated = fromAcceptLanguage(getRequest().headers.get("accept-language"));
-    return negotiated ?? defaultLocale();
+    if (enabled(data.lang)) setLocaleCookie(data.lang);
+    return resolveLocale({
+      lang: data.lang,
+      cookie: getCookie(lmsConfig.locales.cookieName),
+      profile: data.claim,
+      acceptLanguage: getRequest().headers.get("accept-language"),
+      isEnabled: enabled,
+      fallback: defaultLocale(),
+    });
   });
 
 export const setLocale = createServerFn({ method: "POST" })
