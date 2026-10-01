@@ -9,7 +9,7 @@ import { authAccount, cohortMember, enrollment, person, type Role } from "../../
 import { env } from "../../config/env.ts";
 import { isLocale } from "../../i18n/locale.ts";
 import { syncClaimEnrollments } from "../access/claims.ts";
-import { audit } from "../audit.ts";
+import { audit, enrollmentChange, enrollmentDetail, type EnrollmentChange } from "../audit.ts";
 import { syncEnrollments } from "../access/enrollments.ts";
 import { mapRoles } from "./roles.ts";
 import { errorFields, logger } from "../../lib/log.ts";
@@ -133,17 +133,27 @@ export async function adoptSubPlaceholder(
         (a.status === "active") !== (b.status === "active")
           ? a.status === "active"
           : (a.validUntil?.getTime() ?? Infinity) > (b.validUntil?.getTime() ?? Infinity);
+      const changes: EnrollmentChange[] = [];
       const bySlot = new Map(mine.map((r) => [`${r.courseId}|${r.cohortId ?? ""}|${r.source}`, r]));
       for (const r of rows) {
         const slot = `${r.courseId}|${r.cohortId ?? ""}|${r.source}`;
         const held = bySlot.get(slot);
         // On a collision the better row (active, then the later end) survives.
         if (held) {
-          if (!better(r, held)) continue;
+          if (!better(r, held)) {
+            changes.push(
+              enrollmentChange(r, null, "deleted", { reason: "worse than the held row" }),
+            );
+            continue;
+          }
           await t.delete(enrollment).where(eq(enrollment.id, held.id));
+          changes.push(
+            enrollmentChange(held, null, "deleted", { reason: "replaced by the better row" }),
+          );
         }
         bySlot.set(slot, r);
         await t.update(enrollment).set({ personId }).where(eq(enrollment.id, r.id));
+        changes.push(enrollmentChange(r, { ...r, personId }, "moved"));
       }
       const places = await t.select().from(cohortMember).where(eq(cohortMember.personId, id));
       if (places.length)
@@ -158,7 +168,11 @@ export async function adoptSubPlaceholder(
         action: "person.adopt_placeholder",
         entity: "person",
         entityId: personId,
-        after: { placeholderId: id, sub, enrollmentsMoved: rows.length },
+        after: enrollmentDetail(changes, {
+          placeholderId: id,
+          sub,
+          enrollmentsMoved: changes.filter((c) => c.op === "moved").length,
+        }),
       });
     }
   });
@@ -177,7 +191,9 @@ export async function completeOidcLogin(personId: string, profile: OidcProfile):
   const claimName = env.oidc.entitlementClaim;
   if (claimName && claimName in profile.claims) {
     try {
-      await syncClaimEnrollments(personId, profile.claims[claimName]);
+      await db.transaction((tx) =>
+        syncClaimEnrollments(personId, profile.claims[claimName], new Date(), tx),
+      );
     } catch (e) {
       logger.warn("claims sync failed", errorFields(e));
     }

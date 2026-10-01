@@ -44,7 +44,7 @@ deployment that runs SOTA alone needs neither: admins create `manual` enrollment
 | `enrollments[].external_id` | The source's own id for this enrollment. Unique among `webhook` rows; the reconciliation key.                                                                                                            |
 | `enrollments[].course`      | Course slug or the course's `external_ref`. Unknown references are logged and skipped.                                                                                                                   |
 | `enrollments[].cohort`      | Optional cohort slug or `external_ref` (must belong to `course`). Also places the person in that cohort as a student.                                                                                    |
-| `enrollments[].valid_from`  | ISO 8601 instant with offset; default is the time of the sync.                                                                                                                                           |
+| `enrollments[].valid_from`  | ISO 8601 instant with offset; default is the time of the first sync; a later sync without it keeps the stored start.                                                                                     |
 | `enrollments[].valid_until` | ISO 8601 instant with offset, **exclusive**; `null` or absent means open-ended.                                                                                                                          |
 | `enrollments[].status`      | `active` (default), `expired` or `revoked`.                                                                                                                                                              |
 

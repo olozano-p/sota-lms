@@ -7,7 +7,7 @@ import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { type DbOrTx } from "~/db";
 import { cohort, cohortMember, enrollment, person } from "~/db/schema";
 import { parseEmailList } from "~/lib/emails";
-import { audit } from "~/server/audit";
+import { audit, enrollmentChange, enrollmentDetail, type EnrollmentChange } from "~/server/audit";
 import type { SessionUser } from "~/server/auth/authz";
 import { createInvitation } from "./people-core";
 
@@ -65,6 +65,9 @@ export async function upsertManualEnrollment(
 
 export const MAX_BULK_EMAILS = 500;
 
+const countBy = (values: string[]) =>
+  values.reduce<Record<string, number>>((acc, v) => ({ ...acc, [v]: (acc[v] ?? 0) + 1 }), {});
+
 export type BulkOutcome = "enrolled" | "already" | "invited" | "placeholder";
 
 type Actor = Pick<SessionUser, "id" | "name">;
@@ -108,6 +111,7 @@ export async function enrollEmails(
     : [];
   const idOf = new Map(known.map((p) => [p.email.toLowerCase(), p.id]));
   const results: { email: string; outcome: BulkOutcome }[] = [];
+  const changes: EnrollmentChange[] = [];
   for (const email of emails) {
     let personId = idOf.get(email);
     let created: BulkOutcome | null = null;
@@ -135,24 +139,33 @@ export async function enrollEmails(
         .insert(cohortMember)
         .values({ cohortId: input.cohortId, personId, role: "student" })
         .onConflictDoNothing();
-    const { before } = await upsertManualEnrollment(tx, {
+    const { before, row } = await upsertManualEnrollment(tx, {
       personId,
       courseId: input.courseId,
       cohortId: input.cohortId,
       validFrom: input.validFrom,
       validUntil: input.validUntil,
     });
-    results.push({
-      email,
-      outcome: created ?? (isUnchanged(before, input) ? "already" : "enrolled"),
-    });
+    const outcome = created ?? (isUnchanged(before, input) ? "already" : "enrolled");
+    results.push({ email, outcome });
+    changes.push(
+      enrollmentChange(before, row, outcome === "already" ? "unchanged" : undefined, {
+        email,
+        outcome,
+      }),
+    );
   }
   await audit(tx, {
     actorId: actor.id,
     action: "enrollment.bulk",
     entity: "course",
     entityId: input.courseId,
-    after: { cohortId: input.cohortId, results, invalid },
+    after: enrollmentDetail(changes, {
+      cohortId: input.cohortId,
+      requested: emails.length,
+      outcomes: countBy(results.map((r) => r.outcome)),
+      invalid: invalid.slice(0, 50),
+    }),
   });
   return { results, invalid };
 }
@@ -178,20 +191,27 @@ export async function enrollCohortMembers(
     .from(cohortMember)
     .where(and(eq(cohortMember.cohortId, input.cohortId), eq(cohortMember.role, "student")));
   const scope = g.courseId === input.targetCourseId ? input.cohortId : null;
-  for (const m of members)
-    await upsertManualEnrollment(tx, {
+  const changes: EnrollmentChange[] = [];
+  for (const m of members) {
+    const { before, row } = await upsertManualEnrollment(tx, {
       personId: m.personId,
       courseId: input.targetCourseId,
       cohortId: scope,
       validFrom: input.validFrom,
       validUntil: input.validUntil,
     });
+    changes.push(enrollmentChange(before, row));
+  }
   await audit(tx, {
     actorId: actor.id,
     action: "enrollment.cohort",
     entity: "cohort",
     entityId: input.cohortId,
-    after: { targetCourseId: input.targetCourseId, scoped: scope !== null, count: members.length },
+    after: enrollmentDetail(changes, {
+      targetCourseId: input.targetCourseId,
+      scoped: scope !== null,
+      count: members.length,
+    }),
   });
   return { enrolled: members.length };
 }

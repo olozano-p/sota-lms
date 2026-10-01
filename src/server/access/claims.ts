@@ -8,7 +8,13 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, type DbOrTx } from "../../db/index.ts";
 import { cohortMember, enrollment } from "../../db/schema.ts";
-import { audit } from "../audit.ts";
+import {
+  audit,
+  enrollmentChange,
+  enrollmentDetail,
+  enrollmentDiffers,
+  type EnrollmentChange,
+} from "../audit.ts";
 import { loadRefs } from "./refs.ts";
 import { logger } from "../../lib/log.ts";
 
@@ -59,6 +65,7 @@ export async function syncClaimEnrollments(
     .from(enrollment)
     .where(and(eq(enrollment.personId, personId), eq(enrollment.source, "claims")));
 
+  const changes: EnrollmentChange[] = [];
   const seen = new Set<string>();
   const placements = new Set<string>();
   for (const item of items) {
@@ -79,10 +86,12 @@ export async function syncClaimEnrollments(
         row.status !== "active" ||
         (row.validUntil?.getTime() ?? null) !== (validUntil?.getTime() ?? null);
       if (changed) {
-        await tx
+        const [updated] = await tx
           .update(enrollment)
           .set({ status: "active", validUntil })
-          .where(eq(enrollment.id, row.id));
+          .where(eq(enrollment.id, row.id))
+          .returning();
+        if (enrollmentDiffers(row, updated!)) changes.push(enrollmentChange(row, updated!));
         result.updated++;
       }
     } else {
@@ -97,8 +106,9 @@ export async function syncClaimEnrollments(
           validUntil,
           status: "active",
         })
-        .returning({ id: enrollment.id });
+        .returning();
       seen.add(created!.id);
+      changes.push(enrollmentChange(null, created!));
       result.created++;
     }
     if (cohortId) placements.add(cohortId);
@@ -106,7 +116,12 @@ export async function syncClaimEnrollments(
 
   for (const row of existing) {
     if (!seen.has(row.id) && row.status === "active") {
-      await tx.update(enrollment).set({ status: "expired" }).where(eq(enrollment.id, row.id));
+      const [expired] = await tx
+        .update(enrollment)
+        .set({ status: "expired" })
+        .where(eq(enrollment.id, row.id))
+        .returning();
+      changes.push(enrollmentChange(row, expired!, "expired"));
       result.expired++;
     }
   }
@@ -119,10 +134,15 @@ export async function syncClaimEnrollments(
   if (result.created || result.updated || result.expired) {
     await audit(tx, {
       actorId: null,
+      actor: "sync:claims",
       action: "enrollment.claims_sync",
       entity: "person",
       entityId: personId,
-      after: { created: result.created, updated: result.updated, expired: result.expired },
+      after: enrollmentDetail(changes, {
+        created: result.created,
+        updated: result.updated,
+        expired: result.expired,
+      }),
     });
   }
   return result;

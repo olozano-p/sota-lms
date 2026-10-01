@@ -19,7 +19,7 @@ import {
 } from "~/db/schema";
 import { env } from "~/config/env";
 import { loadRefs } from "~/server/access/refs";
-import { audit } from "~/server/audit";
+import { audit, enrollmentSnapshot } from "~/server/audit";
 import type { ServiceActor } from "~/server/auth/service";
 
 export const SERVICE_ACTOR_LABEL = "service:api";
@@ -301,24 +301,8 @@ export async function putServiceEnrollment(
         action: "enrollment.service_put",
         entity: "enrollment",
         entityId: row.id,
-        before: before && {
-          externalId: before.externalId,
-          status: before.status,
-          validFrom: before.validFrom,
-          validUntil: before.validUntil,
-          courseId: before.courseId,
-          cohortId: before.cohortId,
-        },
-        after: {
-          externalId: input.externalId,
-          personId: p.id,
-          placeholderCreated: createdPerson,
-          status: row.status,
-          courseId: row.courseId,
-          cohortId: row.cohortId,
-          validFrom: row.validFrom,
-          validUntil: row.validUntil,
-        },
+        before: before && enrollmentSnapshot(before),
+        after: { ...enrollmentSnapshot(row), placeholderCreated: createdPerson },
       });
     }
     return { enrollment: await view(tx, row, p), created, changed };
@@ -352,8 +336,8 @@ export async function revokeServiceEnrollment(
       action: "enrollment.service_revoke",
       entity: "enrollment",
       entityId: row.id,
-      before: { status: row.status },
-      after: { externalId, status: "revoked", personId: row.personId },
+      before: enrollmentSnapshot(row),
+      after: { ...enrollmentSnapshot(row), status: "revoked" },
     });
     return { externalId, found: true, changed: true };
   });

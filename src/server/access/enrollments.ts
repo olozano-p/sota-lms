@@ -17,6 +17,13 @@ import {
   webhookEvent,
 } from "../../db/schema.ts";
 import { env } from "../../config/env.ts";
+import {
+  audit,
+  enrollmentChange,
+  enrollmentDetail,
+  enrollmentDiffers,
+  type EnrollmentChange,
+} from "../audit.ts";
 import { isLocale } from "../../i18n/locale.ts";
 import { mapRoles } from "../auth/roles.ts";
 import { loadRefs } from "./refs.ts";
@@ -62,7 +69,8 @@ async function reconcileEnrollments(
   personId: string,
   items: EnrollmentPayload["enrollments"],
   now: Date,
-): Promise<void> {
+): Promise<EnrollmentChange[]> {
+  const changes: EnrollmentChange[] = [];
   const refs = await loadRefs(tx, items);
   const existing = await tx
     .select()
@@ -82,33 +90,45 @@ async function reconcileEnrollments(
       continue;
     }
     const cohortId = g?.id ?? null;
+    const row =
+      existing.find((e) => e.externalId === item.external_id) ??
+      existing.find((e) => e.courseId === c.id && e.cohortId === cohortId && !seen.has(e.id));
     const values = {
       courseId: c.id,
       cohortId,
       externalId: item.external_id,
-      validFrom: item.valid_from ? new Date(item.valid_from) : now,
+      // Without `valid_from` an existing row keeps its start, so a repeated sync changes nothing.
+      validFrom: item.valid_from ? new Date(item.valid_from) : (row?.validFrom ?? now),
       validUntil: item.valid_until ? new Date(item.valid_until) : null,
       status: item.status,
     };
-    const row =
-      existing.find((e) => e.externalId === item.external_id) ??
-      existing.find((e) => e.courseId === c.id && e.cohortId === cohortId && !seen.has(e.id));
     if (row) {
       seen.add(row.id);
-      await tx.update(enrollment).set(values).where(eq(enrollment.id, row.id));
+      const [updated] = await tx
+        .update(enrollment)
+        .set(values)
+        .where(eq(enrollment.id, row.id))
+        .returning();
+      if (enrollmentDiffers(row, updated!)) changes.push(enrollmentChange(row, updated!));
     } else {
       const [created] = await tx
         .insert(enrollment)
         .values({ personId, source: "webhook", ...values })
-        .returning({ id: enrollment.id });
+        .returning();
       seen.add(created!.id);
+      changes.push(enrollmentChange(null, created!));
     }
     if (cohortId && item.status === "active") placements.add(cohortId);
   }
 
   for (const e of existing) {
     if (!seen.has(e.id) && e.status !== "revoked") {
-      await tx.update(enrollment).set({ status: "revoked" }).where(eq(enrollment.id, e.id));
+      const [revoked] = await tx
+        .update(enrollment)
+        .set({ status: "revoked" })
+        .where(eq(enrollment.id, e.id))
+        .returning();
+      changes.push(enrollmentChange(e, revoked!, "revoked"));
     }
   }
   if (placements.size) {
@@ -117,7 +137,11 @@ async function reconcileEnrollments(
       .values([...placements].map((cohortId) => ({ cohortId, personId, role: "student" as const })))
       .onConflictDoNothing();
   }
+  return changes;
 }
+
+/** Where an enrollment sync came from; recorded as the audit row's actor (`sync:<channel>`). */
+export type SyncChannel = "webhook" | "pull";
 
 /**
  * Finds the person for a sub (or, failing that, the one with the same email, which adopts the sub)
@@ -128,7 +152,17 @@ async function reconcileEnrollments(
  */
 export async function applyEnrollmentPayload(
   payload: EnrollmentPayload,
-  tx: DbOrTx = db,
+  conn: DbOrTx = db,
+  channel: SyncChannel = "webhook",
+): Promise<string> {
+  return conn.transaction((tx) => applyPayload(tx, payload, channel));
+}
+
+/** Writes the person and the reconciled rows, and one audit row when any enrollment changed. */
+async function applyPayload(
+  tx: DbOrTx,
+  payload: EnrollmentPayload,
+  channel: SyncChannel,
 ): Promise<string> {
   const now = new Date();
   const email = payload.email.toLowerCase();
@@ -174,7 +208,17 @@ export async function applyEnrollmentPayload(
     }
   }
 
-  await reconcileEnrollments(tx, personId, payload.enrollments, now);
+  const changes = await reconcileEnrollments(tx, personId, payload.enrollments, now);
+  // A repeat of the same state (every pull and webhook retry) changes nothing and logs nothing.
+  if (changes.length)
+    await audit(tx, {
+      actorId: null,
+      actor: `sync:${channel}`,
+      action: "enrollment.sync",
+      entity: "person",
+      entityId: personId,
+      after: enrollmentDetail(changes, { channel }),
+    });
   return personId;
 }
 
@@ -195,7 +239,7 @@ export async function pullEnrollments(sub: string): Promise<EnrollmentPayload | 
 export async function syncEnrollments(sub: string): Promise<string | null> {
   const payload = await pullEnrollments(sub);
   if (!payload) return null;
-  return db.transaction((tx) => applyEnrollmentPayload(payload, tx));
+  return applyEnrollmentPayload(payload, db, "pull");
 }
 
 /** Refreshes when the cache is older than the TTL. Failures are swallowed: the cache self-heals. */

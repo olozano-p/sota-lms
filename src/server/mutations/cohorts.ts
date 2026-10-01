@@ -13,7 +13,7 @@ import {
   person,
 } from "~/db/schema";
 import { SLUG_PATTERN, slugify } from "~/lib/slug";
-import { audit } from "~/server/audit";
+import { audit, enrollmentChange, enrollmentDetail } from "~/server/audit";
 import { requireCourseTeacher, requireUser } from "~/server/auth/authz";
 import { upsertManualEnrollment } from "./enrollments-core";
 import { applyDripRule } from "./cohorts-core";
@@ -132,6 +132,11 @@ export const deleteCohort = createServerFn({ method: "POST" })
     const user = await requireCourseTeacher(await courseIdOfCohort(data.cohortId));
     return db.transaction(async (tx) => {
       const [before] = await tx.select().from(cohort).where(eq(cohort.id, data.cohortId)).limit(1);
+      // Deleting a cohort cascades to the enrollments scoped to it, whatever their source.
+      const scoped = await tx
+        .select()
+        .from(enrollment)
+        .where(eq(enrollment.cohortId, data.cohortId));
       await tx.delete(cohort).where(eq(cohort.id, data.cohortId));
       await audit(tx, {
         actorId: user.id,
@@ -139,6 +144,7 @@ export const deleteCohort = createServerFn({ method: "POST" })
         entity: "cohort",
         entityId: data.cohortId,
         before,
+        after: enrollmentDetail(scoped.map((row) => enrollmentChange(row, null))),
       });
       return { ok: true };
     });
@@ -186,7 +192,12 @@ export const addCohortMember = createServerFn({ method: "POST" })
         action: "cohort.member.add",
         entity: "cohort",
         entityId: data.cohortId,
-        after: { personId: p.id, role: data.role, enrollmentId: enrolled?.row.id ?? null },
+        after: {
+          personId: p.id,
+          role: data.role,
+          enrollmentId: enrolled?.row.id ?? null,
+          enrollment: enrolled ? enrollmentChange(enrolled.before, enrolled.row) : null,
+        },
       });
       return { ok: true };
     });
@@ -203,22 +214,28 @@ export const removeCohortMember = createServerFn({ method: "POST" })
           and(eq(cohortMember.cohortId, data.cohortId), eq(cohortMember.personId, data.personId)),
         );
       // Only the placement's own `manual` row: synced rows belong to the external system.
-      await tx
-        .update(enrollment)
-        .set({ status: "revoked" })
-        .where(
-          and(
-            eq(enrollment.personId, data.personId),
-            eq(enrollment.cohortId, data.cohortId),
-            eq(enrollment.source, "manual"),
-          ),
-        );
+      const own = and(
+        eq(enrollment.personId, data.personId),
+        eq(enrollment.cohortId, data.cohortId),
+        eq(enrollment.source, "manual"),
+      );
+      const held = await tx.select().from(enrollment).where(own);
+      const revoked = await tx.update(enrollment).set({ status: "revoked" }).where(own).returning();
       await audit(tx, {
         actorId: user.id,
         action: "cohort.member.remove",
         entity: "cohort",
         entityId: data.cohortId,
         before: { personId: data.personId },
+        after: enrollmentDetail(
+          revoked.map((row) =>
+            enrollmentChange(
+              held.find((h) => h.id === row.id) ?? null,
+              row,
+              held.find((h) => h.id === row.id)?.status === "revoked" ? "unchanged" : "revoked",
+            ),
+          ),
+        ),
       });
       return { ok: true };
     });

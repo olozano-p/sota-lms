@@ -32,6 +32,7 @@ import {
   quiz,
   type BlockType,
 } from "../src/db/schema.ts";
+import { audit, enrollmentChange, enrollmentDetail } from "../src/server/audit.ts";
 import { errorFields, logger } from "../src/lib/log.ts";
 
 const PEOPLE = [
@@ -651,21 +652,36 @@ async function main() {
   // Same shape the sync uses: replace the webhook rows for a person in one go.
   for (const sub of new Set(grants.map((g) => g.sub))) {
     await db.transaction(async (tx) => {
-      await tx
+      const replaced = await tx
         .delete(enrollment)
-        .where(and(eq(enrollment.personId, ids[sub]!), eq(enrollment.source, "webhook")));
-      await tx.insert(enrollment).values(
-        grants
-          .filter((g) => g.sub === sub)
-          .map((g) => ({
-            personId: ids[sub]!,
-            courseId: courseRow!.id,
-            cohortId: g.cohortId,
-            source: "webhook" as const,
-            externalId: g.externalId,
-            validFrom: g.validFrom,
-          })),
-      );
+        .where(and(eq(enrollment.personId, ids[sub]!), eq(enrollment.source, "webhook")))
+        .returning();
+      const created = await tx
+        .insert(enrollment)
+        .values(
+          grants
+            .filter((g) => g.sub === sub)
+            .map((g) => ({
+              personId: ids[sub]!,
+              courseId: courseRow!.id,
+              cohortId: g.cohortId,
+              source: "webhook" as const,
+              externalId: g.externalId,
+              validFrom: g.validFrom,
+            })),
+        )
+        .returning();
+      await audit(tx, {
+        actorId: null,
+        actor: "seed",
+        action: "enrollment.seed",
+        entity: "person",
+        entityId: ids[sub]!,
+        after: enrollmentDetail([
+          ...replaced.map((row) => enrollmentChange(row, null)),
+          ...created.map((row) => enrollmentChange(null, row)),
+        ]),
+      });
     });
   }
   logger.info("seeded", { course: COURSE_SLUG, cohort: COHORT_SLUG, people: PEOPLE.length });
