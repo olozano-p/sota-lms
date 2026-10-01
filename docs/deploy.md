@@ -89,10 +89,9 @@ The daily digest goes out during the hour configured in `lms.config.ts → notif
 
 ## Backups
 
-- Postgres: `pg_dump -Fc sota > sota-$(date +%F).dump` nightly; keep 14 days.
-- Files: `rsync -a` (or `tar`) of `STORAGE_DIR` nightly (the `uploads` volume under Docker); with
-  `STORAGE_DRIVER=s3`, `mc mirror` to a second bucket or your provider's versioning.
-- Nothing else is state; the in-memory rate limiter starts empty on every restart.
+See `docs/backup-restore.md`: what to save, the dump and archive commands, restoring, and the restore drill.
+In short: `pg_dump -Fc` nightly, the `uploads` volume (or the S3 bucket), and `.env` kept apart.
+The in-memory rate limiter starts empty on every restart; nothing else is state.
 
 ## Security checklist (docs/spec.md §8)
 
