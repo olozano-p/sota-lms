@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/db";
-import { assignment, course, file, person, submission } from "~/db/schema";
+import { assignment, cohort, cohortMember, course, file, person, submission } from "~/db/schema";
 import { renderMarkdown } from "~/lib/markdown";
 import { AuthorizationError, requireCourseTeacher, requireUser } from "~/server/auth/authz";
 import { requireContainerAccess } from "~/server/access/container";
@@ -13,14 +13,8 @@ async function fileUrls(keys: (string | null)[]) {
   const rows = await db
     .select({ id: file.id, key: file.key, filename: file.filename })
     .from(file)
-    .where(and(...wanted.map(() => undefined).filter(Boolean)));
-  void rows;
-  const all = await db.select({ id: file.id, key: file.key, filename: file.filename }).from(file);
-  return new Map(
-    all
-      .filter((f) => wanted.includes(f.key))
-      .map((f) => [f.key, { url: `/api/files/${f.id}`, filename: f.filename }]),
-  );
+    .where(inArray(file.key, wanted));
+  return new Map(rows.map((f) => [f.key, { url: `/api/files/${f.id}`, filename: f.filename }]));
 }
 
 /** The student's view of an assignment: instructions, their submissions, whether they may submit. */
@@ -83,6 +77,8 @@ export const listSubmissions = createServerFn({ method: "GET" })
     z.object({
       courseSlug: z.string(),
       status: z.enum(["submitted", "reviewed", "returned"]).optional(),
+      /** Only the students of this cohort (slug). */
+      cohortSlug: z.string().optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -112,6 +108,22 @@ export const listSubmissions = createServerFn({ method: "GET" })
           eq(assignment.courseId, c.id),
           isNull(submission.supersededBy),
           data.status ? eq(submission.status, data.status) : undefined,
+          data.cohortSlug
+            ? inArray(
+                submission.personId,
+                db
+                  .select({ id: cohortMember.personId })
+                  .from(cohortMember)
+                  .innerJoin(cohort, eq(cohort.id, cohortMember.cohortId))
+                  .where(
+                    and(
+                      eq(cohort.slug, data.cohortSlug),
+                      eq(cohort.courseId, c.id),
+                      eq(cohortMember.role, "student"),
+                    ),
+                  ),
+              )
+            : undefined,
         ),
       )
       .orderBy(desc(submission.submittedAt));
