@@ -26,7 +26,7 @@ COPY src/server/services ./src/server/services
 # What `sota create-admin` and the sign-in hooks import under plain Node.
 COPY src/server/auth ./src/server/auth
 COPY src/server/access ./src/server/access
-COPY src/server/audit.ts ./src/server/audit.ts
+COPY src/server/audit.ts src/server/client-ip.ts ./src/server/
 COPY lms.config.ts ./lms.config.ts
 # The only runtime write is STORAGE_DIR (local storage driver); logs go to stdout. The directory
 # exists in the image so a named volume mounted there inherits node's ownership.

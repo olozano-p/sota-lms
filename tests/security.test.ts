@@ -1,6 +1,7 @@
 /** Rate-limiter client key: forwarded headers count only behind a trusted proxy, and then the last hop. */
 import { afterEach, describe, expect, it } from "vitest";
 import { allowRequest, clientKey } from "../src/server/security.ts";
+import { withClientIp } from "../src/server/client-ip.ts";
 
 function req(headers: Record<string, string>): Request {
   return new Request("http://localhost/auth/login", { headers });
@@ -49,5 +50,19 @@ describe("allowRequest", () => {
     expect(allowRequest(a, "/api/auth/sign-in/email", t0)).toBe(false);
     expect(allowRequest(a, "/api/auth/request-password-reset", t0)).toBe(false);
     expect(allowRequest(a, "/api/auth/get-session", t0)).toBe(true);
+  });
+});
+
+describe("withClientIp", () => {
+  it("stamps the trusted address and replaces one sent by the client", () => {
+    const r = withClientIp(
+      new Request("http://x.test/api/auth/sign-in/email", {
+        method: "POST",
+        headers: { "x-sota-remote-addr": "10.0.0.7", "x-sota-client-ip": "6.6.6.6" },
+        body: "{}",
+      }),
+    );
+    expect(r.headers.get("x-sota-client-ip")).toBe("10.0.0.7");
+    expect(r.method).toBe("POST");
   });
 });

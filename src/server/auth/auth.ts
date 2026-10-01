@@ -29,6 +29,7 @@ import {
   takeOidcProfile,
 } from "./identity.ts";
 import { invitePlugin } from "./invite-plugin.ts";
+import { CLIENT_IP_HEADER, withClientIp } from "../client-ip.ts";
 
 /** Idle lifetime; the absolute 12 h cap is enforced in `currentUser()` (docs/spec.md §8). */
 export const SESSION_IDLE_SECONDS = 2 * 60 * 60;
@@ -164,7 +165,7 @@ function createAuth(discovery: Discovery | null) {
         invitePlugin(),
       ];
 
-  return betterAuth({
+  const auth = betterAuth({
     appName: "SOTA",
     baseURL: env.appUrl,
     secret: env.sessionSecret,
@@ -182,6 +183,9 @@ function createAuth(discovery: Discovery | null) {
     advanced: {
       cookiePrefix: "sota",
       useSecureCookies: secure,
+      // The library's own limiter keys on this header (set in `handler` below); without it every
+      // client shares one bucket and a handful of sign-ins lock the instance.
+      ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
       database: { generateId: () => uuidv7() },
     },
     onAPIError: { errorURL: `${env.appUrl}/?error=login` },
@@ -340,6 +344,9 @@ function createAuth(discovery: Discovery | null) {
       },
     },
   });
+  const handle = auth.handler;
+  auth.handler = (request) => handle(withClientIp(request));
+  return auth;
 }
 
 export type Auth = ReturnType<typeof createAuth>;
