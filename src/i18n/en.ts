@@ -374,7 +374,7 @@ export const en: Record<MessageKey, string> = {
   "teach.quizzes.new": "New quiz",
   "teach.quizzes.title": "Title",
   "teach.quizzes.kind": "Kind",
-  "teach.quizzes.kind.quiz": "Quiz (graded)",
+  "teach.quizzes.kind.self_check": "Self-check (indicative feedback)",
   "teach.quizzes.kind.form": "Form (not graded)",
   "teach.quizzes.intro": "Introduction",
   "teach.quizzes.showAnswers": "Show correct answers after submitting",

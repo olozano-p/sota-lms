@@ -137,7 +137,7 @@ async function seedContent(courseId: string) {
       courseId,
       title: "Repàs del primer capítol",
       introMd: "Quatre preguntes curtes per fixar les idees. Es pot repetir.",
-      kind: "quiz",
+      kind: "self_check",
       showAnswersAfterSubmit: true,
       passThreshold: null,
     })

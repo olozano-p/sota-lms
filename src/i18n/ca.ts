@@ -375,7 +375,7 @@ export const ca = {
   "teach.quizzes.new": "Nou qüestionari",
   "teach.quizzes.title": "Títol",
   "teach.quizzes.kind": "Tipus",
-  "teach.quizzes.kind.quiz": "Qüestionari (amb correcció)",
+  "teach.quizzes.kind.self_check": "Autoavaluació (amb correcció orientativa)",
   "teach.quizzes.kind.form": "Formulari (sense correcció)",
   "teach.quizzes.intro": "Introducció",
   "teach.quizzes.showAnswers": "Mostra les respostes correctes després d'enviar",

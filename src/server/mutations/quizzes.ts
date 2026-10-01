@@ -55,7 +55,7 @@ export const createQuiz = createServerFn({ method: "POST" })
     z.object({
       courseId: id,
       title: z.string().trim().min(1).max(200),
-      kind: z.enum(QUIZ_KINDS).default("quiz"),
+      kind: z.enum(QUIZ_KINDS).default("self_check"),
     }),
   )
   .handler(async ({ data }) => {
@@ -437,8 +437,9 @@ export const submitQuizAttempt = createServerFn({ method: "POST" })
           quizId: row.quiz.id,
           personId: user.id,
           submittedAt: now,
-          score: result.score,
-          passed: result.passed,
+          // A form collects answers; only a self-check keeps a (purely informative) score.
+          score: row.quiz.kind === "form" ? null : result.score,
+          passed: row.quiz.kind === "form" ? null : result.passed,
         })
         .returning();
       if (cleaned.length)

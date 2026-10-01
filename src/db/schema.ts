@@ -327,7 +327,11 @@ export const submission = pgTable(
 
 // ---------- Quizzes / forms ----------
 
-export const QUIZ_KINDS = ["quiz", "form"] as const;
+/**
+ * `form` collects answers and nothing more. `self_check` gives the learner feedback on choice
+ * questions; it never grades anyone for the teacher or gates progress.
+ */
+export const QUIZ_KINDS = ["form", "self_check"] as const;
 export type QuizKind = (typeof QUIZ_KINDS)[number];
 
 export const quiz = pgTable("quiz", {
@@ -337,7 +341,7 @@ export const quiz = pgTable("quiz", {
     .references(() => course.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   introMd: text("intro_md").notNull().default(""),
-  kind: text("kind", { enum: QUIZ_KINDS }).notNull().default("quiz"),
+  kind: text("kind", { enum: QUIZ_KINDS }).notNull().default("self_check"),
   showAnswersAfterSubmit: boolean("show_answers_after_submit").notNull().default(true),
   /** Percentage 0–100; null means nothing to pass (a reflective form). */
   passThreshold: real("pass_threshold"),

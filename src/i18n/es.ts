@@ -376,7 +376,7 @@ export const es: Record<MessageKey, string> = {
   "teach.quizzes.new": "Nuevo cuestionario",
   "teach.quizzes.title": "Título",
   "teach.quizzes.kind": "Tipo",
-  "teach.quizzes.kind.quiz": "Cuestionario (con corrección)",
+  "teach.quizzes.kind.self_check": "Autoevaluación (con corrección orientativa)",
   "teach.quizzes.kind.form": "Formulario (sin corrección)",
   "teach.quizzes.intro": "Introducción",
   "teach.quizzes.showAnswers": "Mostrar las respuestas correctas después de enviar",

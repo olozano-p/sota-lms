@@ -114,7 +114,7 @@ export type ResolvedBlock =
       type: "quiz";
       quizId: string;
       title: string | null;
-      kind: "quiz" | "form" | null;
+      kind: "form" | "self_check" | null;
     };
 
 type Row = { id: string; sort: number; type: BlockType; payload: unknown };

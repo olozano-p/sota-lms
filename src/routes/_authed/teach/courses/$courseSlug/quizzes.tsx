@@ -28,7 +28,7 @@ function QuizzesPage() {
   const router = useRouter();
   const create = useServerFn(createQuiz);
   const [title, setTitle] = useState("");
-  const [kind, setKind] = useState<(typeof QUIZ_KINDS)[number]>("quiz");
+  const [kind, setKind] = useState<(typeof QUIZ_KINDS)[number]>("self_check");
   const [busy, setBusy] = useState(false);
 
   return (
