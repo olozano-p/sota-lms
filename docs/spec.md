@@ -8,7 +8,7 @@
 > storage · prod storage: a directory on the VPS or an external bucket, both in `docs/deploy.md` (ADR-012).
 > ADR file names follow the house style (`ADR-00n-topic.md`) rather than the paths in §9.
 
-Name: **SOTA** (after Pali _sotāpanna_, "the one who has entered the stream"; repo `sota`). A lean, self-hostable, open-source course platform. Inspired by Frappe LMS's core model (Course → Chapter → Lesson, Batch → Cohort, Quiz, Assignment) but stripped to the essentials and built as a **relying party**: identity and entitlements come from an external OIDC identity provider; the LMS never owns accounts or payments.
+Name: **SOTA** (after Pali _sotāpanna_, "the one who has entered the stream"; repo `sota`). A lean, self-hostable, open-source course platform. Inspired by Frappe LMS's core model (Course → Chapter → Lesson, Batch → Cohort, Quiz, Assignment) but stripped to the essentials and built as a **relying party**: identity and enrollments come from an external OIDC identity provider; the LMS never owns accounts or payments.
 
 **First production deployment and reference implementation: a small foundation's members' school**, with the foundation's own members' site as the IdP. Every feature in this spec is driven by that deployment's needs, but nothing in the codebase may be specific to it — all of its particulars live in configuration and in Appendix A.
 
@@ -22,9 +22,9 @@ These are constraints on _how_ the project is built, not features:
 
 1. **Public repo from day one.** Public GitHub repository under the Foundation's (or Nodal's — OPEN) organisation. No private history to scrub later; secrets never committed, even in the first commit.
 2. **Generic core, configured edge.** Anything that names an organisation, domain, membership tier, brand, or IdP belongs in `.env`, `lms.config.ts`, or the database — never in source. Rule of thumb for the agent: _if a second organisation forked this tomorrow, would they have to edit a `.ts` file to run it? If yes, it's misplaced._
-3. **Standards over integrations.** SSO is plain OIDC (any compliant IdP works; better-auth is just the reference). Entitlements are a documented, versioned JSON contract over HTTPS, not a call into the members' site's internals. Storage is a directory or any S3-compatible API behind one interface. Email is SMTP. Video is behind a provider interface (Vimeo is the first implementation).
+3. **Standards over integrations.** SSO is plain OIDC (any compliant IdP works; better-auth is just the reference). Enrollments are a documented, versioned JSON contract over HTTPS, not a call into the members' site's internals. Storage is a directory or any S3-compatible API behind one interface. Email is SMTP. Video is behind a provider interface (Vimeo is the first implementation).
 4. **One-command local setup.** `docker compose up` gives Postgres + a mock OIDC provider + the app with seed data. A contributor must be able to run the full lesson flow locally without any credentials from the reference deployment.
-5. **Documented as a product, not a project.** `README.md` (what it is, screenshots, quickstart), `docs/deploy.md`, `docs/idp-integration.md` (how to wire your own IdP and entitlement source), `docs/adr/`. `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` (responsible disclosure), `CHANGELOG.md` (Keep a Changelog), semver tags.
+5. **Documented as a product, not a project.** `README.md` (what it is, screenshots, quickstart), `docs/deploy.md`, `docs/idp-integration.md` (how to wire your own IdP and enrollment source), `docs/adr/`. `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` (responsible disclosure), `CHANGELOG.md` (Keep a Changelog), semver tags.
 6. **License:** AGPL-3.0 (recommended — same as Frappe LMS, keeps hosted forks open) or MIT (maximally permissive). **OPEN.**
 7. **English-first codebase and docs**; UI is i18n'd with ca/es/en shipped as the first three catalogs. Identifiers, comments, commits, ADRs in English.
 8. **CI on every PR:** typecheck, lint, unit tests, migration dry-run, Playwright smoke. Dependabot/Renovate on.
@@ -42,7 +42,7 @@ These are constraints on _how_ the project is built, not features:
 - Assignments with student submissions (file and/or text) and a simple review flow for teachers.
 - Quizzes/forms: multiple choice, checkbox, short text, long text; optional auto-grading for choice questions; results visible to teachers.
 - Per-lesson progress tracking and a "continue where you left off" experience.
-- Access to courses granted by an external system via a documented entitlement contract — the LMS never sells anything.
+- Access to courses granted by an external system via a documented enrollment contract — the LMS never sells anything.
 - Single sign-on via OIDC: a user logged into the IdP is logged into the LMS with no second login.
 - Smooth lesson-by-lesson delivery is the priority UX requirement.
 - Multilingual UI (catalogs; ca/es/en shipped). Course content is authored in one language per course (no per-lesson translations in v1).
@@ -84,15 +84,15 @@ These are constraints on _how_ the project is built, not features:
 Configuration surface (all of it, nothing else):
 
 - `.env`: `DATABASE_URL`, `SESSION_SECRET`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_END_SESSION_URL` (optional), `ENTITLEMENTS_PULL_URL`, `ENTITLEMENTS_PULL_TOKEN`, `ENTITLEMENTS_WEBHOOK_SECRET`, `STORAGE_DRIVER`, `STORAGE_DIR`, `S3_*`, `SMTP_*`, `MAIL_FROM`, `VIMEO_ACCESS_TOKEN`, `APP_URL`, `COOKIE_DOMAIN`.
-- `lms.config.ts` (committed, per-deployment fork or mounted): brand name, logo path, colour tokens, default locale, enabled locales, `accessRules` (see §3.3), allowed embed domains, upload limits/mime allowlist, notification defaults, `forum` (general forum switch, post image limit, page size).
+- `lms.config.ts` (committed, per-deployment fork or mounted): brand name, logo path, colour tokens, default locale, enabled locales, allowed embed domains, upload limits/mime allowlist, notification defaults, `forum` (general forum switch, post image limit, page size).
 
 ---
 
-## 3. Identity, SSO and entitlements
+## 3. Identity, SSO and enrollments
 
 ### 3.1 Principle
 
-The LMS is an **OIDC relying party**. It never creates accounts, never handles passwords, and treats the IdP as authoritative for _who_ someone is. A separate **entitlement source** (usually the same system as the IdP, but not necessarily) is authoritative for _what_ they may access. Both are external; the LMS caches.
+The LMS is an **OIDC relying party**. It never creates accounts, never handles passwords, and treats the IdP as authoritative for _who_ someone is. A separate **enrollment source** (usually the same system as the IdP, but not necessarily) is authoritative for _what_ they may access. Both are external; the LMS caches.
 
 ### 3.2 SSO mechanism — **DECISION**
 
@@ -112,49 +112,39 @@ Dev: `docker-compose.yml` ships a mock OIDC provider (e.g. `oidc-provider` or De
 
 `docs/idp-integration.md` must document: required claims, the roles claim, redirect URI registration, and a worked example for better-auth's OIDC Provider plugin (the reference).
 
-### 3.3 Entitlement contract — **DECISION**
+### 3.3 Enrollment contract — **DECISION** (ADR-014)
 
-Versioned JSON contract, `entitlements/v1`. Two channels, both required:
+Versioned JSON contract, `enrollments/v1` (full definition in `docs/entitlements-contract.md`). Two channels:
 
 - **Pull**: `GET ${ENTITLEMENTS_PULL_URL}/{sub}` with `Authorization: Bearer ${ENTITLEMENTS_PULL_TOKEN}`. Called on login and on cache miss (TTL 15 min).
-- **Push**: entitlement source POSTs to `${APP_URL}/api/webhooks/entitlements` on any change. HMAC-SHA256 over raw body + `X-Timestamp`, `X-Signature`, `X-Event-Id` headers. LMS verifies, stores the event, upserts, responds 200. Idempotent on `X-Event-Id`.
+- **Push**: the enrollment source POSTs to `${APP_URL}/api/webhooks/entitlements` on any change. HMAC-SHA256 over raw body + `X-Timestamp`, `X-Signature`, `X-Event-Id` headers. LMS verifies, stores the event, reconciles, responds 200. Idempotent on `X-Event-Id`.
 
-Payload (both channels):
+Payload (both channels): the person (`sub`, `email`, `name`, `locale`, `roles`) and the complete list of their enrollments, one per course (and optional cohort), each with `external_id`, `valid_from`, `valid_until` (exclusive) and `status`:
 
 ```json
 {
-  "version": "entitlements/v1",
+  "version": "enrollments/v1",
   "sub": "idp-user-id",
   "email": "x@y.z",
   "name": "…",
   "locale": "ca",
   "roles": ["student"],
-  "entitlements": [
-    { "scope": "course", "ref": "course-slug", "rule": "immediate", "until": null },
-    { "scope": "all_courses", "ref": null, "rule": "delayed", "until": "2027-01-31" },
-    { "scope": "cohort", "ref": "cohort-slug", "rule": "immediate", "until": null }
+  "enrollments": [
+    { "external_id": "ord-1-a", "course": "course-slug", "valid_until": "2027-01-31T23:00:00Z" },
+    { "external_id": "ord-1-b", "course": "other-course", "cohort": "cohort-slug" }
   ]
 }
 ```
 
-`rule` is a key into `lms.config.ts → accessRules`. The core ships two rule types and organisations declare named instances:
+The core never knows what a "membership tier" is and has no access rules: the source sends per-course enrollments with the `valid_until` it wants. Rows with `source = 'webhook'` are reconciled by `external_id`; `manual` rows are never touched.
 
-```ts
-accessRules: {
-  immediate: { type: 'immediate' },
-  delayed:   { type: 'delayed_after_course_end', days: 30 },
-}
-```
-
-The core never knows what a "membership tier" is. Mapping tiers → rules is the entitlement source's job (Appendix A shows the reference deployment's mapping). Adding a rule type (e.g. `fixed_date`, `n_days_after_enrol`) is a core contribution behind the same interface.
-
-Access resolution: `canSeeLesson(U, L) = entitled(U, course(L)) AND released(L, U)`, where `released` checks course/lesson publish state, the entitlement's rule, and the cohort drip schedule if U is a member of a cohort for that course. This function has an exhaustive test matrix (§9).
+Access resolution: `canSeeLesson(U, L) = enrolled(U, course(L)) AND released(L, U)`, where `enrolled` means some enrollment is `active` with `valid_from <= now < valid_until`, and `released` checks course/lesson publish state and the cohort drip schedule if U is a member of a cohort for that course. This function has an exhaustive test matrix (§9).
 
 ### 3.4 Roles
 
-- `student`: sees entitled/enrolled courses.
+- `student`: sees enrolled courses.
 - `teacher`: plus authoring of courses they're assigned to, reviewing submissions, viewing quiz results.
-- `admin`: everything, plus people/entitlement inspection, webhook log, and **local grant overrides** (`entitlement.source = 'admin'`). Local overrides are always allowed; optional write-back to the entitlement source via a configurable `ENTITLEMENTS_WRITE_URL` is a v1.1 feature (**OPEN** whether the reference deployment needs it at launch).
+- `admin`: everything, plus people/enrollment inspection, webhook log, and **manual enrollments** (`enrollment.source = 'manual'`). Manual enrollments are always allowed and never overwritten by a sync; optional write-back to the enrollment source via a configurable `ENTITLEMENTS_WRITE_URL` is a v1.1 feature (**OPEN** whether the reference deployment needs it at launch).
 
 Roles come from the IdP claim; the LMS has no role management UI.
 
@@ -166,12 +156,12 @@ Conventions: UUID v7 primary keys, `created_at`/`updated_at` everywhere, soft de
 
 ### Identity mirror
 
-- `person` — `id`, `idp_sub` (unique), `email`, `name`, `locale`, `roles text[]`, `last_seen_at`. Written only from IdP/entitlement data.
-- `entitlement` — `id`, `person_id`, `scope` (`course` | `all_courses` | `cohort`), `ref` (nullable), `rule` (text key), `until` (nullable date), `source` (`external` | `admin`), `synced_at`. Unique on (`person_id`, `scope`, `ref`).
+- `person` — `id`, `idp_sub` (unique), `email`, `name`, `locale`, `roles text[]`, `last_seen_at`. Written only from IdP/enrollment-source data.
+- `enrollment` — `id`, `person_id`, `course_id`, `cohort_id` (nullable), `source` (`manual` | `claims` | `webhook`), `external_id` (nullable), `valid_from`, `valid_until` (nullable, exclusive), `status` (`active` | `expired` | `revoked`). Unique on (`person_id`, `course_id`, `cohort_id`, `source`) and on (`source`, `external_id`) where not null.
 
 ### Catalogue
 
-- `course` — `id`, `slug`, `title`, `subtitle`, `description_md`, `language`, `cover_image_key`, `status` (`draft` | `published` | `archived`), `ended_at` (date live delivery ended; used by `delayed_after_course_end`), `sort`, `forum_enabled`.
+- `course` — `id`, `slug`, `title`, `subtitle`, `description_md`, `language`, `cover_image_key`, `status` (`draft` | `published` | `archived`), `ended_at` (date live delivery ended; informational), `sort`, `forum_enabled`.
 - `course_teacher` — `course_id`, `person_id`.
 - `chapter` — `id`, `course_id`, `slug`, `title`, `description_md`, `sort`.
 - `lesson` — `id`, `chapter_id`, `slug`, `title`, `summary`, `sort`, `status` (`draft` | `published`), `estimated_minutes`.
@@ -244,7 +234,7 @@ Player component wraps the provider's iframe and exposes a common event surface 
 - Embed via `@vimeo/player`; resume from `media_position_s`, save every ~10 s and on pause/unload, mark watched at ≥ 90 %.
 - Signed per-view embeds: later hardening, not v1.
 
-Contributors may add `YouTubeProvider`, `MuxProvider`, `SelfHostedProvider` behind the same interface. Audio and PDFs go to file storage via signed URLs after an entitlement check.
+Contributors may add `YouTubeProvider`, `MuxProvider`, `SelfHostedProvider` behind the same interface. Audio and PDFs go to file storage via signed URLs after an access check.
 
 ---
 
@@ -269,10 +259,10 @@ Contributors may add `YouTubeProvider`, `MuxProvider`, `SelfHostedProvider` behi
 /teach/courses/$courseSlug/quizzes/$quizId/results
 /teach/cohorts/$cohortSlug
 
-/admin                              → people, entitlements, webhook log, audit log
+/admin                              → people, enrollments, webhook log, audit log
 
 /api/webhooks/entitlements          → POST (HMAC)
-/api/files/$fileId                  → GET signed redirect (entitlement-checked)
+/api/files/$fileId                  → GET signed redirect (access-checked)
 /api/health
 ```
 
@@ -283,9 +273,9 @@ Every loader calls `requireSession()`; content loaders call `requireLessonAccess
 ## 7. Key behaviours
 
 - **Lesson player**: single column, stacked blocks, sticky prev/next, ←/→ shortcuts. Completion explicit for text/file lessons, automatic for media-only lessons at 90 %. Never block "next".
-- **Locked lessons** are visible with reason and date, using i18n'd messages generated from the rule type (never from an organisation's tier names).
+- **Locked lessons** are visible with reason and date, using i18n'd messages generated from the lock reason (never from an organisation's tier names).
 - **Continue**: single primary CTA to the first non-completed, released, published lesson.
-- **Entitlement sync**: refresh on login; webhook applies immediately; 15-min TTL self-heals.
+- **Enrollment sync**: refresh on login; webhook applies immediately; 15-min TTL self-heals.
 - **Authoring**: course → chapter → lesson → blocks; rich-text editor over Markdown (bold, italics, headings, lists, quotes, code, links, images, video); autosave on blur; publish toggles; drag-sort (dnd-kit).
 - **Uploads**: signed PUT (to the bucket, or streamed through the app with the local driver), server records `file` after HEAD. Limits and mime allowlist from config.
 - **Notifications** (SMTP, minimal, per-user opt-out): submission received → teacher; feedback returned → student; chapter released → cohort; forum reply → earlier authors in the thread; new course thread → its teachers. Batched daily except feedback.
@@ -350,8 +340,8 @@ sota/
 **Phase 0 — Public skeleton**
 Public repo, license, README stub, CI, Dockerfile + compose (Postgres, mock OIDC), Drizzle DDL from §4, health route, seed script, `CLAUDE.md`, config loader. Runs locally with `docker compose up`.
 
-**Phase 1 — SSO + entitlements**
-OIDC RP against the mock IdP, then against better-auth's OIDC plugin. Person mirror, pull + webhook, `accessRules`, `requireLessonAccess` with exhaustive tests. Admin route. `docs/idp-integration.md` + `docs/entitlements-contract.md` written as the code lands.
+**Phase 1 — SSO + enrollments**
+OIDC RP against the mock IdP, then against better-auth's OIDC plugin. Person mirror, pull + webhook, `enrollment`, `requireLessonAccess` with exhaustive tests. Admin route. `docs/idp-integration.md` + `docs/entitlements-contract.md` written as the code lands.
 
 **Phase 2 — Learner core**
 Courses, syllabus, lesson player with all block types, `VideoProvider` + `VimeoProvider`, signed files, progress, "Continue", lock states, i18n.
@@ -372,7 +362,7 @@ Security checklist, Playwright suite, `docs/deploy.md` verified on a clean VPS b
 1. Project name (and GitHub org: Foundation vs. Nodal Studio).
 2. License: AGPL-3.0 or MIT.
 3. Rich text: Markdown or JSON doc (Tiptap).
-4. Is write-back of admin grants to the entitlement source needed at launch (v1) or later (v1.1)?
+4. Is write-back of manual enrollments to the enrollment source needed at launch (v1) or later (v1.1)?
 5. Can a cohort span several courses (a curriculum), or exactly one? Current model: one.
 6. Do quizzes need a pass threshold in v1, or are they reflective forms only?
 7. Audio: object storage (spec) or also on Vimeo?
@@ -387,17 +377,17 @@ and hosts are placeholders). None of it appears in core source.
 
 - **Hostname:** `learn.example.org`; `COOKIE_DOMAIN=.example.org` so the main site can set the locale cookie.
 - **IdP:** the members' site's better-auth with the OIDC Provider plugin. Roles claim populated from the main site's user roles.
-- **Entitlement source:** the members' site. Membership tier → rule mapping done on the main site before emitting the contract:
-  - Full tier, standalone course purchase, teacher/admin → `rule: "immediate"`, `scope: all_courses` or `course`.
-  - Middle tier → `rule: "delayed"` (`delayed_after_course_end`, 30 days), `scope: all_courses`.
-  - Entry tier → no LMS entitlements.
-  - Cohort enrolment → `scope: cohort` entitlements pushed when a student is placed in a group.
+- **Enrollment source:** the members' site. Membership tier → enrollments mapping done on the main site before emitting the contract:
+  - Full tier, standalone course purchase → one enrollment per course, `valid_until` as the main site decides.
+  - Middle tier → one enrollment per course with `valid_from` set to the date the main site wants access to open.
+  - Entry tier → no LMS enrollments. Teachers and admins need none (role).
+  - Cohort enrolment → the enrollment carries the `cohort` slug when a student is placed in a group.
 - **Video:** the organisation's Vimeo account, embeds restricted to `learn.example.org`.
 - **Email:** the organisation's SMTP relay, `MAIL_FROM=lms@example.org`.
 - **Locales:** ca (default), es, en; same resolution order as the main site.
 - **Brand:** the organisation's logo and colour tokens in `lms.config.ts`.
 - **Deploy:** a VPS shared with the main site; nginx reverse proxy; either the official Docker image or the rsync + `deploy.sh` pattern already used for the main site (documented as an alternative in `docs/deploy.md`).
-- **Trust boundary reminder:** the main site handles payments (Stripe/Bizum), the Fase 2 accounting sync, and the ledger. The LMS receives only `sub`, profile fields, roles and entitlements — no payment data ever crosses.
+- **Trust boundary reminder:** the main site handles payments (Stripe/Bizum), the Fase 2 accounting sync, and the ledger. The LMS receives only `sub`, profile fields, roles and enrollments — no payment data ever crosses.
 
 ## Appendix B — Frappe LMS concept mapping
 
@@ -405,7 +395,7 @@ and hosts are placeholders). None of it appears in core source.
 | ---------------------------------------- | -------------------------------------------------- |
 | Course / Chapter / Lesson                | `course` / `chapter` / `lesson` + `lesson_block[]` |
 | Batch / Batch enrollment                 | `cohort` / `cohort_member`                         |
-| Course enrollment                        | `entitlement` (external)                           |
+| Course enrollment                        | `enrollment`                                       |
 | Quiz / Quiz Question / Quiz Submission   | `quiz` / `question` / `quiz_attempt`               |
 | Assignment / Assignment Submission       | `assignment` / `submission`                        |
 | Certificates, Points, Badges, Jobs, Zoom | dropped                                            |

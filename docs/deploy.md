@@ -8,7 +8,7 @@ your organisation lives in `.env` and `lms.config.ts`.
 
 1. **Identity provider** registered with redirect URI `https://learn.example.org/auth/callback`
    (`docs/idp-integration.md`).
-2. **Entitlement source** implementing `docs/entitlements-contract.md` (pull URL + token, webhook
+2. **Enrollment source** (optional: without one, admins enroll people by hand) implementing `docs/entitlements-contract.md` (pull URL + token, webhook
    secret).
 3. **File storage**: a writable directory that survives deploys (`STORAGE_DIR`, the default
    `STORAGE_DRIVER=local`; uploads stream through the app, so the proxy must allow bodies up to
@@ -19,7 +19,7 @@ your organisation lives in `.env` and `lms.config.ts`.
 5. **Vimeo** token if teachers should validate videos (`docs/video-vimeo.md`).
 
 Copy `.env.example` to `.env` and fill every value; `SESSION_SECRET` is ≥ 32 random bytes. Edit
-`lms.config.ts` (brand, locales, access rules, embed allowlist, upload limits, digest hour).
+`lms.config.ts` (brand, locales, embed allowlist, upload limits, digest hour).
 
 ## Option A — Docker (default)
 
@@ -105,7 +105,7 @@ The daily digest goes out during the hour configured in `lms.config.ts → notif
 ## Smoke test after deploy
 
 1. Open the site → redirected to your IdP → back on `/courses`.
-2. As an admin, `/admin` lists you with your entitlements; push a test webhook and see it under
+2. As an admin, `/admin` lists you with your enrollments; push a test webhook and see it under
    `/admin/webhooks`.
 3. As a teacher, create a course, upload a file, resolve a Vimeo URL, publish.
 4. As a student, open the lesson, download the file, mark it done; check the digest mail arrives.
@@ -113,7 +113,7 @@ The daily digest goes out during the hour configured in `lms.config.ts → notif
 ## Reference deployment
 
 The first production instance is a small foundation's members' school (`docs/spec.md`,
-Appendix A): the members' site is both IdP (better-auth OIDC Provider) and entitlement source,
-mapping its membership tiers to the `immediate` / `delayed` rule names; files live in a directory
+Appendix A): the members' site is both IdP (better-auth OIDC Provider) and enrollment source,
+mapping its membership tiers to per-course enrollments with the validity window it wants; files live in a directory
 on the same VPS; mail goes through the organisation's SMTP relay; the proxy is nginx and the deploy is
 Option B. None of that is in the code.

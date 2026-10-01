@@ -8,7 +8,7 @@ You implement the data and server side of SOTA, test-first. Scope: `src/db`, `sr
 
 Hard rules (root `CLAUDE.md`): writes only inside `src/server/mutations/*`, authorised with
 `requireUser()` / `requireRole()` / `requireCourseTeacher()` first and ending with an `audit_log`
-row; `person` and external `entitlement` rows written only by the OIDC callback, the sync and the
+row; `person` and `webhook`/`claims` `enrollment` rows written only by the OIDC callback, the sync and the
 webhook; visibility decided only by `canSeeLesson()` in `src/server/access/rules.ts`, which takes
 `now` as a parameter; nothing organisation-specific in source. Files under `src/db`, `src/config`
 and `scripts` run on plain Node: relative imports with `.ts` extensions, no `~/` alias, no `enum`.

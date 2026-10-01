@@ -47,11 +47,10 @@ Or `docker compose up` for everything, app included.
 One line: a gitmoji, a space, a capitalised English subject — `✨ Add drip release to cohorts`.
 Two or three lines only when the _why_ needs stating. The `commit-msg` hook checks the shape.
 
-## Adding a rule type, a video provider or a locale
+## Adding a lock reason, a video provider or a locale
 
-- **Access rule type**: implement it in `src/server/access/rules.ts` behind the existing
-  `AccessRule` union, add its rows to the matrix in `tests/access.test.ts`, document it in
-  `docs/entitlements-contract.md`.
+- **Lock reason**: add it to `LockReason` in `src/server/access/rules.ts`, add its rows to the
+  matrix in `tests/access.test.ts`, give it a `lock.<reason>` message in the three catalogues.
 - **Video provider**: implement `VideoProvider` from `src/server/services/video/provider.ts`, register
   it in `src/server/services/video/index.ts`, add a `docs/video-<name>.md`.
 - **Locale**: add `src/i18n/<code>.ts` typed `Record<MessageKey, string>`, register it in

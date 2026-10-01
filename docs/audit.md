@@ -44,7 +44,7 @@ product direction (SOTA owning identity) rather than missing pieces.
 1. **Auth library and account store.** ADR-003 states: "Rejected and not to be re-proposed:
    better-auth (or any auth library) inside SOTA as the account store; magic links." CLAUDE.md:
    "No sign-up, no passwords." The brief requires exactly these. Irreversible per the brief.
-2. **Entitlement model.** Brief: `enrollment(source manual|claims|webhook)`. Repo: `entitlement(scope
+2. **Entitlement model** (resolved by ADR-014 and the `enrollment` migration). Brief: `enrollment(source manual|claims|webhook)`. Repo: `entitlement(scope
 course|all_courses|cohort, rule, source external|admin)` with access rules in `lms.config.ts`
    and `canSeeLesson()` as the only gate. Different shape, richer in the repo (tiers, delayed access).
 3. **Identity key.** Brief: `user.external_sub`; repo: `person.idp_sub NOT NULL UNIQUE`. Local users have no sub.

@@ -18,14 +18,14 @@ stores passwords, never registers users and has no role management: all of that 
 | Token signing            | Asymmetric (RS256/ES256…) with a published JWKS. SOTA verifies `iss`, `aud`, `exp`, `nonce`, tolerating 60 s of skew.                          |
 
 Set in `.env`: `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, optionally
-`OIDC_END_SESSION_URL` and `OIDC_ROLES_CLAIM`. The entitlement side is separate:
+`OIDC_END_SESSION_URL` and `OIDC_ROLES_CLAIM`. The enrollment side is separate:
 `docs/entitlements-contract.md`.
 
 ## The flow, as the user sees it
 
 1. They open any SOTA page. Without a SOTA session they are redirected to your IdP.
 2. If they already have a session there, the IdP redirects straight back — no visible login.
-3. SOTA mirrors `sub`/`email`/`name`/`roles`/`locale` into `person`, pulls their entitlements,
+3. SOTA mirrors `sub`/`email`/`name`/`roles`/`locale` into `person`, pulls their enrollments,
    opens its own cookie session (12 h absolute, 2 h idle) and shows the page they asked for.
 4. «Sign out» clears the SOTA session and, if `OIDC_END_SESSION_URL` is set, sends them to the
    IdP's end-session endpoint with `id_token_hint` so they are signed out of both.
@@ -87,7 +87,7 @@ to `/userinfo` for any claim the ID token lacks.
 ## Trying it without an IdP
 
 `docker compose up` (or `pnpm mock-idp`) runs `dev/mock-idp/server.mjs`: a node-oidc-provider
-instance with four users and the claims above, plus a mock entitlement source. The login page is
+instance with four users and the claims above, plus a mock enrollment source. The login page is
 a list of buttons. Nothing in it is fit for production.
 
 ## Checklist for going live

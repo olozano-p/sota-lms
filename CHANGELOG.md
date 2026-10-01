@@ -8,6 +8,11 @@ All notable changes to SOTA are documented here. The format follows
 
 ### Changed
 
+- `enrollment` replaces `entitlement` (ADR-014): one row per person and course (optionally cohort)
+  with `valid_from`/`valid_until` and a status. The pull/push payload is now `enrollments/v1`;
+  `all_courses`, `accessRules` and `delayed_after_course_end` are gone, and admin grants are
+  `manual` enrollments the sync never touches. Breaking for sources still sending
+  `entitlements/v1`.
 - File storage sits behind a `StorageProvider` interface with a local filesystem driver (the
   default: files under `STORAGE_DIR`, signed URLs honoured by `/api/storage/$token`) and the
   S3 driver (`STORAGE_DRIVER=s3`). MinIO is gone from docker compose, CI and the deploy

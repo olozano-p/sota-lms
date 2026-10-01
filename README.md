@@ -27,18 +27,18 @@ Agent rules: `CLAUDE.md`.
 - **Courses → chapters → lessons**, each lesson a stack of blocks: rich text (edited in place,
   stored as Markdown, with images and YouTube/Vimeo players), video (Vimeo), audio, files,
   allow-listed embeds, an assignment or a quiz.
-- **Access decided by one pure function** from the entitlements your system pushes or the LMS
-  pulls, the course and lesson publish state, and the cohort's release schedule. Locked lessons
+- **Access decided by one pure function** from the enrollments your system pushes or the LMS
+  pulls (or an admin adds by hand), the course and lesson publish state, and the cohort's release schedule. Locked lessons
   say why and when.
-- **Cohorts** with drip release by chapter or lesson, automatic placement from a `cohort`
-  entitlement, and a member page with the calendar.
+- **Cohorts** with drip release by chapter or lesson, automatic placement from a cohort-scoped
+  enrollment, and a member page with the calendar.
 - **Assignments** (text and/or file, resubmission, teacher review with feedback) and **quizzes
   or forms** (four question types, auto-grading, optional pass mark, results per option).
 - **Progress** per lesson, media resume, "continue where you left off".
 - **Teacher editor** with drag-sort, autosave, streamed uploads with progress, Vimeo lookup.
 - **Forums**: one per course (teachers switch it on) and a general one. Threads pinned-first then
   by latest reply, quoting, like/dislike, moderation by the course's teachers.
-- **Admin** area: people, entitlements with local grants, webhook log, audit log.
+- **Admin** area: people, enrollments with manual additions, webhook log, audit log.
 - **Notifications** by email: feedback at once, the rest in a daily digest.
 - **Three locales** shipped (ca, es, en); dark theme; keyboard navigation in the player.
 
@@ -70,18 +70,18 @@ pnpm dev                                                    # http://localhost:3
 ## Deploying
 
 `docs/deploy.md` covers the official Docker image behind a reverse proxy and an rsync/nginx
-alternative for a single VPS. Wiring your identity provider and entitlement source:
+alternative for a single VPS. Wiring your identity provider and enrollment source:
 `docs/idp-integration.md` and `docs/entitlements-contract.md`. Vimeo: `docs/video-vimeo.md`.
 
 ## Scripts
 
-| Command                                                   | What                                               |
-| --------------------------------------------------------- | -------------------------------------------------- |
-| `pnpm dev` / `pnpm build` / `pnpm start`                  | dev server · production build · serve `dist/`      |
-| `pnpm typecheck` · `pnpm lint` · `pnpm fmt` · `pnpm test` | the gates the pre-commit hook mirrors              |
-| `pnpm e2e`                                                | Playwright smoke suite against the compose stack   |
-| `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:seed`   | new migration from the schema · apply · demo data  |
-| `pnpm mock-idp`                                           | run the development IdP + entitlement source alone |
+| Command                                                   | What                                              |
+| --------------------------------------------------------- | ------------------------------------------------- |
+| `pnpm dev` / `pnpm build` / `pnpm start`                  | dev server · production build · serve `dist/`     |
+| `pnpm typecheck` · `pnpm lint` · `pnpm fmt` · `pnpm test` | the gates the pre-commit hook mirrors             |
+| `pnpm e2e`                                                | Playwright smoke suite against the compose stack  |
+| `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:seed`   | new migration from the schema · apply · demo data |
+| `pnpm mock-idp`                                           | run the development IdP + enrollment source alone |
 
 ## Contributing
 

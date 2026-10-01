@@ -2,7 +2,7 @@
 
 Courses → chapters → lessons made of blocks (text, video, audio, file, embed, assignment, quiz);
 cohorts with drip release; progress per lesson. SOTA is an **OIDC relying party**: identity comes
-from an external IdP and access from an external _entitlement source_ over a versioned JSON
+from an external IdP and access from an external _enrollment source_ over a versioned JSON
 contract. It never sells, registers or authenticates anyone. Product spec: `docs/spec.md`.
 Decisions: `docs/decisions/` (append, never rewrite). Visual rules: `docs/DESIGN.md`. When a
 document and the code disagree, the code is right and the document gets fixed.
@@ -10,7 +10,7 @@ document and the code disagree, the code is right and the document gets fixed.
 ## Direction (in progress)
 
 SOTA is moving to two auth modes (`AUTH_MODE=local|oidc`, ADR-013) and an `enrollment` table in place
-of `entitlement` (ADR-014); the forum stays (ADR-015). Gap list: `docs/audit.md`; progress:
+of `entitlement` (ADR-014, done); the forum stays (ADR-015). Gap list: `docs/audit.md`; progress:
 `docs/status.md`. The invariants below describe the code as it is today and are rewritten per phase.
 
 ## Load-bearing invariants
@@ -19,11 +19,12 @@ of `entitlement` (ADR-014); the forum stays (ADR-015). Gap list: `docs/audit.md`
   `requireRole()` / `requireCourseTeacher()` from `src/server/auth/authz.ts`, and appends an
   `audit_log` row (the one exception is a person's own `lesson_progress`, written every ~10 s of
   playback). Loaders, queries and components never write.
-- **Identity is mirrored, never owned.** `person` and `entitlement` rows with `source = 'external'`
-  are written only by the OIDC callback, `syncEntitlements()` and the webhook handler. No sign-up,
-  no passwords, no role UI. Admin grants are `source = 'admin'` and never overwrite external rows.
+- **Identity is mirrored, never owned.** `person` rows and `enrollment` rows with `source = 'webhook'`
+  (or `'claims'`) are written only by the OIDC callback, `syncEnrollments()` and the webhook handler,
+  which reconcile by `external_id`. No sign-up, no passwords, no role UI. Admin enrollments are
+  `source = 'manual'` and the sync never creates, changes or deletes them.
 - **Access is one pure function**: `canSeeLesson()` in `src/server/access/rules.ts` takes the
-  entitlements, the course/lesson state, the cohort releases and `now` as data. Content loaders
+  enrollments, the course/lesson state, the cohort releases and `now` as data. Content loaders
   call `requireLessonAccess()`, which calls it. Nothing else decides who sees what.
 - **Generic core, configured edge.** Organisation names, tiers, domains, brand, IdP details live in
   `.env`, `lms.config.ts` or the database. Test: would a second organisation have to edit a `.ts`
@@ -77,10 +78,10 @@ pnpm notify                       # one notification tick (FORCE_DIGEST=true to 
 ```
 src/routes/            file routes; _authed = session, _authed/teach = teacher, _authed/admin = admin; api/ = handlers
 src/server/auth/       oidc.ts · session.ts (client-safe getSession) · authz.ts (server-only guards)
-src/server/access/     rules.ts (pure) · entitlements.ts (pull, cache, webhook) · require.ts · forum.ts (course/general forum gate)
+src/server/access/     rules.ts (pure) · enrollments.ts (pull, cache, webhook) · require.ts · forum.ts (course/general forum gate)
 src/server/queries/ mutations/ services/   reads · writes+audit · video/, storage/, email/
 src/db/  src/lib/  src/i18n/  src/components/{ui,shell,syllabus,player,editor,forum}  src/config/
-dev/mock-idp/          oidc-provider + mock entitlement source     drizzle/  tests/  docs/
+dev/mock-idp/          oidc-provider + mock enrollment source     drizzle/  tests/  docs/
 ```
 
 ## Gotchas

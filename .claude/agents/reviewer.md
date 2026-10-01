@@ -11,9 +11,9 @@ Highest-priority findings, in order:
 
 - a database write outside `src/server/mutations/*`, or a mutation without `requireUser()` /
   `requireRole()` / `requireCourseTeacher()` as its first step, or without an `audit_log` row;
-- a `person` or external `entitlement` row written anywhere but the OIDC callback,
-  `syncEntitlements()` or the webhook handler; any sign-up, password or role-editing code;
-- a visibility decision made outside `canSeeLesson()` — a loader checking entitlements itself, a
+- a `person` or `webhook`/`claims` `enrollment` row written anywhere but the OIDC callback,
+  `syncEnrollments()` or the webhook handler; any sign-up, password or role-editing code;
+- a visibility decision made outside `canSeeLesson()` — a loader checking enrollments itself, a
   stored "unlocked" flag, a lock message built from an organisation's tier names;
 - an organisation name, domain, tier or brand string in `src/` (grep for the reference
   deployment's name); a hardcoded IdP or bucket URL;
