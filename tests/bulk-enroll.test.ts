@@ -3,7 +3,7 @@
  * functions take the actor and the auth mode as data; the server functions only authorise and wrap.
  */
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 vi.mock("../src/server/services/email/mailer.ts", () => ({ sendMail: async () => {} }));
 process.env.APP_URL = "http://localhost:3003";
@@ -137,6 +137,49 @@ describe("enrollEmails", () => {
       .where(eq(s.cohortMember.cohortId, cohortId));
     expect(members).toHaveLength(3);
     expect(members.every((m) => m.role === "student")).toBe(true);
+  });
+
+  it("matches a stored address case-insensitively instead of creating a duplicate person", async () => {
+    await db.insert(s.person).values({ email: "Mixed.Case@Example.invalid", name: "Mixed" });
+    const res = await db.transaction((tx) =>
+      enrollEmails(tx, actor, {
+        authMode: "oidc",
+        courseId,
+        cohortId: null,
+        text: "MIXED.case@example.invalid",
+      }),
+    );
+    expect(res.results).toEqual([{ email: "mixed.case@example.invalid", outcome: "enrolled" }]);
+    const people = await db.execute(
+      sql`select id from person where lower(email) = 'mixed.case@example.invalid'`,
+    );
+    expect(people.rows).toHaveLength(1);
+  });
+
+  it("a changed validity window is a change, not 'already'", async () => {
+    const run = (extra: { validFrom?: Date; validUntil?: Date | null }) =>
+      db.transaction((tx) =>
+        enrollEmails(tx, actor, {
+          authMode: "oidc",
+          courseId,
+          cohortId: null,
+          text: "window@example.invalid",
+          ...extra,
+        }),
+      );
+    const from1 = new Date("2026-01-01T00:00:00Z");
+    const from2 = new Date("2026-02-01T00:00:00Z");
+    expect((await run({ validFrom: from1 })).results[0]!.outcome).toBe("placeholder");
+    expect((await run({ validFrom: from1 })).results[0]!.outcome).toBe("already");
+    expect((await run({})).results[0]!.outcome).toBe("already");
+    expect((await run({ validFrom: from2 })).results[0]!.outcome).toBe("enrolled");
+    expect(
+      (await run({ validFrom: from2, validUntil: new Date("2027-01-01") })).results[0]!.outcome,
+    ).toBe("enrolled");
+    expect((await run({ validFrom: from2, validUntil: null })).results[0]!.outcome).toBe(
+      "enrolled",
+    );
+    expect((await run({ validFrom: from2, validUntil: null })).results[0]!.outcome).toBe("already");
   });
 
   it("rejects an oversized list", async () => {

@@ -3,7 +3,7 @@
  * that nothing server-only is reachable from the client bundle through a plain export; callers
  * authorise the actor and own the transaction (CLAUDE.md invariants).
  */
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { type DbOrTx } from "~/db";
 import { cohort, cohortMember, enrollment, person } from "~/db/schema";
 import { parseEmailList } from "~/lib/emails";
@@ -71,9 +71,13 @@ type Actor = Pick<SessionUser, "id" | "name">;
 export type Window = { validFrom?: Date; validUntil?: Date | null };
 
 /** A manual row that is already active and open-ended in the same window needs no write. */
-const isUnchanged = (before: { status: string; validUntil: Date | null } | null, w: Window) =>
+const isUnchanged = (
+  before: { status: string; validFrom: Date; validUntil: Date | null } | null,
+  w: Window,
+) =>
   before !== null &&
   before.status === "active" &&
+  (w.validFrom === undefined || before.validFrom.getTime() === w.validFrom.getTime()) &&
   (w.validUntil === undefined || before.validUntil?.getTime() === w.validUntil?.getTime());
 
 /**
@@ -100,9 +104,9 @@ export async function enrollEmails(
     ? await tx
         .select({ id: person.id, email: person.email })
         .from(person)
-        .where(inArray(person.email, emails))
+        .where(inArray(sql<string>`lower(${person.email})`, emails))
     : [];
-  const idOf = new Map(known.map((p) => [p.email, p.id]));
+  const idOf = new Map(known.map((p) => [p.email.toLowerCase(), p.id]));
   const results: { email: string; outcome: BulkOutcome }[] = [];
   for (const email of emails) {
     let personId = idOf.get(email);
