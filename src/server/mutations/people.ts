@@ -36,7 +36,11 @@ export const invitePerson = createServerFn({ method: "POST" })
     requireLocalMode();
     const result = await db.transaction((tx) => createInvitation(tx, admin, data));
     sendImmediate().catch((e) => logger.warn("invitation mail failed", errorFields(e)));
-    return { personId: result.personId, expiresAt: result.expiresAt.toISOString() };
+    return {
+      personId: result.personId,
+      expiresAt: result.expiresAt.toISOString(),
+      mailQueued: result.mailQueued,
+    };
   });
 
 export const revokeInvitation = createServerFn({ method: "POST" })

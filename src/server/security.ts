@@ -1,6 +1,6 @@
 /**
  * Per-request security: CSP with a nonce, the usual hardening headers and an in-process rate
- * limiter for `/auth/*` and `/api/*` (a fallback behind the reverse proxy's own limits,
+ * limiter for `/auth/*`, `/api/*` and server functions (a fallback behind the reverse proxy's own limits,
  * docs/deploy.md). Server-only.
  */
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -87,6 +87,12 @@ export const AUTH_SENSITIVE_PREFIXES = [
   "/api/auth/request-password-reset",
   "/api/auth/reset-password",
   "/api/auth/send-verification-email",
+  "/api/auth/verify-email",
+  "/api/auth/verify-password",
+  "/api/auth/change-password",
+  "/api/auth/change-email",
+  "/api/auth/set-password",
+  "/api/auth/delete-user",
   "/api/auth/invite/",
 ];
 const LIMITS: { prefix: string; perMinute: number; group?: string }[] = [
@@ -98,16 +104,26 @@ const LIMITS: { prefix: string; perMinute: number; group?: string }[] = [
   { prefix: "/api/storage/", perMinute: 600 },
   // Service API: one integration's bursts (a bulk back-fill) in one bucket, apart from browser traffic.
   { prefix: "/api/v1/", perMinute: 300 },
+  // The signed push channel of the complete-set contract: a handful of calls a minute is normal.
+  { prefix: "/api/webhooks/", perMinute: 60 },
+  // Server functions (every admin and teacher mutation, among them invitation and bulk enrollment).
+  { prefix: "/_serverFn/", perMinute: 600 },
   { prefix: "/api/", perMinute: 240 },
 ];
+
+/** The limit that applies to a path (the first matching prefix), or null when it is unlimited. */
+export function limitFor(pathname: string): { bucket: string; perMinute: number } | null {
+  const l = LIMITS.find((x) => pathname.startsWith(x.prefix));
+  return l ? { bucket: l.group ?? l.prefix, perMinute: l.perMinute } : null;
+}
 
 export { clientKey };
 
 /** Token bucket per client and path prefix. Returns false when the request must be refused (429). */
 export function allowRequest(request: Request, pathname: string, now = Date.now()): boolean {
-  const limit = LIMITS.find((l) => pathname.startsWith(l.prefix));
+  const limit = limitFor(pathname);
   if (!limit) return true;
-  const key = `${limit.group ?? limit.prefix}|${clientKey(request)}`;
+  const key = `${limit.bucket}|${clientKey(request)}`;
   const bucket = buckets.get(key) ?? { tokens: limit.perMinute, updatedAt: now };
   const refill = ((now - bucket.updatedAt) / 60_000) * limit.perMinute;
   bucket.tokens = Math.min(limit.perMinute, bucket.tokens + refill);

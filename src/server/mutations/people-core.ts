@@ -29,7 +29,7 @@ export async function createInvitation(
   tx: DbOrTx,
   actor: Pick<SessionUser, "id" | "name">,
   input: InviteInput,
-): Promise<{ personId: string; token: string; expiresAt: Date }> {
+): Promise<{ personId: string; token: string; expiresAt: Date; mailQueued: boolean }> {
   const [existing] = await tx
     .select({ id: person.id })
     .from(person)
@@ -53,7 +53,7 @@ export async function createInvitation(
     personId = created!.id;
   }
   const { token, expiresAt } = await issueInvitation(tx, personId, actor.id);
-  await enqueueAccountMail(tx, input.email, "auth_invite", {
+  const mailQueued = await enqueueAccountMail(tx, input.email, "auth_invite", {
     courseTitle: "",
     url: `${env.appUrl}/accept-invite?token=${encodeURIComponent(token)}`,
     detail: actor.name,
@@ -64,9 +64,9 @@ export async function createInvitation(
     action: "person.invite",
     entity: "person",
     entityId: personId,
-    after: { email: input.email, roles: input.roles },
+    after: { email: input.email, roles: input.roles, mailQueued },
   });
-  return { personId, token, expiresAt };
+  return { personId, token, expiresAt, mailQueued };
 }
 
 /**

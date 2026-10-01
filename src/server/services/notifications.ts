@@ -3,7 +3,7 @@
  * digest at `notifications.digestHour`. Plain-Node safe: the tick runs from `scripts/notify.ts`
  * (cron or the production server's interval) as well as inline after a mutation.
  */
-import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
 import { db, type DbOrTx } from "../../db/index.ts";
 import {
   chapter,
@@ -22,6 +22,7 @@ import { isLocale } from "../../i18n/locale.ts";
 import { dateInZone } from "../../lib/dates.ts";
 import { sendMail } from "./email/mailer.ts";
 import {
+  ACCOUNT_MAIL_KINDS,
   isAccountMailKind,
   renderDigest,
   renderNotification,
@@ -29,6 +30,7 @@ import {
   type NotificationKind,
   type NotificationPayload,
 } from "./email/templates.ts";
+import { logger } from "../../lib/log.ts";
 import { defaultLocale } from "../../config/default-locale.ts";
 
 export async function enqueue(
@@ -42,20 +44,44 @@ export async function enqueue(
   await tx.insert(notification).values({ personId, kind, payload, immediate });
 }
 
+/** Account mail one address may be sent per window, whoever asks (a throttle on mail flooding). */
+export const ACCOUNT_MAIL_LIMIT = 5;
+export const ACCOUNT_MAIL_WINDOW_MS = 60 * 60 * 1000;
+
 /**
  * Queues account mail (magic link, verification, reset, invitation) for an address that may not
  * have a person row yet. Not subject to `notifications.enabled` or to a person's opt-out: the
  * recipient asked for it. The caller kicks `sendImmediate()` so the link arrives in seconds.
+ *
+ * An address that already has `ACCOUNT_MAIL_LIMIT` of these in the last hour gets nothing more and
+ * the function returns false: neither a script hammering the magic-link endpoint nor an admin
+ * re-inviting in a loop can make SOTA flood a mailbox. The caller decides what to tell its user
+ * (the magic-link endpoint says nothing, so that it reveals nothing about the address).
  */
 export async function enqueueAccountMail(
   tx: DbOrTx,
   toEmail: string,
   kind: AccountMailKind,
   payload: NotificationPayload,
-): Promise<void> {
-  await tx
-    .insert(notification)
-    .values({ toEmail: toEmail.toLowerCase(), kind, payload, immediate: true });
+  now = new Date(),
+): Promise<boolean> {
+  const to = toEmail.toLowerCase();
+  const [recent] = await tx
+    .select({ n: sql<number>`count(*)`.mapWith(Number) })
+    .from(notification)
+    .where(
+      and(
+        eq(notification.toEmail, to),
+        inArray(notification.kind, [...ACCOUNT_MAIL_KINDS]),
+        gt(notification.createdAt, new Date(now.getTime() - ACCOUNT_MAIL_WINDOW_MS)),
+      ),
+    );
+  if ((recent?.n ?? 0) >= ACCOUNT_MAIL_LIMIT) {
+    logger.warn("account mail throttled", { kind, limit: ACCOUNT_MAIL_LIMIT });
+    return false;
+  }
+  await tx.insert(notification).values({ toEmail: to, kind, payload, immediate: true });
+  return true;
 }
 
 async function recipient(personId: string) {

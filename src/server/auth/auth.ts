@@ -48,7 +48,8 @@ async function sendAccountMail(
   url: string,
   extra: { detail?: string } = {},
 ): Promise<void> {
-  await enqueueAccountMail(db, email, kind, { courseTitle: "", url, ...extra });
+  // A throttled address (enqueueAccountMail) gets no mail; the caller's response stays the same.
+  if (!(await enqueueAccountMail(db, email, kind, { courseTitle: "", url, ...extra }))) return;
   sendImmediate().catch((e) => logger.warn("account mail failed", errorFields(e)));
 }
 
