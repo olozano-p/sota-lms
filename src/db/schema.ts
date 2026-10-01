@@ -34,7 +34,7 @@ const updatedAt = () =>
 export const ROLES = ["student", "teacher", "admin"] as const;
 export type Role = (typeof ROLES)[number];
 
-/** Mirror of the IdP user. Written only from IdP/entitlement data. */
+/** Mirror of the IdP user. Written only from IdP/enrollment-source data. */
 export const person = pgTable("person", {
   id: id(),
   idpSub: text("idp_sub").notNull().unique(),
@@ -47,7 +47,7 @@ export const person = pgTable("person", {
     .default(sql`'{}'::text[]`),
   emailOptOut: boolean("email_opt_out").notNull().default(false),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
-  /** Last successful pull or push from the entitlement source; drives the 15-minute TTL. */
+  /** Last successful pull or push from the enrollment source; drives the 15-minute TTL. */
   entitlementsSyncedAt: timestamp("entitlements_synced_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -75,40 +75,6 @@ export const session = pgTable(
   (t) => [index("session_person_idx").on(t.personId)],
 );
 
-export const ENTITLEMENT_SCOPES = ["course", "all_courses", "cohort"] as const;
-export type EntitlementScope = (typeof ENTITLEMENT_SCOPES)[number];
-export const ENTITLEMENT_SOURCES = ["external", "admin"] as const;
-export type EntitlementSource = (typeof ENTITLEMENT_SOURCES)[number];
-
-export const entitlement = pgTable(
-  "entitlement",
-  {
-    id: id(),
-    personId: uuid("person_id")
-      .notNull()
-      .references(() => person.id, { onDelete: "cascade" }),
-    scope: text("scope", { enum: ENTITLEMENT_SCOPES }).notNull(),
-    /** Course or cohort slug; null for `all_courses`. Stored as "" in the unique key's eyes via coalesce. */
-    ref: text("ref"),
-    /** Key into `lms.config.ts → accessRules`. */
-    rule: text("rule").notNull(),
-    until: date("until"),
-    source: text("source", { enum: ENTITLEMENT_SOURCES }).notNull(),
-    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
-    createdAt: createdAt(),
-    updatedAt: updatedAt(),
-  },
-  (t) => [
-    uniqueIndex("entitlement_person_scope_ref_source_idx").on(
-      t.personId,
-      t.scope,
-      sql`coalesce(${t.ref}, '')`,
-      t.source,
-    ),
-    index("entitlement_person_idx").on(t.personId),
-  ],
-);
-
 // ---------- Catalogue ----------
 
 export const COURSE_STATUSES = ["draft", "published", "archived"] as const;
@@ -124,7 +90,7 @@ export const course = pgTable("course", {
   language: text("language").notNull(),
   coverImageKey: text("cover_image_key"),
   status: text("status", { enum: COURSE_STATUSES }).notNull().default("draft"),
-  /** Date live delivery ended; input to `delayed_after_course_end`. */
+  /** Date live delivery ended. Informational: it no longer opens or closes access. */
   endedAt: date("ended_at"),
   sort: integer("sort").notNull().default(0),
   /** Teachers switch the course forum on; off, the forum routes 404 for everyone. */
@@ -414,6 +380,54 @@ export const cohortMember = pgTable(
     role: text("role", { enum: COHORT_ROLES }).notNull().default("student"),
   },
   (t) => [primaryKey({ columns: [t.cohortId, t.personId] })],
+);
+
+// ---------- Enrollment ----------
+
+export const ENROLLMENT_SOURCES = ["manual", "claims", "webhook"] as const;
+export type EnrollmentSource = (typeof ENROLLMENT_SOURCES)[number];
+export const ENROLLMENT_STATUSES = ["active", "expired", "revoked"] as const;
+export type EnrollmentStatus = (typeof ENROLLMENT_STATUSES)[number];
+
+/**
+ * Access to one course, optionally through one cohort (ADR-014). `manual` rows belong to admins;
+ * `claims` and `webhook` rows are written by the sync processes and reconciled by `external_id`,
+ * never touching `manual`.
+ */
+export const enrollment = pgTable(
+  "enrollment",
+  {
+    id: id(),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => course.id, { onDelete: "cascade" }),
+    cohortId: uuid("cohort_id").references(() => cohort.id, { onDelete: "cascade" }),
+    source: text("source", { enum: ENROLLMENT_SOURCES }).notNull(),
+    /** The external system's id for this enrollment; unique per source. */
+    externalId: text("external_id"),
+    validFrom: timestamp("valid_from", { withTimezone: true }).notNull().defaultNow(),
+    /** Exclusive end of access; null is open-ended. */
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    status: text("status", { enum: ENROLLMENT_STATUSES }).notNull().default("active"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("enrollment_person_course_cohort_source_idx").on(
+      t.personId,
+      t.courseId,
+      sql`coalesce(${t.cohortId}, '00000000-0000-0000-0000-000000000000'::uuid)`,
+      t.source,
+    ),
+    uniqueIndex("enrollment_source_external_id_idx")
+      .on(t.source, t.externalId)
+      .where(sql`${t.externalId} is not null`),
+    index("enrollment_person_idx").on(t.personId),
+    index("enrollment_course_idx").on(t.courseId),
+  ],
 );
 
 /** Drip schedule: exactly one of chapter_id / lesson_id is set. */

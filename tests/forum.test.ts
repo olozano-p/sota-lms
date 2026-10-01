@@ -6,7 +6,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { db } from "../src/db/index.ts";
 import { runMigrations } from "../src/db/migrate.ts";
-import { course, courseTeacher, entitlement, person } from "../src/db/schema.ts";
+import { course, courseTeacher, enrollment, person } from "../src/db/schema.ts";
 import { requireForumAccess, type ForumCourse } from "../src/server/access/forum.ts";
 import type { SessionUser } from "../src/server/auth/authz.ts";
 
@@ -20,7 +20,7 @@ async function makePerson(sub: string, roles: Role[]): Promise<SessionUser> {
       email: `${sub}@example.invalid`,
       name: sub,
       roles,
-      // A fresh sync stamp keeps `ensureFreshEntitlements` from trying to pull in tests.
+      // A fresh sync stamp keeps `ensureFreshEnrollments` from trying to pull in tests.
       entitlementsSyncedAt: new Date(),
     })
     .returning();
@@ -47,7 +47,7 @@ let open: ForumCourse;
 let closed: ForumCourse;
 let other: ForumCourse;
 let student: SessionUser;
-let delayed: SessionUser;
+let lapsed: SessionUser;
 let stranger: SessionUser;
 let teacher: SessionUser;
 let otherTeacher: SessionUser;
@@ -59,16 +59,23 @@ beforeAll(async () => {
   closed = await makeCourse("closed", false);
   other = await makeCourse("other", true);
   student = await makePerson("student", ["student"]);
-  delayed = await makePerson("delayed", ["student"]);
+  lapsed = await makePerson("lapsed", ["student"]);
   stranger = await makePerson("stranger", ["student"]);
   teacher = await makePerson("teacher", ["teacher"]);
   otherTeacher = await makePerson("other-teacher", ["teacher"]);
   admin = await makePerson("admin", ["admin"]);
-  await db.insert(entitlement).values([
-    { personId: student.id, scope: "course", ref: "open", rule: "immediate", source: "external" },
-    { personId: student.id, scope: "course", ref: "closed", rule: "immediate", source: "external" },
-    // The delayed rule waits for the course end; the course has none, so access has not opened.
-    { personId: delayed.id, scope: "all_courses", ref: null, rule: "delayed", source: "external" },
+  await db.insert(enrollment).values([
+    { personId: student.id, courseId: open.id, source: "manual" },
+    { personId: student.id, courseId: closed.id, source: "manual" },
+    // Past its window: the enrollment exists but no longer opens the course.
+    {
+      personId: lapsed.id,
+      courseId: open.id,
+      source: "webhook",
+      externalId: "lapsed-1",
+      validFrom: new Date("2020-01-01T00:00:00Z"),
+      validUntil: new Date("2020-12-31T00:00:00Z"),
+    },
   ]);
   await db.insert(courseTeacher).values([
     { courseId: open.id, personId: teacher.id },
@@ -79,14 +86,14 @@ beforeAll(async () => {
 const denied = (p: Promise<unknown>) => expect(p).rejects.toMatchObject({ status: 403 });
 
 describe("course forum", () => {
-  it("lets an entitled student in, as a plain member", async () => {
+  it("lets an enrolled student in, as a plain member", async () => {
     const a = await requireForumAccess(student, open);
     expect(a.moderator).toBe(false);
     expect(a.course?.id).toBe(open.id);
   });
-  it("keeps people out who are not entitled, or whose access has not opened yet", async () => {
+  it("keeps people out who are not enrolled, or whose enrollment has lapsed", async () => {
     await denied(requireForumAccess(stranger, open));
-    await denied(requireForumAccess(delayed, open));
+    await denied(requireForumAccess(lapsed, open));
   });
   it("is closed for everyone while the toggle is off", async () => {
     await denied(requireForumAccess(student, closed));

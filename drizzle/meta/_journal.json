@@ -15,6 +15,13 @@
       "when": 1789464367744,
       "tag": "0001_forum",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790854384466,
+      "tag": "0002_glorious_maria_hill",
+      "breakpoints": true
     }
   ]
 }

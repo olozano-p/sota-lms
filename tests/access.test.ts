@@ -1,33 +1,38 @@
 /**
- * Exhaustive matrix for `canSeeLesson`: rule type × course status × lesson status × entitlement
- * scope × `until` × cohort drip. If a case here changes, an ADR or the spec changed first.
+ * Exhaustive matrix for `canSeeLesson`: course status × lesson status × enrollment status ×
+ * validity window × cohort drip. If a case here changes, an ADR or the spec changed first.
  */
 import { describe, expect, it } from "vitest";
 import {
   canSeeLesson,
-  isEntitled,
+  isEnrolled,
   type AccessInput,
   type Decision,
+  type EnrollmentFact,
 } from "../src/server/access/rules.ts";
 
 const TZ = "Europe/Madrid";
 const NOW = new Date("2026-09-11T10:00:00Z");
-const rules: AccessInput["rules"] = {
-  immediate: { type: "immediate" },
-  delayed: { type: "delayed_after_course_end", days: 30 },
-  fixed: { type: "fixed_date", date: "2026-10-01" },
-};
-const course = { slug: "c1", status: "published" as const, endedAt: null };
+const course = { slug: "c1", status: "published" as const };
 const lesson = { id: "l1", chapterId: "ch1", status: "published" as const };
+
+function enrollment(over: Partial<EnrollmentFact> = {}): EnrollmentFact {
+  return {
+    courseSlug: "c1",
+    status: "active",
+    validFrom: new Date("2026-01-01T00:00:00Z"),
+    validUntil: null,
+    ...over,
+  };
+}
 
 function decide(over: Partial<AccessInput>): Decision {
   return canSeeLesson({
     now: NOW,
     timeZone: TZ,
-    rules,
     course,
     lesson,
-    entitlements: [{ scope: "course", ref: "c1", rule: "immediate", until: null }],
+    enrollments: [enrollment()],
     cohorts: [],
     privileged: false,
     ...over,
@@ -35,7 +40,7 @@ function decide(over: Partial<AccessInput>): Decision {
 }
 
 describe("publish state", () => {
-  it("blocks draft courses and draft lessons before looking at entitlements", () => {
+  it("blocks draft courses and draft lessons before looking at enrollments", () => {
     expect(decide({ course: { ...course, status: "draft" } })).toEqual({
       ok: false,
       reason: "course_not_published",
@@ -44,12 +49,12 @@ describe("publish state", () => {
       ok: false,
       reason: "lesson_not_published",
     });
-    expect(decide({ course: { ...course, status: "draft" }, entitlements: [] })).toEqual({
+    expect(decide({ course: { ...course, status: "draft" }, enrollments: [] })).toEqual({
       ok: false,
       reason: "course_not_published",
     });
   });
-  it("keeps archived courses readable for entitled people", () => {
+  it("keeps archived courses readable for enrolled people", () => {
     expect(decide({ course: { ...course, status: "archived" } })).toEqual({ ok: true });
   });
   it("lets privileged people (course teachers, admins) see everything, drafts included", () => {
@@ -58,129 +63,93 @@ describe("publish state", () => {
         privileged: true,
         course: { ...course, status: "draft" },
         lesson: { ...lesson, status: "draft" },
-        entitlements: [],
+        enrollments: [],
       }),
     ).toEqual({ ok: true });
   });
 });
 
-describe("entitlement matching", () => {
-  it("requires a matching scope", () => {
-    expect(decide({ entitlements: [] })).toEqual({ ok: false, reason: "not_entitled" });
-    expect(
-      decide({ entitlements: [{ scope: "course", ref: "other", rule: "immediate", until: null }] }),
-    ).toEqual({ ok: false, reason: "not_entitled" });
-    expect(
-      decide({
-        entitlements: [{ scope: "all_courses", ref: null, rule: "immediate", until: null }],
-      }),
-    ).toEqual({ ok: true });
-  });
-  it("matches cohort scope only through membership of a cohort of this course", () => {
-    const e = [{ scope: "cohort" as const, ref: "g1", rule: "immediate", until: null }];
-    expect(decide({ entitlements: e })).toEqual({ ok: false, reason: "not_entitled" });
-    expect(decide({ entitlements: e, cohorts: [{ slug: "g1", releases: [] }] })).toEqual({
-      ok: true,
-    });
-    expect(decide({ entitlements: e, cohorts: [{ slug: "g2", releases: [] }] })).toEqual({
+describe("enrollment matching", () => {
+  it("requires an enrollment in this course", () => {
+    expect(decide({ enrollments: [] })).toEqual({ ok: false, reason: "not_enrolled" });
+    expect(decide({ enrollments: [enrollment({ courseSlug: "other" })] })).toEqual({
       ok: false,
-      reason: "not_entitled",
+      reason: "not_enrolled",
     });
   });
-  it("reports unknown rule keys instead of granting access", () => {
-    expect(
-      decide({ entitlements: [{ scope: "course", ref: "c1", rule: "gold_tier", until: null }] }),
-    ).toEqual({ ok: false, reason: "unknown_rule" });
+  it("treats a revoked enrollment as none", () => {
+    expect(decide({ enrollments: [enrollment({ status: "revoked" })] })).toEqual({
+      ok: false,
+      reason: "not_enrolled",
+    });
   });
 });
 
-describe("until", () => {
-  it("is inclusive of the last day in the configured zone", () => {
-    expect(
-      decide({
-        entitlements: [{ scope: "course", ref: "c1", rule: "immediate", until: "2026-09-11" }],
-      }),
-    ).toEqual({ ok: true });
-    expect(
-      decide({
-        entitlements: [{ scope: "course", ref: "c1", rule: "immediate", until: "2026-09-10" }],
-      }),
-    ).toEqual({ ok: false, reason: "expired", expiredOn: "2026-09-10" });
+describe("validity window", () => {
+  it("is open before valid_until and closed from that instant on", () => {
+    const until = new Date("2026-09-11T10:00:01Z");
+    expect(decide({ enrollments: [enrollment({ validUntil: until })] })).toEqual({ ok: true });
+    expect(decide({ enrollments: [enrollment({ validUntil: NOW })] })).toEqual({
+      ok: false,
+      reason: "expired",
+      expiredOn: "2026-09-11",
+    });
   });
-  it("uses the zone's calendar, not UTC", () => {
-    // 23:30 UTC on the 10th is already the 11th in Madrid.
-    const late = new Date("2026-09-10T23:30:00Z");
-    expect(
-      decide({
-        now: late,
-        entitlements: [{ scope: "course", ref: "c1", rule: "immediate", until: "2026-09-10" }],
-      }),
-    ).toEqual({ ok: false, reason: "expired", expiredOn: "2026-09-10" });
+  it("names the day in the deployment's zone", () => {
+    const d = decide({
+      enrollments: [enrollment({ validUntil: new Date("2026-09-10T22:30:00Z") })],
+    });
+    expect(d).toEqual({ ok: false, reason: "expired", expiredOn: "2026-09-11" });
   });
-  it("prefers a live entitlement over an expired one", () => {
-    expect(
-      decide({
-        entitlements: [
-          { scope: "course", ref: "c1", rule: "immediate", until: "2020-01-01" },
-          { scope: "all_courses", ref: null, rule: "immediate", until: null },
-        ],
-      }),
-    ).toEqual({ ok: true });
-  });
-});
-
-describe("rule types", () => {
-  it("immediate opens at once", () => {
-    expect(decide({})).toEqual({ ok: true });
-  });
-  it("fixed_date opens at local midnight of the date", () => {
-    const e = [{ scope: "course" as const, ref: "c1", rule: "fixed", until: null }];
-    expect(decide({ entitlements: e })).toEqual({
+  it("opens exactly at valid_from", () => {
+    const from = new Date("2026-09-20T08:00:00Z");
+    expect(decide({ enrollments: [enrollment({ validFrom: from })] })).toEqual({
       ok: false,
       reason: "not_yet_released",
-      availableAt: new Date("2026-09-30T22:00:00Z"),
+      availableAt: from,
     });
-    expect(decide({ entitlements: e, now: new Date("2026-09-30T22:00:00Z") })).toEqual({
-      ok: true,
-    });
-    expect(decide({ entitlements: e, now: new Date("2026-09-30T21:59:59Z") }).ok).toBe(false);
+    expect(decide({ enrollments: [enrollment({ validFrom: NOW })] })).toEqual({ ok: true });
   });
-  it("delayed_after_course_end waits for the course to end, then N days", () => {
-    const e = [{ scope: "all_courses" as const, ref: null, rule: "delayed", until: null }];
-    expect(decide({ entitlements: e })).toEqual({ ok: false, reason: "awaiting_course_end" });
-    const ended = { ...course, endedAt: "2026-07-31" };
-    // 2026-07-31 00:00 Madrid = 07-30 22:00Z; + 30 days = 08-29 22:00Z
-    expect(
-      decide({ entitlements: e, course: ended, now: new Date("2026-08-29T21:59:00Z") }),
-    ).toEqual({
+  it("honours a stored status of expired even inside the window", () => {
+    expect(decide({ enrollments: [enrollment({ status: "expired" })] })).toMatchObject({
       ok: false,
-      reason: "not_yet_released",
-      availableAt: new Date("2026-08-29T22:00:00Z"),
+      reason: "expired",
     });
-    expect(
-      decide({ entitlements: e, course: ended, now: new Date("2026-08-29T22:00:00Z") }),
-    ).toEqual({ ok: true });
   });
-  it("takes the earliest availability across several live entitlements", () => {
+  it("prefers a live enrollment over an expired one", () => {
     expect(
       decide({
-        entitlements: [
-          { scope: "all_courses", ref: null, rule: "delayed", until: null },
-          { scope: "course", ref: "c1", rule: "immediate", until: null },
-        ],
+        enrollments: [enrollment({ validUntil: new Date("2026-01-31T00:00:00Z") }), enrollment()],
       }),
     ).toEqual({ ok: true });
+  });
+  it("reports the latest lapse when every enrollment has ended", () => {
+    const d = decide({
+      enrollments: [
+        enrollment({ validUntil: new Date("2026-03-01T12:00:00Z") }),
+        enrollment({ validUntil: new Date("2026-05-01T12:00:00Z") }),
+      ],
+    });
+    expect(d).toEqual({ ok: false, reason: "expired", expiredOn: "2026-05-01" });
+  });
+  it("shows an upcoming renewal rather than the lapse before it", () => {
+    const from = new Date("2026-10-01T00:00:00Z");
+    const d = decide({
+      enrollments: [
+        enrollment({ validUntil: new Date("2026-06-01T00:00:00Z") }),
+        enrollment({ validFrom: from }),
+      ],
+    });
+    expect(d).toEqual({ ok: false, reason: "not_yet_released", availableAt: from });
   });
 });
 
 describe("cohort drip", () => {
-  const member = [{ scope: "cohort" as const, ref: "g1", rule: "immediate", until: null }];
   const future = new Date("2026-09-20T08:00:00Z");
   const past = new Date("2026-09-01T08:00:00Z");
   it("locks a lesson until its chapter's release", () => {
     expect(
       decide({
-        entitlements: member,
         cohorts: [
           { slug: "g1", releases: [{ chapterId: "ch1", lessonId: null, releaseAt: future }] },
         ],
@@ -188,7 +157,6 @@ describe("cohort drip", () => {
     ).toEqual({ ok: false, reason: "not_yet_released", availableAt: future });
     expect(
       decide({
-        entitlements: member,
         cohorts: [
           { slug: "g1", releases: [{ chapterId: "ch1", lessonId: null, releaseAt: past }] },
         ],
@@ -200,40 +168,24 @@ describe("cohort drip", () => {
       { chapterId: "ch1", lessonId: null, releaseAt: future },
       { chapterId: null, lessonId: "l1", releaseAt: past },
     ];
-    expect(decide({ entitlements: member, cohorts: [{ slug: "g1", releases }] })).toEqual({
-      ok: true,
-    });
+    expect(decide({ cohorts: [{ slug: "g1", releases }] })).toEqual({ ok: true });
   });
-  it("leaves unscheduled lessons to the entitlement alone", () => {
+  it("leaves unscheduled lessons to the enrollment alone", () => {
     expect(
       decide({
-        entitlements: member,
         cohorts: [
           { slug: "g1", releases: [{ chapterId: "other", lessonId: null, releaseAt: future }] },
         ],
       }),
     ).toEqual({ ok: true });
   });
-  it("applies drip to any member, whatever the entitlement scope", () => {
-    expect(
-      decide({
-        cohorts: [
-          { slug: "g1", releases: [{ chapterId: "ch1", lessonId: null, releaseAt: future }] },
-        ],
-      }),
-    ).toEqual({ ok: false, reason: "not_yet_released", availableAt: future });
-  });
-  it("never opens earlier than the entitlement rule", () => {
-    const fixed = [{ scope: "course" as const, ref: "c1", rule: "fixed", until: null }];
+  it("never opens earlier than the enrollment's valid_from", () => {
+    const from = new Date("2026-09-30T22:00:00Z");
     const d = decide({
-      entitlements: fixed,
+      enrollments: [enrollment({ validFrom: from })],
       cohorts: [{ slug: "g1", releases: [{ chapterId: "ch1", lessonId: null, releaseAt: past }] }],
     });
-    expect(d).toEqual({
-      ok: false,
-      reason: "not_yet_released",
-      availableAt: new Date("2026-09-30T22:00:00Z"),
-    });
+    expect(d).toEqual({ ok: false, reason: "not_yet_released", availableAt: from });
   });
   it("uses the earliest schedule when a person is in several cohorts", () => {
     const cohorts = [
@@ -246,7 +198,6 @@ describe("cohort drip", () => {
     expect(
       decide({
         lesson: null,
-        entitlements: member,
         cohorts: [
           { slug: "g1", releases: [{ chapterId: "ch1", lessonId: null, releaseAt: future }] },
         ],
@@ -255,36 +206,27 @@ describe("cohort drip", () => {
   });
 });
 
-describe("isEntitled (catalogue)", () => {
-  const base = { now: NOW, timeZone: TZ, rules, course, cohorts: [], privileged: false };
-  it("counts delayed and not-yet-released access as entitled", () => {
+describe("isEnrolled (catalogue)", () => {
+  const base = { now: NOW, timeZone: TZ, course, cohorts: [], privileged: false };
+  it("counts not-yet-started access as enrolled", () => {
     expect(
-      isEntitled({
+      isEnrolled({
         ...base,
-        entitlements: [{ scope: "all_courses", ref: null, rule: "delayed", until: null }],
-      }),
-    ).toBe(true);
-    expect(
-      isEntitled({
-        ...base,
-        entitlements: [{ scope: "course", ref: "c1", rule: "fixed", until: null }],
+        enrollments: [enrollment({ validFrom: new Date("2026-12-01T00:00:00Z") })],
       }),
     ).toBe(true);
   });
-  it("excludes expired, unmatched and draft", () => {
+  it("excludes expired, revoked and absent enrollments", () => {
     expect(
-      isEntitled({
+      isEnrolled({
         ...base,
-        entitlements: [{ scope: "course", ref: "c1", rule: "immediate", until: "2020-01-01" }],
+        enrollments: [enrollment({ validUntil: new Date("2020-01-01T00:00:00Z") })],
       }),
     ).toBe(false);
-    expect(isEntitled({ ...base, entitlements: [] })).toBe(false);
-    expect(
-      isEntitled({
-        ...base,
-        course: { ...course, status: "draft" },
-        entitlements: [{ scope: "all_courses", ref: null, rule: "immediate", until: null }],
-      }),
-    ).toBe(false);
+    expect(isEnrolled({ ...base, enrollments: [enrollment({ status: "revoked" })] })).toBe(false);
+    expect(isEnrolled({ ...base, enrollments: [] })).toBe(false);
+  });
+  it("includes privileged people", () => {
+    expect(isEnrolled({ ...base, privileged: true, enrollments: [] })).toBe(true);
   });
 });

@@ -1,12 +1,12 @@
 /**
- * Session lifecycle around the OIDC flow. Together with `access/entitlements.ts` this is the only
+ * Session lifecycle around the OIDC flow. Together with `access/enrollments.ts` this is the only
  * writer of `person` rows. Server-only.
  */
 import { eq } from "drizzle-orm";
 import { db } from "~/db";
 import { person, session } from "~/db/schema";
 import { isLocale } from "~/i18n/locale";
-import { syncEntitlements } from "~/server/access/entitlements";
+import { syncEnrollments } from "~/server/access/enrollments";
 import { SESSION_ABSOLUTE_MS, clearSessionCookie, currentUser, setSessionCookie } from "./authz";
 import { endSessionUrl, type IdentityClaims } from "./oidc";
 
@@ -37,10 +37,10 @@ export async function createSessionFor(claims: IdentityClaims): Promise<void> {
   // Refresh on login (docs/spec.md §7). The source may also carry roles; the IdP's win here
   // because they were just verified, so re-apply them after the sync.
   try {
-    await syncEntitlements(claims.sub);
+    await syncEnrollments(claims.sub);
     await db.update(person).set({ roles: claims.roles }).where(eq(person.id, p!.id));
   } catch (e) {
-    console.warn(`entitlement sync on login failed for ${claims.sub}: ${(e as Error).message}`);
+    console.warn(`enrollment sync on login failed for ${claims.sub}: ${(e as Error).message}`);
   }
 
   const [s] = await db

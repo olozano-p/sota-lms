@@ -1,6 +1,6 @@
 /**
  * Loads the facts `canSeeLesson` needs and applies it. Content loaders call `requireLessonAccess`;
- * the syllabus and catalogue call `courseAccessMap` / `entitledCourseIds`. Server-only.
+ * the syllabus and catalogue call `decideLessons` / `enrolledCourses`. Server-only.
  */
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "~/db";
@@ -11,23 +11,23 @@ import {
   cohortRelease,
   course,
   courseTeacher,
-  entitlement,
+  enrollment,
   lesson,
 } from "~/db/schema";
 import { lmsConfig } from "~/config";
 import { now as clock } from "~/lib/dates";
 import { AuthorizationError, hasRole, type SessionUser } from "~/server/auth/authz";
-import { ensureFreshEntitlements } from "./entitlements";
+import { ensureFreshEnrollments } from "./enrollments";
 import {
   canSeeLesson,
-  isEntitled,
+  isEnrolled,
   type CohortFact,
   type Decision,
-  type EntitlementFact,
+  type EnrollmentFact,
 } from "./rules";
 
 export interface PersonAccessFacts {
-  entitlements: EntitlementFact[];
+  enrollments: EnrollmentFact[];
   /** Cohorts the person belongs to, with their drip schedule, keyed by course id. */
   cohortsByCourse: Map<string, CohortFact[]>;
   teacherOf: Set<string>;
@@ -35,17 +35,18 @@ export interface PersonAccessFacts {
 }
 
 export async function loadPersonFacts(user: SessionUser): Promise<PersonAccessFacts> {
-  await ensureFreshEntitlements(user.id);
-  const [ents, memberships, teaching] = await Promise.all([
+  await ensureFreshEnrollments(user.id);
+  const [enrolled, memberships, teaching] = await Promise.all([
     db
       .select({
-        scope: entitlement.scope,
-        ref: entitlement.ref,
-        rule: entitlement.rule,
-        until: entitlement.until,
+        courseSlug: course.slug,
+        status: enrollment.status,
+        validFrom: enrollment.validFrom,
+        validUntil: enrollment.validUntil,
       })
-      .from(entitlement)
-      .where(eq(entitlement.personId, user.id)),
+      .from(enrollment)
+      .innerJoin(course, eq(course.id, enrollment.courseId))
+      .where(eq(enrollment.personId, user.id)),
     db
       .select({ id: cohort.id, slug: cohort.slug, courseId: cohort.courseId })
       .from(cohortMember)
@@ -79,7 +80,7 @@ export async function loadPersonFacts(user: SessionUser): Promise<PersonAccessFa
     cohortsByCourse.set(m.courseId, list);
   }
   return {
-    entitlements: ents,
+    enrollments: enrolled,
     cohortsByCourse,
     teacherOf: new Set(teaching.map((t) => t.courseId)),
     admin: hasRole(user, "admin"),
@@ -90,28 +91,26 @@ type CourseRow = {
   id: string;
   slug: string;
   status: "draft" | "published" | "archived";
-  endedAt: string | null;
 };
 
 function baseInput(facts: PersonAccessFacts, c: CourseRow, at: Date) {
   return {
     now: at,
     timeZone: lmsConfig.timeZone,
-    rules: lmsConfig.accessRules,
-    course: { slug: c.slug, status: c.status, endedAt: c.endedAt },
-    entitlements: facts.entitlements,
+    course: { slug: c.slug, status: c.status },
+    enrollments: facts.enrollments,
     cohorts: facts.cohortsByCourse.get(c.id) ?? [],
     privileged: facts.admin || facts.teacherOf.has(c.id),
   };
 }
 
-/** Courses the person may see in the catalogue (entitled, or teaching). */
-export function entitledCourses<T extends CourseRow>(
+/** Courses the person may see in the catalogue (enrolled, or teaching). */
+export function enrolledCourses<T extends CourseRow>(
   facts: PersonAccessFacts,
   courses: T[],
   at = clock(),
 ): T[] {
-  return courses.filter((c) => isEntitled(baseInput(facts, c, at)));
+  return courses.filter((c) => isEnrolled(baseInput(facts, c, at)));
 }
 
 /** One decision per lesson of a course; the syllabus paints lock states from it. */

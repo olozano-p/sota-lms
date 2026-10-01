@@ -7,18 +7,6 @@ import { z } from "zod";
 export const LOCALE_CODES = ["ca", "es", "en"] as const;
 export type LocaleCode = (typeof LOCALE_CODES)[number];
 
-/**
- * Access rule types the core understands. The entitlement source names *instances* of these
- * (e.g. "immediate", "delayed") in each entitlement's `rule` field; the mapping from an
- * organisation's tiers to those names happens outside SOTA.
- */
-export const accessRuleSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("immediate") }),
-  z.object({ type: z.literal("delayed_after_course_end"), days: z.number().int().min(0) }),
-  z.object({ type: z.literal("fixed_date"), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }),
-]);
-export type AccessRule = z.infer<typeof accessRuleSchema>;
-
 export const lmsConfigSchema = z.object({
   brand: z.object({
     /** Product name shown in the shell and emails. */
@@ -45,9 +33,8 @@ export const lmsConfigSchema = z.object({
     /** Cookie name; set the domain in `.env` (`COOKIE_DOMAIN`) so a parent site can share it. */
     cookieName: z.string().default("sota_locale"),
   }),
-  /** IANA zone used to turn dates (course end, release dates) into instants. */
+  /** IANA zone used to turn instants into calendar days (expiry notices, digests). */
   timeZone: z.string().default("UTC"),
-  accessRules: z.record(z.string(), accessRuleSchema),
   /** Hostnames allowed in `embed` blocks and in the CSP `frame-src`. */
   embedAllowlist: z.array(z.string()).default([]),
   uploads: z.object({

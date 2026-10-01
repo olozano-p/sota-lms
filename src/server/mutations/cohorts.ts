@@ -8,12 +8,14 @@ import {
   cohort,
   cohortMember,
   cohortRelease,
+  enrollment,
   lesson,
   person,
 } from "~/db/schema";
 import { SLUG_PATTERN, slugify } from "~/lib/slug";
 import { audit } from "~/server/audit";
 import { requireCourseTeacher } from "~/server/auth/authz";
+import { upsertManualEnrollment } from "./enrollments";
 
 const id = z.string().uuid();
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -141,7 +143,10 @@ export const deleteCohort = createServerFn({ method: "POST" })
     });
   });
 
-/** Manual placement by email; the entitlement source's `cohort` scope also places people automatically. */
+/**
+ * Manual placement by email. A student also gets a `manual` cohort-scoped enrollment, so being in
+ * the group opens the course; the enrollment source's cohort-scoped rows place people automatically.
+ */
 export const addCohortMember = createServerFn({ method: "POST" })
   .validator(
     z.object({
@@ -151,7 +156,8 @@ export const addCohortMember = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const user = await requireCourseTeacher(await courseIdOfCohort(data.cohortId));
+    const courseId = await courseIdOfCohort(data.cohortId);
+    const user = await requireCourseTeacher(courseId);
     const [p] = await db
       .select({ id: person.id })
       .from(person)
@@ -166,12 +172,20 @@ export const addCohortMember = createServerFn({ method: "POST" })
           target: [cohortMember.cohortId, cohortMember.personId],
           set: { role: data.role },
         });
+      const enrolled =
+        data.role === "student"
+          ? await upsertManualEnrollment(tx, {
+              personId: p.id,
+              courseId,
+              cohortId: data.cohortId,
+            })
+          : null;
       await audit(tx, {
         actorId: user.id,
         action: "cohort.member.add",
         entity: "cohort",
         entityId: data.cohortId,
-        after: { personId: p.id, role: data.role },
+        after: { personId: p.id, role: data.role, enrollmentId: enrolled?.row.id ?? null },
       });
       return { ok: true };
     });
@@ -186,6 +200,17 @@ export const removeCohortMember = createServerFn({ method: "POST" })
         .delete(cohortMember)
         .where(
           and(eq(cohortMember.cohortId, data.cohortId), eq(cohortMember.personId, data.personId)),
+        );
+      // Only the placement's own `manual` row: synced rows belong to the external system.
+      await tx
+        .update(enrollment)
+        .set({ status: "revoked" })
+        .where(
+          and(
+            eq(enrollment.personId, data.personId),
+            eq(enrollment.cohortId, data.cohortId),
+            eq(enrollment.source, "manual"),
+          ),
         );
       await audit(tx, {
         actorId: user.id,

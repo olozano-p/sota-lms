@@ -1,24 +1,22 @@
 /**
  * The one place that decides whether a person may open a lesson (CLAUDE.md invariants).
  * Pure: takes every fact as data, including `now`, so the matrix in tests/access.test.ts can be
- * exhaustive. Nothing here knows what an organisation's membership tiers are — only rule *types*.
+ * exhaustive. Nothing here knows what an organisation's membership tiers are: the external system
+ * sends per-course enrollments with the validity window it wants (ADR-014).
  */
-import type { AccessRule } from "../../config/schema.ts";
-import { dateInZone, zonedMidnight } from "../../lib/dates.ts";
+import { dateInZone } from "../../lib/dates.ts";
 
-export interface EntitlementFact {
-  scope: "course" | "all_courses" | "cohort";
-  ref: string | null;
-  /** Key into `rules`. Unknown keys are treated as "no access" and reported. */
-  rule: string;
-  /** Inclusive last day of access, `YYYY-MM-DD`, or null. */
-  until: string | null;
+export interface EnrollmentFact {
+  courseSlug: string;
+  status: "active" | "expired" | "revoked";
+  validFrom: Date;
+  /** Exclusive end of access; null means open-ended. */
+  validUntil: Date | null;
 }
 
 export interface CourseFact {
   slug: string;
   status: "draft" | "published" | "archived";
-  endedAt: string | null;
 }
 
 export interface LessonFact {
@@ -34,12 +32,12 @@ export interface CohortFact {
 
 export interface AccessInput {
   now: Date;
+  /** Zone used to name the day an expired enrollment ended. */
   timeZone: string;
-  rules: Record<string, AccessRule>;
   course: CourseFact;
   /** Null evaluates course-level access (catalogue, syllabus header). */
   lesson: LessonFact | null;
-  entitlements: EntitlementFact[];
+  enrollments: EnrollmentFact[];
   /** Cohorts of this course the person belongs to (drip applies through them). */
   cohorts: CohortFact[];
   /** Teachers of the course and admins see everything, drafts included. */
@@ -47,85 +45,50 @@ export interface AccessInput {
 }
 
 export type LockReason =
-  | "not_entitled"
+  | "not_enrolled"
   | "expired"
   | "course_not_published"
   | "lesson_not_published"
-  | "not_yet_released"
-  | "awaiting_course_end"
-  | "unknown_rule";
+  | "not_yet_released";
 
 export type Decision =
   | { ok: true }
   | { ok: false; reason: LockReason; availableAt?: Date; expiredOn?: string };
 
-/** When a rule instance lets its holder in; `null` means "not until something else happens". */
-function availabilityOf(rule: AccessRule, course: CourseFact, timeZone: string): Date | null {
-  switch (rule.type) {
-    case "immediate":
-      return new Date(0);
-    case "fixed_date":
-      return zonedMidnight(rule.date, timeZone);
-    case "delayed_after_course_end": {
-      if (!course.endedAt) return null;
-      const end = zonedMidnight(course.endedAt, timeZone);
-      return new Date(end.getTime() + rule.days * 86_400_000);
-    }
-  }
-}
-
-function matches(e: EntitlementFact, course: CourseFact, cohortSlugs: Set<string>): boolean {
-  if (e.scope === "all_courses") return true;
-  if (e.scope === "course") return e.ref === course.slug;
-  return e.ref !== null && cohortSlugs.has(e.ref);
-}
-
 export function canSeeLesson(input: AccessInput): Decision {
-  const { now, timeZone, rules, course, lesson, entitlements, cohorts } = input;
+  const { now, timeZone, course, lesson, enrollments, cohorts } = input;
 
   if (input.privileged) return { ok: true };
   if (course.status === "draft") return { ok: false, reason: "course_not_published" };
   if (lesson && lesson.status !== "published") return { ok: false, reason: "lesson_not_published" };
 
-  const cohortSlugs = new Set(cohorts.map((c) => c.slug));
-  const today = dateInZone(now, timeZone);
-  const matching = entitlements.filter((e) => matches(e, course, cohortSlugs));
-  if (matching.length === 0) return { ok: false, reason: "not_entitled" };
+  // A revoked enrollment is as good as none.
+  const mine = enrollments.filter((e) => e.courseSlug === course.slug && e.status !== "revoked");
+  if (mine.length === 0) return { ok: false, reason: "not_enrolled" };
 
-  const live = matching.filter((e) => e.until === null || e.until >= today);
+  const ended = (e: EnrollmentFact) =>
+    e.status === "expired" || (e.validUntil !== null && e.validUntil <= now);
+  const live = mine.filter((e) => !ended(e) && e.validFrom <= now);
   if (live.length === 0) {
-    const last = matching
-      .map((e) => e.until!)
-      .sort()
-      .at(-1)!;
-    return { ok: false, reason: "expired", expiredOn: last };
-  }
-
-  // The best entitlement wins: the earliest availability across the live ones.
-  let best: Date | null = null;
-  let sawUnknownRule = false;
-  let sawAwaitingEnd = false;
-  for (const e of live) {
-    const rule = rules[e.rule];
-    if (!rule) {
-      sawUnknownRule = true;
-      continue;
+    // A renewal that has not started yet is more useful to show than the lapse before it.
+    const upcoming = mine.filter((e) => !ended(e)).map((e) => e.validFrom);
+    if (upcoming.length) {
+      const availableAt = upcoming.reduce((a, b) => (a < b ? a : b));
+      return { ok: false, reason: "not_yet_released", availableAt };
     }
-    const at = availabilityOf(rule, course, timeZone);
-    if (at === null) {
-      sawAwaitingEnd = true;
-      continue;
-    }
-    if (best === null || at < best) best = at;
-  }
-  if (best === null) {
-    if (sawAwaitingEnd) return { ok: false, reason: "awaiting_course_end" };
-    if (sawUnknownRule) return { ok: false, reason: "unknown_rule" };
-    return { ok: false, reason: "not_entitled" };
+    const last = mine
+      .map((e) => e.validUntil)
+      .filter((d): d is Date => d !== null)
+      .reduce<Date>((a, b) => (a > b ? a : b), new Date(0));
+    return {
+      ok: false,
+      reason: "expired",
+      expiredOn: dateInZone(last.getTime() === 0 ? now : last, timeZone),
+    };
   }
 
   // Cohort drip: a scheduled lesson (or its chapter) opens at its release instant; a lesson-level
-  // row overrides the chapter's. Unscheduled lessons follow the entitlement alone. With several
+  // row overrides the chapter's. Unscheduled lessons follow the enrollment alone. With several
   // cohorts, the earliest schedule applies.
   if (lesson && cohorts.length > 0) {
     let drip: Date | null = null;
@@ -135,15 +98,14 @@ export function canSeeLesson(input: AccessInput): Decision {
       const at = (forLesson ?? forChapter)?.releaseAt ?? new Date(0);
       if (drip === null || at < drip) drip = at;
     }
-    if (drip && drip > best) best = drip;
+    if (drip && drip > now) return { ok: false, reason: "not_yet_released", availableAt: drip };
   }
 
-  if (best > now) return { ok: false, reason: "not_yet_released", availableAt: best };
   return { ok: true };
 }
 
-/** Course-level entitlement, ignoring release timing: what the catalogue lists. */
-export function isEntitled(input: Omit<AccessInput, "lesson">): boolean {
+/** Course-level enrollment, ignoring release timing: what the catalogue lists. */
+export function isEnrolled(input: Omit<AccessInput, "lesson">): boolean {
   const d = canSeeLesson({ ...input, lesson: null });
-  return d.ok || d.reason === "not_yet_released" || d.reason === "awaiting_course_end";
+  return d.ok || d.reason === "not_yet_released";
 }

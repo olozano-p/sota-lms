@@ -15,7 +15,7 @@ import {
 } from "~/server/access/forum";
 import {
   decideCourse,
-  entitledCourses,
+  enrolledCourses,
   isPrivileged,
   loadPersonFacts,
 } from "~/server/access/require";
@@ -297,7 +297,7 @@ export const getCourseHeader = createServerFn({ method: "GET" })
     if (!c) return null;
     const facts = await loadPersonFacts(user);
     const privileged = isPrivileged(facts, c.id);
-    if (!privileged && entitledCourses(facts, [c]).length === 0) return null;
+    if (!privileged && enrolledCourses(facts, [c]).length === 0) return null;
     return {
       course: { id: c.id, slug: c.slug, title: c.title, subtitle: c.subtitle, status: c.status },
       privileged,

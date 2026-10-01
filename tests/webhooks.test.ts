@@ -7,25 +7,27 @@ import {
   cohort,
   cohortMember,
   course,
-  entitlement,
+  enrollment,
   person,
   session,
   webhookEvent,
 } from "../src/db/schema.ts";
-import { handleEntitlementWebhook, signWebhook } from "../src/server/access/entitlements.ts";
+import { handleEnrollmentWebhook, signWebhook } from "../src/server/access/enrollments.ts";
 
 const SECRET = "test-webhook-secret";
 const NOW = new Date("2026-09-11T10:00:00Z");
 
+/** External ids are unique per source, so the default one carries the subject. */
 function payload(over: Record<string, unknown> = {}) {
+  const sub = (over.sub as string | undefined) ?? "u-1";
   return JSON.stringify({
-    version: "entitlements/v1",
+    version: "enrollments/v1",
     sub: "u-1",
     email: "one@example.invalid",
     name: "One",
     locale: "ca",
     roles: ["student"],
-    entitlements: [{ scope: "course", ref: "c1", rule: "immediate", until: null }],
+    enrollments: [{ external_id: `ext-${sub}`, course: "c1" }],
     ...over,
   });
 }
@@ -43,10 +45,22 @@ function headers(
 }
 
 const handle = (body: string, h: ReturnType<typeof headers>, now = NOW) =>
-  handleEntitlementWebhook(body, h, { secret: SECRET, now });
+  handleEnrollmentWebhook(body, h, { secret: SECRET, now });
+
+let c1: string;
+let c2: string;
 
 beforeAll(async () => {
   await runMigrations(db);
+  const courses = await db
+    .insert(course)
+    .values([
+      { slug: "c1", title: "C1", language: "en" },
+      { slug: "c2", title: "C2", language: "en" },
+    ])
+    .returning({ id: course.id, slug: course.slug });
+  c1 = courses.find((c) => c.slug === "c1")!.id;
+  c2 = courses.find((c) => c.slug === "c2")!.id;
 });
 
 describe("verification", () => {
@@ -71,7 +85,7 @@ describe("verification", () => {
     expect((await handle(body, headers(body, undefined, fresh))).status).toBe(200);
   });
   it("stores and reports a payload that fails the contract", async () => {
-    const body = JSON.stringify({ version: "entitlements/v1", sub: "x" });
+    const body = JSON.stringify({ version: "enrollments/v1", sub: "x" });
     const h = headers(body);
     const r = await handle(body, h);
     expect(r.status).toBe(422);
@@ -85,7 +99,7 @@ describe("verification", () => {
 });
 
 describe("processing", () => {
-  it("mirrors the person and replaces external entitlements, keeping admin grants", async () => {
+  it("mirrors the person and reconciles webhook enrollments, never touching manual ones", async () => {
     const first = payload();
     expect((await handle(first, headers(first))).status).toBe(200);
     const [p] = await db.select().from(person).where(eq(person.idpSub, "u-1"));
@@ -93,23 +107,81 @@ describe("processing", () => {
     expect(p?.roles).toEqual(["student"]);
     expect(p?.entitlementsSyncedAt).toBeTruthy();
 
-    await db.insert(entitlement).values({
+    await db.insert(enrollment).values({
       personId: p!.id,
-      scope: "course",
-      ref: "manual",
-      rule: "immediate",
-      until: null,
-      source: "admin",
+      courseId: c2,
+      source: "manual",
+      status: "active",
     });
 
     const second = payload({
-      entitlements: [{ scope: "all_courses", ref: null, rule: "delayed", until: "2027-01-31" }],
+      enrollments: [
+        {
+          external_id: "ext-u-1",
+          course: "c1",
+          valid_until: "2027-01-31T23:00:00Z",
+        },
+        { external_id: "ext-u-1b", course: "c2", status: "expired" },
+      ],
     });
     expect((await handle(second, headers(second))).status).toBe(200);
-    const rows = await db.select().from(entitlement).where(eq(entitlement.personId, p!.id));
+    const rows = await db.select().from(enrollment).where(eq(enrollment.personId, p!.id));
     expect(
-      rows.map((r) => `${r.source}:${r.scope}:${r.ref ?? ""}:${r.rule}:${r.until ?? ""}`).sort(),
-    ).toEqual(["admin:course:manual:immediate:", "external:all_courses::delayed:2027-01-31"]);
+      rows
+        .map(
+          (r) =>
+            `${r.source}:${r.courseId === c1 ? "c1" : "c2"}:${r.externalId ?? ""}:${r.status}:${r.validUntil?.toISOString() ?? ""}`,
+        )
+        .sort(),
+    ).toEqual([
+      "manual:c2::active:",
+      "webhook:c1:ext-u-1:active:2027-01-31T23:00:00.000Z",
+      "webhook:c2:ext-u-1b:expired:",
+    ]);
+
+    // A full-state payload without ext-u-1b revokes it; the manual row is still untouched.
+    const third = payload({ enrollments: [{ external_id: "ext-u-1", course: "c1" }] });
+    expect((await handle(third, headers(third))).status).toBe(200);
+    const after = await db.select().from(enrollment).where(eq(enrollment.personId, p!.id));
+    const byKey = Object.fromEntries(
+      after.map((r) => [`${r.source}:${r.externalId ?? ""}`, r.status]),
+    );
+    expect(byKey).toEqual({
+      "manual:": "active",
+      "webhook:ext-u-1": "active",
+      "webhook:ext-u-1b": "revoked",
+    });
+    expect(after.find((r) => r.externalId === "ext-u-1")?.validUntil).toBeNull();
+  });
+  it("updates the row in place when the external id is stable", async () => {
+    const body = payload({ sub: "u-5", email: "five@example.invalid", name: "Five" });
+    await handle(body, headers(body));
+    const [p] = await db.select().from(person).where(eq(person.idpSub, "u-5"));
+    const [before] = await db.select().from(enrollment).where(eq(enrollment.personId, p!.id));
+    const moved = payload({
+      sub: "u-5",
+      email: "five@example.invalid",
+      name: "Five",
+      enrollments: [{ external_id: "ext-u-5", course: "c2", status: "revoked" }],
+    });
+    expect((await handle(moved, headers(moved))).status).toBe(200);
+    const rows = await db.select().from(enrollment).where(eq(enrollment.personId, p!.id));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.id).toBe(before!.id);
+    expect(rows[0]).toMatchObject({ courseId: c2, status: "revoked" });
+  });
+  it("skips enrollments that name an unknown course", async () => {
+    const body = payload({
+      sub: "u-6",
+      email: "six@example.invalid",
+      name: "Six",
+      enrollments: [{ external_id: "ext-x", course: "no-such-course" }],
+    });
+    expect((await handle(body, headers(body))).status).toBe(200);
+    const [p] = await db.select().from(person).where(eq(person.idpSub, "u-6"));
+    expect(await db.select().from(enrollment).where(eq(enrollment.personId, p!.id))).toHaveLength(
+      0,
+    );
   });
   it("is idempotent on X-Event-Id", async () => {
     const body = payload({ sub: "u-2", email: "two@example.invalid", name: "Two" });
@@ -153,33 +225,48 @@ describe("processing", () => {
     await handle(promoted, headers(promoted));
     expect(await db.select().from(session).where(eq(session.personId, p!.id))).toHaveLength(0);
   });
-  it("places the person in a cohort named by a cohort-scoped entitlement", async () => {
+  it("places the person in the cohort of a cohort-scoped enrollment", async () => {
     const [c] = await db
       .insert(course)
       .values({ slug: "c-webhook", title: "C", language: "en" })
       .returning({ id: course.id });
     await db.insert(cohort).values({ courseId: c!.id, slug: "group-a", title: "Group A" });
-    const body = payload({
-      sub: "u-4",
-      email: "four@example.invalid",
-      name: "Four",
-      entitlements: [{ scope: "cohort", ref: "group-a", rule: "immediate", until: null }],
-    });
+    const mk = () =>
+      payload({
+        sub: "u-4",
+        email: "four@example.invalid",
+        name: "Four",
+        enrollments: [{ external_id: "ext-u-4", course: "c-webhook", cohort: "group-a" }],
+      });
+    const body = mk();
     expect((await handle(body, headers(body))).status).toBe(200);
     const [p] = await db.select().from(person).where(eq(person.idpSub, "u-4"));
     const members = await db.select().from(cohortMember).where(eq(cohortMember.personId, p!.id));
     expect(members).toHaveLength(1);
     expect(members[0]?.role).toBe("student");
+    const [row] = await db.select().from(enrollment).where(eq(enrollment.personId, p!.id));
+    expect(row?.cohortId).toBe(members[0]?.cohortId);
     // A repeat is idempotent.
-    const again = payload({
-      sub: "u-4",
-      email: "four@example.invalid",
-      name: "Four",
-      entitlements: [{ scope: "cohort", ref: "group-a", rule: "immediate", until: null }],
-    });
+    const again = mk();
     await handle(again, headers(again));
     expect(
       await db.select().from(cohortMember).where(eq(cohortMember.personId, p!.id)),
     ).toHaveLength(1);
+    expect(await db.select().from(enrollment).where(eq(enrollment.personId, p!.id))).toHaveLength(
+      1,
+    );
+  });
+  it("skips a cohort that belongs to another course", async () => {
+    const body = payload({
+      sub: "u-7",
+      email: "seven@example.invalid",
+      name: "Seven",
+      enrollments: [{ external_id: "ext-u-7", course: "c1", cohort: "group-a" }],
+    });
+    expect((await handle(body, headers(body))).status).toBe(200);
+    const [p] = await db.select().from(person).where(eq(person.idpSub, "u-7"));
+    expect(await db.select().from(enrollment).where(eq(enrollment.personId, p!.id))).toHaveLength(
+      0,
+    );
   });
 });

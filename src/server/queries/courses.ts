@@ -9,7 +9,7 @@ import { requireUser } from "~/server/auth/authz";
 import {
   decideCourse,
   decideLessons,
-  entitledCourses,
+  enrolledCourses,
   isPrivileged,
   loadPersonFacts,
 } from "~/server/access/require";
@@ -38,7 +38,7 @@ async function lessonsOf(courseIds: string[]) {
     .orderBy(asc(chapter.sort), asc(lesson.sort));
 }
 
-/** My courses: entitled (or taught) courses with computed progress and a single resume target. */
+/** My courses: enrolled (or taught) courses with computed progress and a single resume target. */
 export const listMyCourses = createServerFn({ method: "GET" }).handler(async () => {
   const user = await requireUser();
   const facts = await loadPersonFacts(user);
@@ -52,7 +52,7 @@ export const listMyCourses = createServerFn({ method: "GET" }).handler(async () 
       ? await db.select().from(course).where(eq(course.status, "draft"))
       : [];
   const visible = [
-    ...entitledCourses(facts, all),
+    ...enrolledCourses(facts, all),
     ...drafts.filter((c) => isPrivileged(facts, c.id)),
   ];
   const lessons = await lessonsOf(visible.map((c) => c.id));
@@ -128,7 +128,7 @@ export type SyllabusLesson = {
   progress: "none" | "started" | "completed";
 };
 
-/** Everything the course page needs. Null when the person is not entitled (→ 404). */
+/** Everything the course page needs. Null when the person is not enrolled (→ 404). */
 export const getCourseSyllabus = createServerFn({ method: "GET" })
   .validator(z.object({ slug: z.string() }))
   .handler(async ({ data }) => {
@@ -137,7 +137,7 @@ export const getCourseSyllabus = createServerFn({ method: "GET" })
     if (!c) return null;
     const facts = await loadPersonFacts(user);
     const privileged = isPrivileged(facts, c.id);
-    if (!privileged && entitledCourses(facts, [c]).length === 0) return null;
+    if (!privileged && enrolledCourses(facts, [c]).length === 0) return null;
 
     const [chapters, lessons, progressRows, cohorts] = await Promise.all([
       db.select().from(chapter).where(eq(chapter.courseId, c.id)).orderBy(asc(chapter.sort)),

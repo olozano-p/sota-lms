@@ -6,4 +6,4 @@ import config from "../../lms.config.ts";
 import type { LmsConfig } from "./schema.ts";
 
 export const lmsConfig: LmsConfig = config;
-export type { AccessRule, LmsConfig, LocaleCode } from "./schema.ts";
+export type { LmsConfig, LocaleCode } from "./schema.ts";

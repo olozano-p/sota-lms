@@ -4,7 +4,7 @@ import { createSessionFor } from "~/server/auth/login";
 import { env } from "~/config/env";
 
 /**
- * OIDC callback: exchange the code, mirror the person, refresh entitlements, open our session.
+ * OIDC callback: exchange the code, mirror the person, refresh enrollments, open our session.
  * Errors land on the landing page with a generic code; details go to the server log only.
  */
 export const Route = createFileRoute("/auth/callback")({

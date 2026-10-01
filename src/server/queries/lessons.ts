@@ -6,7 +6,7 @@ import { chapter, course, lesson, lessonBlock, lessonProgress } from "~/db/schem
 import { requireUser } from "~/server/auth/authz";
 import {
   decideLessons,
-  entitledCourses,
+  enrolledCourses,
   isPrivileged,
   loadPersonFacts,
 } from "~/server/access/require";
@@ -14,7 +14,7 @@ import { isMediaOnly, resolveBlocks, type ResolvedBlock } from "~/server/service
 
 /**
  * The lesson page. A locked lesson still returns its title, position and neighbours (the reader
- * sees why and when), but no blocks. Not entitled to the course at all → null → 404.
+ * sees why and when), but no blocks. Not enrolled to the course at all → null → 404.
  */
 export const getLesson = createServerFn({ method: "GET" })
   .validator(z.object({ courseSlug: z.string(), lessonSlug: z.string() }))
@@ -24,7 +24,7 @@ export const getLesson = createServerFn({ method: "GET" })
     if (!c) return null;
     const facts = await loadPersonFacts(user);
     const privileged = isPrivileged(facts, c.id);
-    if (!privileged && entitledCourses(facts, [c]).length === 0) return null;
+    if (!privileged && enrolledCourses(facts, [c]).length === 0) return null;
 
     const ordered = await db
       .select({

@@ -2,9 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/db";
-import { auditLog, entitlement, person, webhookEvent } from "~/db/schema";
+import { auditLog, cohort, course, enrollment, person, webhookEvent } from "~/db/schema";
 import { requireRole } from "~/server/auth/authz";
-import { lmsConfig } from "~/config";
 
 export const listPeople = createServerFn({ method: "GET" })
   .validator(z.object({ q: z.string().optional() }))
@@ -19,8 +18,8 @@ export const listPeople = createServerFn({ method: "GET" })
         roles: person.roles,
         lastSeenAt: person.lastSeenAt,
         entitlementsSyncedAt: person.entitlementsSyncedAt,
-        entitlementCount:
-          sql<number>`(select count(*) from ${entitlement} where ${entitlement.personId} = ${sql.raw('"person"."id"')})`.mapWith(
+        enrollmentCount:
+          sql<number>`(select count(*) from ${enrollment} where ${enrollment.personId} = ${sql.raw('"person"."id"')} and ${enrollment.status} = 'active')`.mapWith(
             Number,
           ),
       })
@@ -45,12 +44,24 @@ export const getPerson = createServerFn({ method: "GET" })
     await requireRole("admin");
     const [p] = await db.select().from(person).where(eq(person.id, data.personId)).limit(1);
     if (!p) return null;
-    const ents = await db
-      .select()
-      .from(entitlement)
-      .where(eq(entitlement.personId, p.id))
-      .orderBy(entitlement.source, entitlement.scope, entitlement.ref);
-    return { person: p, entitlements: ents, ruleNames: Object.keys(lmsConfig.accessRules) };
+    const enrollments = await db
+      .select({
+        id: enrollment.id,
+        courseSlug: course.slug,
+        courseTitle: course.title,
+        cohortSlug: cohort.slug,
+        source: enrollment.source,
+        externalId: enrollment.externalId,
+        status: enrollment.status,
+        validFrom: enrollment.validFrom,
+        validUntil: enrollment.validUntil,
+      })
+      .from(enrollment)
+      .innerJoin(course, eq(course.id, enrollment.courseId))
+      .leftJoin(cohort, eq(cohort.id, enrollment.cohortId))
+      .where(eq(enrollment.personId, p.id))
+      .orderBy(enrollment.source, course.slug, cohort.slug);
+    return { person: p, enrollments };
   });
 
 export const listWebhookEvents = createServerFn({ method: "GET" }).handler(async () => {

@@ -16,11 +16,6 @@ export default defineConfig({
     cookieName: "sota_locale",
   },
   timeZone: "Europe/Madrid",
-  // Rule names referenced by the entitlement source. Two instances of the core's rule types.
-  accessRules: {
-    immediate: { type: "immediate" },
-    delayed: { type: "delayed_after_course_end", days: 30 },
-  },
   embedAllowlist: ["player.vimeo.com", "www.youtube-nocookie.com", "docs.google.com"],
   uploads: {
     maxBytes: 200 * 1024 * 1024,
