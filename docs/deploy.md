@@ -6,7 +6,7 @@ your organisation lives in `.env` and `lms.config.ts`.
 
 ## Before you start
 
-1. **Identity provider** registered with redirect URI `https://learn.example.org/auth/callback`
+1. **Identity provider** registered with redirect URI `https://learn.example.org/api/auth/callback/oidc` (only with `AUTH_MODE=oidc`; the default `local` mode needs no IdP)
    (`docs/idp-integration.md`).
 2. **Enrollment source** (optional: without one, admins enroll people by hand) implementing `docs/entitlements-contract.md` (pull URL + token, webhook
    secret).

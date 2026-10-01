@@ -30,26 +30,23 @@ product direction (SOTA owning identity) rather than missing pieces.
 
 ## Missing relative to the brief
 
-- Local auth mode (`AUTH_MODE=local`), signup toggle, magic link, invites, `create-admin`, break-glass admin.
 - `/api/v1` service API (enrollments PUT/DELETE, progress, courses), OpenAPI document, bearer token.
-- Claims-based entitlement sync at login (the repo pulls from an entitlement URL instead).
 - Theming: `theme/` directory, `theme.json`, slots, email overrides, example themes (brand is
   `lms.config.ts` + CSS tokens today).
 - `sota` CLI (`migrate`, `seed`, `validate-*`), `sota export/import`, GHCR publish on tag.
-- Typed env schema covering every variable (config schema exists for `lms.config.ts`; env is read ad hoc).
 - Manual enrollment by email list.
 
 ## Conflicts (need a decision, not code)
 
-1. **Auth library and account store.** ADR-003 states: "Rejected and not to be re-proposed:
+1. **Auth library and account store** (resolved by ADR-013, ADR-016, ADR-017). ADR-003 states: "Rejected and not to be re-proposed:
    better-auth (or any auth library) inside SOTA as the account store; magic links." CLAUDE.md:
    "No sign-up, no passwords." The brief requires exactly these. Irreversible per the brief.
 2. **Entitlement model** (resolved by ADR-014 and the `enrollment` migration). Brief: `enrollment(source manual|claims|webhook)`. Repo: `entitlement(scope
 course|all_courses|cohort, rule, source external|admin)` with access rules in `lms.config.ts`
    and `canSeeLesson()` as the only gate. Different shape, richer in the repo (tiers, delayed access).
-3. **Identity key.** Brief: `user.external_sub`; repo: `person.idp_sub NOT NULL UNIQUE`. Local users have no sub.
+3. **Identity key** (resolved by ADR-016). Brief: `user.external_sub`; the repo had `person.idp_sub NOT NULL UNIQUE`; it is now nullable `external_sub` + `external_iss`.
 4. **Forum.** Brief §10 puts discussion forums out of scope; the repo ships one (ADR-011).
-5. **Roles.** Brief: learner/instructor/admin on the user; repo: roles from IdP claim plus per-course teachers.
+5. **Roles** (resolved by ADR-016). Brief: learner/instructor/admin on the user; the repo keeps `student/teacher/admin` on `person`, accepts the brief's names as aliases, and keeps per-course teachers.
 6. **ADR location and name.** `docs/adr/0001-…` vs `docs/decisions/ADR-0NN-…` ("append, never rewrite").
 7. **Licence.** Brief asks for a proposal; ADR-006 already chose MIT.
 8. **Config source.** Brief: env only plus `theme/`; repo: `.env` plus `lms.config.ts`.

@@ -32,23 +32,31 @@ deployment that runs SOTA alone needs neither: admins create `manual` enrollment
 }
 ```
 
-| Field                       | Meaning                                                                                                       |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `sub`                       | The OIDC subject. The join key between the IdP and the enrollment source.                                     |
-| `email`, `name`             | Mirrored into `person`. SOTA never edits them.                                                                |
-| `locale`                    | Optional; one of the enabled locales. Used when the ID token carries no `locale` claim.                       |
-| `roles`                     | `student`, `teacher`, `admin`. The IdP's roles claim wins right after login; the source's win on later syncs. |
-| `enrollments[].external_id` | The source's own id for this enrollment. Unique among `webhook` rows; the reconciliation key.                 |
-| `enrollments[].course`      | Course slug. Unknown slugs are skipped.                                                                       |
-| `enrollments[].cohort`      | Optional cohort slug (must belong to `course`). Also places the person in that cohort as a student.           |
-| `enrollments[].valid_from`  | ISO 8601 instant with offset; default is the time of the sync.                                                |
-| `enrollments[].valid_until` | ISO 8601 instant with offset, **exclusive**; `null` or absent means open-ended.                               |
-| `enrollments[].status`      | `active` (default), `expired` or `revoked`.                                                                   |
+| Field                       | Meaning                                                                                                                                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sub`                       | The OIDC subject (`person.external_sub`). The join key between the IdP and the enrollment source. A person already known by the same email adopts it.                                                    |
+| `email`, `name`             | Mirrored into `person`. SOTA never edits them.                                                                                                                                                           |
+| `locale`                    | Optional; one of the enabled locales. Used when the ID token carries no `locale` claim.                                                                                                                  |
+| `roles`                     | `student`, `teacher`, `admin` (`learner`, `instructor` accepted as aliases). The IdP's roles claim wins right after login; the source's win on later syncs. A person adopted by email keeps their roles. |
+| `enrollments[].external_id` | The source's own id for this enrollment. Unique among `webhook` rows; the reconciliation key.                                                                                                            |
+| `enrollments[].course`      | Course slug or the course's `external_ref`. Unknown references are logged and skipped.                                                                                                                   |
+| `enrollments[].cohort`      | Optional cohort slug or `external_ref` (must belong to `course`). Also places the person in that cohort as a student.                                                                                    |
+| `enrollments[].valid_from`  | ISO 8601 instant with offset; default is the time of the sync.                                                                                                                                           |
+| `enrollments[].valid_until` | ISO 8601 instant with offset, **exclusive**; `null` or absent means open-ended.                                                                                                                          |
+| `enrollments[].status`      | `active` (default), `expired` or `revoked`.                                                                                                                                                              |
 
 Each payload is the **complete** set of enrollments the source holds for that person. SOTA
 reconciles its `source = 'webhook'` rows with it by `external_id`: listed rows are inserted or
 updated, rows no longer listed are marked `revoked` (kept for the history). Enrollments an admin
-created in SOTA (`source = 'manual'`) are never created, changed or deleted by the contract.
+created in SOTA (`source = 'manual'`) and rows read from the ID token (`source = 'claims'`, below) are never created, changed or deleted by the contract.
+
+## Claims channel (OIDC mode)
+
+When `ENTITLEMENT_CLAIM` is set, the ID token may carry the enrollments itself: an array of
+`{course, cohort?, until?}` (`course` and `cohort` by slug or `external_ref`, `until` an exclusive ISO 8601
+instant). Each sign-in reconciles the person's `source = 'claims'` rows with it: unknown references are
+logged and ignored, rows no longer listed become `expired`, a malformed claim changes nothing. It is
+independent of the pull/webhook channel; both may be active.
 
 SOTA does not expand tiers or decide what a membership includes: the source sends one enrollment per
 course (and cohort) with the `valid_until` it wants. There is no "all courses" scope and no rule

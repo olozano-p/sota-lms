@@ -83,7 +83,7 @@ These are constraints on _how_ the project is built, not features:
 
 Configuration surface (all of it, nothing else):
 
-- `.env`: `DATABASE_URL`, `SESSION_SECRET`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_END_SESSION_URL` (optional), `ENTITLEMENTS_PULL_URL`, `ENTITLEMENTS_PULL_TOKEN`, `ENTITLEMENTS_WEBHOOK_SECRET`, `STORAGE_DRIVER`, `STORAGE_DIR`, `S3_*`, `SMTP_*`, `MAIL_FROM`, `VIMEO_ACCESS_TOKEN`, `APP_URL`, `COOKIE_DOMAIN`.
+- `.env`: validated at boot (`src/config/env.ts`), every variable documented in `docs/configuration.md`: `AUTH_MODE`, `ALLOW_SIGNUP`, `BREAK_GLASS_ADMIN_EMAIL`, `OIDC_*`, `ENTITLEMENT_CLAIM`, `DEFAULT_LOCALE`, `DATABASE_URL`, `SESSION_SECRET`, `ENTITLEMENTS_*`, `STORAGE_*`, `S3_*`, `SMTP_*`, `MAIL_*`, `VIMEO_ACCESS_TOKEN`, `APP_URL`, `COOKIE_DOMAIN`.
 - `lms.config.ts` (committed, per-deployment fork or mounted): brand name, logo path, colour tokens, default locale, enabled locales, allowed embed domains, upload limits/mime allowlist, notification defaults, `forum` (general forum switch, post image limit, page size).
 
 ---
@@ -92,7 +92,7 @@ Configuration surface (all of it, nothing else):
 
 ### 3.1 Principle
 
-The LMS is an **OIDC relying party**. It never creates accounts, never handles passwords, and treats the IdP as authoritative for _who_ someone is. A separate **enrollment source** (usually the same system as the IdP, but not necessarily) is authoritative for _what_ they may access. Both are external; the LMS caches.
+`AUTH_MODE` selects who owns identity (ADR-013, ADR-016). In `oidc` mode the LMS is an **OIDC relying party**: it never registers anyone, never shows a password form (except for the break-glass administrator) and treats the IdP as authoritative for _who_ someone is. In `local` mode (default) it owns accounts: email + password, magic link, admin invitations, optional signup; everything below about the IdP applies to `oidc` mode only. A separate **enrollment source** (usually the same system as the IdP, but not necessarily) is authoritative for _what_ they may access. Both are external; the LMS caches.
 
 ### 3.2 SSO mechanism — **DECISION**
 
@@ -103,10 +103,10 @@ Flow:
 1. User hits any protected LMS route without an LMS session.
 2. LMS redirects to the IdP's authorization endpoint (code + PKCE, `scope=openid profile email`).
 3. If the user already has an IdP session, the IdP redirects back immediately with a code — no visible login. Otherwise the IdP shows its login and then redirects.
-4. LMS exchanges the code for tokens, verifies the ID token against the issuer's JWKS (`iss`, `aud`, `exp`, `nonce`), and creates its **own** short-lived session cookie (httpOnly, `Secure`, `SameSite=Lax`).
-5. User record is upserted into the LMS `person` mirror table keyed by `sub`. Roles are read from a configurable claim name (default `roles`); locale from `locale` claim if present.
+4. LMS (better-auth generic OIDC client, callback `/api/auth/callback/oidc`) exchanges the code for tokens, verifies the ID token against the issuer's JWKS (`iss`, `aud`, `exp`, `nonce`), and creates a better-auth session cookie (httpOnly, `Secure` over https, `SameSite=Lax`; 2 h idle, 12 h absolute).
+5. The `person` row is provisioned or refreshed, keyed by issuer + `sub`. Roles are read from a configurable claim name (default `roles`); locale from `locale` claim if present. If `ENTITLEMENT_CLAIM` is set, `claims` enrollments are reconciled from that claim.
 
-Logout: LMS clears its session and, if `OIDC_END_SESSION_URL` is set, redirects to the IdP's end-session endpoint so the user is logged out of both.
+Logout: LMS clears its session and redirects to the IdP's end-session endpoint (from discovery, or `OIDC_END_SESSION_URL`) so the user is logged out of both.
 
 Dev: `docker-compose.yml` ships a mock OIDC provider (e.g. `oidc-provider` or Dex) with three seeded users (student, teacher, admin) so contributors never need a real IdP.
 
@@ -156,7 +156,7 @@ Conventions: UUID v7 primary keys, `created_at`/`updated_at` everywhere, soft de
 
 ### Identity mirror
 
-- `person` — `id`, `idp_sub` (unique), `email`, `name`, `locale`, `roles text[]`, `last_seen_at`. Written only from IdP/enrollment-source data.
+- `person` — `id`, `email` (unique), `email_verified`, `name`, `locale`, `roles text[]` (`student` | `teacher` | `admin`), `external_iss` + `external_sub` (nullable, unique together), `last_seen_at`. Also the better-auth user model; `auth_session`, `auth_account`, `auth_verification` and `invitation` sit beside it (ADR-016).
 - `enrollment` — `id`, `person_id`, `course_id`, `cohort_id` (nullable), `source` (`manual` | `claims` | `webhook`), `external_id` (nullable), `valid_from`, `valid_until` (nullable, exclusive), `status` (`active` | `expired` | `revoked`). Unique on (`person_id`, `course_id`, `cohort_id`, `source`) and on (`source`, `external_id`) where not null.
 
 ### Catalogue
@@ -242,8 +242,10 @@ Contributors may add `YouTubeProvider`, `MuxProvider`, `SelfHostedProvider` behi
 
 ```
 /                                   → redirect to /courses (after auth)
-/auth/callback                      → OIDC callback
+/auth/login                         → OIDC redirect (oidc) / → /login (local)
 /auth/logout
+/api/auth/*                         → better-auth (sessions, OIDC callback, magic link, invitations)
+/login /signup /forgot-password /reset-password /accept-invite → local mode only (/login/break-glass: oidc mode, if configured)
 /courses                            → my courses, progress
 /courses/$courseSlug                → syllabus, lock states, "Continue" (tab when the forum is on)
 /courses/$courseSlug/forum          → course forum: threads, /new, /$threadId
