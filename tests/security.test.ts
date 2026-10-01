@@ -53,6 +53,17 @@ describe("allowRequest", () => {
   });
 });
 
+describe("service API limit", () => {
+  it("allows 300 /api/v1 calls a minute per client in a bucket of its own, then refuses", () => {
+    const t0 = Date.now();
+    const a = req({ "x-sota-remote-addr": "10.3.3.1" });
+    for (let i = 0; i < 300; i++) expect(allowRequest(a, "/api/v1/enrollments/x", t0)).toBe(true);
+    expect(allowRequest(a, "/api/v1/courses", t0)).toBe(false);
+    expect(allowRequest(a, "/api/files/x", t0)).toBe(true);
+    expect(allowRequest(a, "/api/v1/courses", t0 + 60_000)).toBe(true);
+  });
+});
+
 describe("withClientIp", () => {
   it("stamps the trusted address and replaces one sent by the client", () => {
     const r = withClientIp(

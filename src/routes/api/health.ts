@@ -1,18 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { sql } from "drizzle-orm";
-import { db } from "~/db";
+import { healthResult } from "~/server/api/v1/routes";
 
-/** Liveness + database reachability. No auth: the reverse proxy and Docker healthcheck call it. */
+/** Liveness + database reachability. No auth: the reverse proxy and Docker healthcheck call it (alias of `/api/v1/health`). */
 export const Route = createFileRoute("/api/health")({
   server: {
     handlers: {
       GET: async () => {
-        try {
-          await db.execute(sql`select 1`);
-          return Response.json({ status: "ok", db: "ok" });
-        } catch (e) {
-          return Response.json({ status: "degraded", db: (e as Error).message }, { status: 503 });
-        }
+        const r = await healthResult();
+        return Response.json(r.body, { status: r.status });
       },
     },
   },

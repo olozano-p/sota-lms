@@ -96,6 +96,8 @@ const LIMITS: { prefix: string; perMinute: number; group?: string }[] = [
   { prefix: "/auth/", perMinute: 60 },
   // Signed file GET/PUT (local driver): a page of inline images costs a redirect plus a fetch each.
   { prefix: "/api/storage/", perMinute: 600 },
+  // Service API: one integration's bursts (a bulk back-fill) in one bucket, apart from browser traffic.
+  { prefix: "/api/v1/", perMinute: 300 },
   { prefix: "/api/", perMinute: 240 },
 ];
 
