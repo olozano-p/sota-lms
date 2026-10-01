@@ -33,6 +33,8 @@ function transport(): Transporter {
 export async function sendMail(mail: Mail): Promise<void> {
   const info = await transport().sendMail({ from: env.mail.from, ...mail });
   if (env.mail.transport === "console") {
+    // Deliberately not the structured log: this transport exists to read one-time links in
+    // development, so it prints the whole message. Use `smtp` anywhere real mail flows.
     console.log(`[mail] to=${mail.to} subject=${JSON.stringify(mail.subject)}\n${mail.text}`);
     void info;
   }

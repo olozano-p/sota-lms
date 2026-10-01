@@ -8,6 +8,7 @@ import { requireService, ServiceAuthError, type ServiceActor } from "~/server/au
 import { ServiceApiError } from "~/server/mutations/service-enrollments-core";
 import { routes } from "./routes";
 import type { Method, RouteDef } from "./route";
+import { errorFields, logger } from "~/lib/log";
 
 export const API_PREFIX = "/api/v1";
 export const MAX_BODY_BYTES = 64 * 1024;
@@ -148,7 +149,7 @@ export async function handleApiV1(request: Request): Promise<Response> {
     return Response.json(result.body, { status: result.status, headers: NO_STORE });
   } catch (e) {
     if (e instanceof ServiceApiError) return problem(e.status, e.code, e.message);
-    console.error(`api/v1 ${method} ${rel} failed: ${(e as Error).message}`);
+    logger.error("api/v1 handler failed", { method, route: route.path, ...errorFields(e) });
     return problem(500, "internal_error", "internal error");
   }
 }

@@ -17,6 +17,7 @@ import {
   upsertManualEnrollment,
   type Window,
 } from "./enrollments-core";
+import { errorFields, logger } from "~/lib/log";
 
 const day = z.string().regex(DATE_PATTERN);
 
@@ -185,7 +186,7 @@ export const enrollByEmails = createServerFn({ method: "POST" })
       }),
     );
     // Invitation mail is queued in the transaction; flush it now that it has committed.
-    sendImmediate().catch((e) => console.warn("invitation mail failed:", (e as Error).message));
+    sendImmediate().catch((e) => logger.warn("invitation mail failed", errorFields(e)));
     return result;
   });
 

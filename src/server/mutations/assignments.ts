@@ -22,6 +22,7 @@ import { requireCourseTeacher, requireUser } from "~/server/auth/authz";
 import { requireContainerAccess } from "~/server/access/container";
 import { headObject, signedPutUrl } from "~/server/services/storage";
 import { enqueue, sendImmediate } from "~/server/services/notifications";
+import { errorFields, logger } from "~/lib/log";
 
 const id = z.string().uuid();
 
@@ -319,7 +320,7 @@ export const reviewSubmission = createServerFn({ method: "POST" })
       return after!;
     });
     // Feedback is the one notification that goes out at once (docs/spec.md §7).
-    sendImmediate().catch((e) => console.warn("immediate mail failed:", (e as Error).message));
+    sendImmediate().catch((e) => logger.warn("immediate mail failed", errorFields(e)));
     return result;
   });
 

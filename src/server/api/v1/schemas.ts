@@ -131,7 +131,11 @@ export const progressResponse = z.object({
 
 export const healthResponse = z.object({
   status: z.enum(["ok", "degraded"]),
-  db: z.string(),
+  /** The package version of the running build. */
+  version: z.string(),
+  db: z.enum(["ok", "unreachable"]),
+  /** Round trip of `select 1`; for an unreachable database, how long the attempt took. */
+  dbLatencyMs: z.number().int().nonnegative(),
 });
 
 export const openApiDocument = z.looseObject({

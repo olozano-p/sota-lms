@@ -120,7 +120,7 @@ describe("availability and token", () => {
     );
     const health = await api("GET", "/health", { token: null });
     expect(health.status).toBe(200);
-    expect(health.json).toEqual({ status: "ok", db: "ok" });
+    expect(health.json).toMatchObject({ status: "ok", db: "ok" });
   });
 
   it("answers 401 to a missing or wrong token and 200 to the right one", async () => {

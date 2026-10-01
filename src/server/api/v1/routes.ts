@@ -4,6 +4,8 @@
  */
 import { sql } from "drizzle-orm";
 import { db } from "~/db";
+import { errorFields, logger } from "~/lib/log";
+import { APP_VERSION } from "~/server/version";
 import {
   putServiceEnrollment,
   revokeServiceEnrollment,
@@ -35,12 +37,41 @@ const unauthorized = {
 const invalid = { description: "The request does not match the schema.", schema: errorSchema };
 
 /** Liveness and database reachability; also served at `/api/health`. */
-export async function healthResult() {
+export const HEALTH_DB_TIMEOUT_MS = 3000;
+
+export async function healthResult(timeoutMs = HEALTH_DB_TIMEOUT_MS) {
+  const started = performance.now();
+  const elapsed = () => Math.round(performance.now() - started);
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    await db.execute(sql`select 1`);
-    return { status: 200, body: { status: "ok", db: "ok" } };
-  } catch {
-    return { status: 503, body: { status: "degraded", db: "unreachable" } };
+    await Promise.race([
+      db.execute(sql`select 1`),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("database check timed out")), timeoutMs);
+      }),
+    ]);
+    return {
+      status: 200,
+      body: {
+        status: "ok" as const,
+        version: APP_VERSION,
+        db: "ok" as const,
+        dbLatencyMs: elapsed(),
+      },
+    };
+  } catch (e) {
+    logger.warn("health check: database unreachable", errorFields(e));
+    return {
+      status: 503,
+      body: {
+        status: "degraded" as const,
+        version: APP_VERSION,
+        db: "unreachable" as const,
+        dbLatencyMs: elapsed(),
+      },
+    };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -49,7 +80,8 @@ const health = defineRoute({
   path: "/health",
   operationId: "getHealth",
   summary: "Liveness and database check",
-  description: "No authentication. Also available while the rest of the API is disabled.",
+  description:
+    "No authentication. Also available while the rest of the API is disabled. Answers 503 when the database does not respond within three seconds.",
   tags: ["Operations"],
   auth: "none",
   responses: {

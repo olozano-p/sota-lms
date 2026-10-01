@@ -10,6 +10,7 @@ import { db, type DbOrTx } from "../../db/index.ts";
 import { cohortMember, enrollment } from "../../db/schema.ts";
 import { audit } from "../audit.ts";
 import { loadRefs } from "./refs.ts";
+import { logger } from "../../lib/log.ts";
 
 const claimSchema = z.array(
   z.object({
@@ -48,7 +49,7 @@ export async function syncClaimEnrollments(
   const result: ClaimsSyncResult = { created: 0, updated: 0, expired: 0, ignored: [], valid: true };
   const parsed = claimSchema.safeParse(claimValue);
   if (!parsed.success) {
-    console.warn(`claims sync: malformed enrollment claim for ${personId}, ignored`);
+    logger.warn("claims sync: malformed enrollment claim, ignored", { personId });
     return { ...result, valid: false };
   }
   const items = parsed.data;
@@ -65,7 +66,7 @@ export async function syncClaimEnrollments(
     const g = item.cohort ? refs.cohort(item.cohort) : null;
     if (!c || (item.cohort && (!g || g.courseId !== c.id))) {
       const label = item.cohort ? `${item.course}/${item.cohort}` : item.course;
-      console.warn(`claims sync: unknown course or cohort reference "${label}", ignored`);
+      logger.warn("claims sync: unknown course or cohort reference, ignored", { reference: label });
       result.ignored.push(label);
       continue;
     }

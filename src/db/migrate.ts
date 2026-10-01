@@ -8,6 +8,7 @@
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { db, isPglite, type Db } from "./index.ts";
+import { logger } from "../lib/log.ts";
 
 const migrationsFolder = join(dirname(fileURLToPath(import.meta.url)), "../../drizzle");
 
@@ -23,6 +24,6 @@ export async function runMigrations(database: Db = db): Promise<void> {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   await runMigrations();
-  console.log("migrations applied");
+  logger.info("migrations applied");
   process.exit(0);
 }

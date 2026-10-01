@@ -30,8 +30,9 @@ process.argv.splice(2, 1);
 switch (command) {
   case "migrate": {
     const { runMigrations } = await import("../src/db/migrate.ts");
+    const { logger } = await import("../src/lib/log.ts");
     await runMigrations();
-    console.log("migrations applied");
+    logger.info("migrations applied");
     process.exit(0);
     break;
   }

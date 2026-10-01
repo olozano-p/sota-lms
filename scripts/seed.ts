@@ -32,6 +32,7 @@ import {
   quiz,
   type BlockType,
 } from "../src/db/schema.ts";
+import { errorFields, logger } from "../src/lib/log.ts";
 
 const PEOPLE = [
   {
@@ -479,7 +480,7 @@ async function seedFiles(uploadedBy: string) {
   try {
     for (const o of objects) await putObject(o.key, o.body, o.mime);
   } catch (e) {
-    console.warn(`seed: could not upload placeholder files (${(e as Error).message})`);
+    logger.warn("seed: could not upload placeholder files", errorFields(e));
   }
 }
 
@@ -667,7 +668,7 @@ async function main() {
       );
     });
   }
-  console.log(`seeded: course ${COURSE_SLUG}, cohort ${COHORT_SLUG}, ${PEOPLE.length} people`);
+  logger.info("seeded", { course: COURSE_SLUG, cohort: COHORT_SLUG, people: PEOPLE.length });
 }
 
 await main();

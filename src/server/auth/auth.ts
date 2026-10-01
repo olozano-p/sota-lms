@@ -30,6 +30,7 @@ import {
 } from "./identity.ts";
 import { invitePlugin } from "./invite-plugin.ts";
 import { CLIENT_IP_HEADER, withClientIp } from "../client-ip.ts";
+import { errorFields, logger } from "../../lib/log.ts";
 
 /** Idle lifetime; the absolute 12 h cap is enforced in `currentUser()` (docs/spec.md §8). */
 export const SESSION_IDLE_SECONDS = 2 * 60 * 60;
@@ -48,7 +49,7 @@ async function sendAccountMail(
   extra: { detail?: string } = {},
 ): Promise<void> {
   await enqueueAccountMail(db, email, kind, { courseTitle: "", url, ...extra });
-  sendImmediate().catch((e) => console.warn("account mail failed:", (e as Error).message));
+  sendImmediate().catch((e) => logger.warn("account mail failed", errorFields(e)));
 }
 
 function decodeJwtPayload(jwt: string): Record<string, unknown> {
@@ -266,7 +267,7 @@ function createAuth(discovery: Discovery | null) {
           await completeOidcLogin(created.user.id, profile);
         } catch (e) {
           // The IdP's identity and roles are authoritative; without them there is no session.
-          console.error(`oidc sign-in could not be completed: ${(e as Error).message}`);
+          logger.error("oidc sign-in could not be completed", errorFields(e));
           await ctx.context.internalAdapter.deleteSession(created.session.token);
           throw new APIError("INTERNAL_SERVER_ERROR", { message: "login_failed" });
         }

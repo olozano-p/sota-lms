@@ -20,6 +20,7 @@ import { env } from "../../config/env.ts";
 import { isLocale } from "../../i18n/locale.ts";
 import { mapRoles } from "../auth/roles.ts";
 import { loadRefs } from "./refs.ts";
+import { errorFields, logger } from "../../lib/log.ts";
 
 export const ENROLLMENTS_VERSION = "enrollments/v1";
 export const ENROLLMENTS_TTL_MS = 15 * 60 * 1000;
@@ -74,9 +75,10 @@ async function reconcileEnrollments(
     const c = refs.course(item.course);
     const g = item.cohort ? refs.cohort(item.cohort) : null;
     if (!c || (item.cohort && (!g || g.courseId !== c.id))) {
-      console.warn(
-        `enrollment sync: unknown course or cohort reference ${item.course}/${item.cohort ?? ""}`,
-      );
+      logger.warn("enrollment sync: unknown course or cohort reference", {
+        course: item.course,
+        cohort: item.cohort ?? null,
+      });
       continue;
     }
     const cohortId = g?.id ?? null;
@@ -209,7 +211,7 @@ export async function ensureFreshEnrollments(personId: string): Promise<void> {
   try {
     await syncEnrollments(row.sub);
   } catch (e) {
-    console.warn(`enrollment sync failed for ${row.sub}: ${(e as Error).message}`);
+    logger.warn("enrollment sync failed", errorFields(e));
   }
 }
 

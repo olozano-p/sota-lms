@@ -14,6 +14,7 @@ import { audit } from "~/server/audit";
 import { requireRole } from "~/server/auth/authz";
 import { sendImmediate } from "~/server/services/notifications";
 import { createInvitation, replaceRoles } from "./people-core";
+import { errorFields, logger } from "~/lib/log";
 
 const rolesSchema = z.array(z.enum(ROLES)).min(1);
 
@@ -34,7 +35,7 @@ export const invitePerson = createServerFn({ method: "POST" })
     const admin = await requireRole("admin");
     requireLocalMode();
     const result = await db.transaction((tx) => createInvitation(tx, admin, data));
-    sendImmediate().catch((e) => console.warn("invitation mail failed:", (e as Error).message));
+    sendImmediate().catch((e) => logger.warn("invitation mail failed", errorFields(e)));
     return { personId: result.personId, expiresAt: result.expiresAt.toISOString() };
   });
 

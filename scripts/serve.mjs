@@ -6,15 +6,17 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { extname, join, normalize, sep } from "node:path";
 import { Readable } from "node:stream";
 
+const { logger, errorFields } = await import("../src/lib/log.ts");
+
 // Fail at boot, with every problem listed, rather than on the first request.
 try {
   const { validateEnv } = await import("../src/config/env.ts");
   const env = validateEnv();
   const { loadTheme } = await import("../src/theme/load.ts");
   const theme = loadTheme(env.themeDir, { explicit: env.themeDirExplicit });
-  for (const w of theme.warnings) console.warn(`theme warning: ${w}`);
+  for (const w of theme.warnings) logger.warn("theme warning", { detail: w });
 } catch (e) {
-  console.error(e.message);
+  logger.error("startup failed", errorFields(e));
   process.exit(1);
 }
 
@@ -31,7 +33,7 @@ if (notifyEvery > 0) {
       stdio: "inherit",
       env: process.env,
     });
-    child.on("error", (e) => console.error("notify tick failed:", e.message));
+    child.on("error", (e) => logger.error("notify tick failed", errorFields(e)));
   };
   setTimeout(runTick, 30_000);
   setInterval(runTick, notifyEvery);
@@ -91,10 +93,10 @@ http
       else res.end();
     } catch (e) {
       const bad = e instanceof URIError || (e instanceof TypeError && e.code === "ERR_INVALID_URL");
-      if (!bad) console.error(e);
+      if (!bad) logger.error("unhandled request error", errorFields(e));
       if (!res.headersSent)
         res.writeHead(bad ? 400 : 500).end(bad ? "bad request" : "internal error");
       else res.end();
     }
   })
-  .listen(port, () => console.log(`sota listening on http://localhost:${port}`));
+  .listen(port, () => logger.info("listening", { port }));

@@ -5,9 +5,12 @@
  *   node scripts/notify.ts            FORCE_DIGEST=true node scripts/notify.ts
  */
 import { tick } from "../src/server/services/notifications.ts";
+import { logger } from "../src/lib/log.ts";
 
 const result = await tick();
-console.log(
-  `notify: released=${result.released} immediate=${result.immediate} digests=${result.digests}`,
-);
+logger.info("notify tick", {
+  released: result.released,
+  immediate: result.immediate,
+  digests: result.digests,
+});
 process.exit(0);

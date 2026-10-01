@@ -13,6 +13,7 @@ import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { SIGNED_URL_TTL_S, type StorageProvider } from "./types.ts";
+import { errorFields, logger } from "../../../lib/log.ts";
 
 export interface LocalStorageOptions {
   root: string;
@@ -145,7 +146,7 @@ export function createLocalStorage(opts: LocalStorageOptions): LocalStorage {
     } catch (e) {
       const status = (e as { status?: number }).status;
       if (status === 413) return text(413, "body longer than declared");
-      console.error(`storage: upload of ${t.key} failed: ${(e as Error).message}`);
+      logger.error("storage: upload failed", errorFields(e));
       return text(400, "upload failed");
     } finally {
       await rm(tmp, { force: true });

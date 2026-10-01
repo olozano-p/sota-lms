@@ -12,6 +12,7 @@ import { syncClaimEnrollments } from "../access/claims.ts";
 import { audit } from "../audit.ts";
 import { syncEnrollments } from "../access/enrollments.ts";
 import { mapRoles } from "./roles.ts";
+import { errorFields, logger } from "../../lib/log.ts";
 
 /** True while no person holds the admin role: the next sign-up becomes the first admin. */
 export async function noAdminYet(tx: DbOrTx = db): Promise<boolean> {
@@ -178,14 +179,14 @@ export async function completeOidcLogin(personId: string, profile: OidcProfile):
     try {
       await syncClaimEnrollments(personId, profile.claims[claimName]);
     } catch (e) {
-      console.warn(`claims sync failed for ${profile.sub}: ${(e as Error).message}`);
+      logger.warn("claims sync failed", errorFields(e));
     }
   }
   if (env.entitlements.pullUrl) {
     try {
       await syncEnrollments(profile.sub);
     } catch (e) {
-      console.warn(`enrollment sync on login failed for ${profile.sub}: ${(e as Error).message}`);
+      logger.warn("enrollment sync on login failed", errorFields(e));
     }
     await db.update(person).set({ roles: profile.roles }).where(eq(person.id, personId));
   }

@@ -51,7 +51,7 @@ and the `OIDC_*` variables instead (`docs/idp-integration.md`).
 
 ```bash
 docker compose up -d
-curl http://localhost:3003/api/health      # {"status":"ok","db":"ok"}
+curl http://localhost:3003/api/health      # {"status":"ok","version":"…","db":"ok","dbLatencyMs":3}
 docker compose exec app node scripts/sota.ts validate-config
 ```
 

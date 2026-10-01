@@ -46,14 +46,14 @@ All bodies are JSON (`Content-Type: application/json`, at most 64 KiB), answers 
 error has the shape `{"error": {"code": "...", "message": "...", "issues": [...]}}`. Calls are rate
 limited to 300 a minute per client address (`429` with `Retry-After`).
 
-| Method and path                            | Auth    | Purpose                                                             |
-| ------------------------------------------ | ------- | ------------------------------------------------------------------- |
-| `PUT /api/v1/enrollments/{external_id}`    | service | Create or update an enrollment (idempotent upsert).                 |
-| `DELETE /api/v1/enrollments/{external_id}` | service | Revoke it (idempotent).                                             |
-| `GET /api/v1/users/{sub}/progress`         | service | Lessons completed per course.                                       |
-| `GET /api/v1/courses`                      | service | `slug`, `external_ref`, `title`, `status` of every course.          |
-| `GET /api/v1/health`                       | none    | `{"status":"ok","db":"ok"}` or `503`. Also served at `/api/health`. |
-| `GET /api/v1/openapi.json`                 | none    | This contract.                                                      |
+| Method and path                            | Auth    | Purpose                                                                                                                       |
+| ------------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `PUT /api/v1/enrollments/{external_id}`    | service | Create or update an enrollment (idempotent upsert).                                                                           |
+| `DELETE /api/v1/enrollments/{external_id}` | service | Revoke it (idempotent).                                                                                                       |
+| `GET /api/v1/users/{sub}/progress`         | service | Lessons completed per course.                                                                                                 |
+| `GET /api/v1/courses`                      | service | `slug`, `external_ref`, `title`, `status` of every course.                                                                    |
+| `GET /api/v1/health`                       | none    | `{"status":"ok","version":"…","db":"ok","dbLatencyMs":3}`, or `503` with `"status":"degraded"`. Also served at `/api/health`. |
+| `GET /api/v1/openapi.json`                 | none    | This contract.                                                                                                                |
 
 ### Authentication
 

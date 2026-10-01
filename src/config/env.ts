@@ -7,6 +7,7 @@
  */
 import { resolve } from "node:path";
 import { z } from "zod";
+import { logger } from "../lib/log.ts";
 
 export const AUTH_MODES = ["local", "oidc"] as const;
 export type AuthMode = (typeof AUTH_MODES)[number];
@@ -37,6 +38,7 @@ const rawSchema = z.object({
   TRUST_PROXY: flag(),
   DEFAULT_LOCALE: opt(z.enum(["ca", "es", "en"])),
   THEME_DIR: text(),
+  LOG_LEVEL: opt(z.enum(["debug", "info", "warn", "error", "silent"])),
 
   AUTH_MODE: opt(z.enum(AUTH_MODES)),
   ALLOW_SIGNUP: flag(),
@@ -146,6 +148,8 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
     appUrl: (raw.APP_URL ?? `http://localhost:${port}`).replace(/\/$/, ""),
     databaseUrl: raw.DATABASE_URL ?? "postgres://sota:sota@localhost:5433/sota",
     sessionSecret: raw.SESSION_SECRET ?? DEV_SESSION_SECRET,
+    /** Read by `src/lib/log.ts` straight from the environment; validated here. */
+    logLevel: raw.LOG_LEVEL ?? "info",
     cookieDomain: raw.COOKIE_DOMAIN ?? null,
     trustProxy: raw.TRUST_PROXY,
     defaultLocale: raw.DEFAULT_LOCALE ?? null,
@@ -217,7 +221,8 @@ let cached: Env | null = null;
 export function validateEnv(): Env {
   if (!cached) {
     cached = parseEnv(process.env);
-    for (const name of cached.deprecated) console.warn(`env: ${name} is deprecated (ADR-020)`);
+    for (const name of cached.deprecated)
+      logger.warn("deprecated environment variable", { variable: name, adr: "ADR-020" });
   }
   return cached;
 }
