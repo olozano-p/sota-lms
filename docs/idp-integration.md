@@ -123,7 +123,7 @@ to `/userinfo` for any claim the ID token lacks.
 
 ## Trying it without an IdP
 
-`docker compose up` (or `pnpm mock-idp`) runs `dev/mock-idp/server.mjs`: a node-oidc-provider
+`docker compose -f compose.dev.yml up` (or `pnpm mock-idp`) runs `dev/mock-idp/server.mjs`: a node-oidc-provider
 instance with four users and the claims above, plus a mock enrollment source. The login page is
 a list of buttons, and an `enrollments` ID-token claim for trying `ENTITLEMENT_CLAIM` (name set by
 `MOCK_IDP_ENTITLEMENT_CLAIM`). Nothing in it is fit for production.

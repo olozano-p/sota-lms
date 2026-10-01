@@ -76,7 +76,7 @@ No telemetry. No org-specific code.
 ## Commands
 
 ```bash
-docker compose up -d postgres mock-idp   # dev services (5433, 3013); files go to data/uploads
+docker compose -f compose.dev.yml up -d postgres mock-idp   # dev services (5433, 3013); files go to data/uploads
 pnpm db:migrate && pnpm db:seed   # migrations + demo course, cohort, three mock users
 pnpm create-admin                 # first admin (local mode) or the break-glass account (oidc mode)
 AUTH_MODE=oidc pnpm dev           # sign in through the mock IdP (default AUTH_MODE is local)

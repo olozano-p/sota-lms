@@ -56,9 +56,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: docker compose up -d --build
+      - run: docker compose -f compose.dev.yml up -d --build
       - run: pnpm e2e
       - if: always()
-        run: docker compose logs app mock-idp
+        run: docker compose -f compose.dev.yml logs app mock-idp
       - if: always()
-        run: docker compose down -v
+        run: docker compose -f compose.dev.yml down -v

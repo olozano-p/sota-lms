@@ -21,7 +21,7 @@ the same Drizzle schema when `DATABASE_URL=pglite://memory`.
 
 ## Consequences
 
-- `docker compose up` is the one-command local setup; there is no file-based fallback.
+- `docker compose -f compose.dev.yml up` is the one-command local setup; there is no file-based fallback.
 - Rejected: SQLite (see above), Prisma, `drizzle-kit push` (unreviewed drift), an ORM-less
   approach (the schema is the documentation).
 - Never edit an applied migration; superseding changes get a new one.

@@ -1,4 +1,4 @@
-# Development stack: `docker compose up` gives Postgres, the mock IdP and the app with seed data.
+# Development stack: `docker compose -f compose.dev.yml up` gives Postgres, the mock IdP and the app with seed data.
 # Files live on a volume (local storage driver). Contributors need no real IdP or credentials.
 # Ports are offset to leave local services alone.
 name: sota

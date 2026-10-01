@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-/** Smoke suite against the docker compose stack (app on 3003, mock IdP on 3013). */
+/** Smoke suite against the dev compose stack (compose.dev.yml) (app on 3003, mock IdP on 3013). */
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 60_000,

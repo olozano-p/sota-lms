@@ -51,7 +51,7 @@ Agent rules: `CLAUDE.md`.
 ```bash
 git clone https://github.com/olozano-p/sota-lms && cd sota-lms
 cp .env.example .env
-docker compose up
+docker compose -f compose.dev.yml up
 ```
 
 Open http://localhost:3003. You are sent to the mock identity provider on port 3013: pick one of
@@ -62,7 +62,7 @@ For development with hot reload:
 
 ```bash
 pnpm install                                                # installs the git hooks too
-docker compose up -d postgres mock-idp                      # services only
+docker compose -f compose.dev.yml up -d postgres mock-idp                      # services only
 pnpm db:migrate && pnpm db:seed
 pnpm dev                                                    # http://localhost:3003
 ```

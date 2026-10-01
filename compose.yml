@@ -1,0 +1,50 @@
+# SOTA on one host: the published image plus Postgres, files on a volume. This file and a `.env`
+# are all you need (docs/deploying.md):
+#   docker compose up -d
+#   docker compose exec app node scripts/sota.ts create-admin --email you@example.org --name "You"
+# Put your reverse proxy (TLS) in front of 127.0.0.1:${HOST_PORT:-3003}; deploy/nginx.conf is an example.
+# Managed services: point DATABASE_URL at your Postgres and drop the `postgres` service; set
+# STORAGE_DRIVER=s3 with the S3_* block and drop the `uploads` volume.
+name: sota-prod
+
+services:
+  app:
+    image: ${SOTA_IMAGE:-ghcr.io/olozano-p/sota-lms:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "3003"
+      DATABASE_URL: postgres://${POSTGRES_USER:-sota}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-sota}
+      MIGRATE: "true"
+      SEED: "false"
+      STORAGE_DIR: /app/data/uploads
+    ports:
+      - "127.0.0.1:${HOST_PORT:-3003}:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/data/uploads
+      # Optional, uncomment to use them:
+      # - ./lms.config.ts:/app/lms.config.ts:ro   # brand, locales, time zone, upload limits
+      # - ./theme:/app/theme:ro                   # reserved: nothing reads it before Phase 3
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sota}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-sota}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sota} -d ${POSTGRES_DB:-sota}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  uploads:
