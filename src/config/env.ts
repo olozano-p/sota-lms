@@ -52,6 +52,10 @@ const rawSchema = z.object({
   ENTITLEMENTS_PULL_URL: opt(z.url()),
   ENTITLEMENTS_PULL_TOKEN: text(),
   ENTITLEMENTS_WEBHOOK_SECRET: text(),
+  API_SERVICE_TOKEN: opt(
+    z.string().min(16, "must be at least 16 characters (openssl rand -hex 32)"),
+  ),
+  WEBHOOK_HMAC_SECRET: text(),
 
   STORAGE_DRIVER: opt(z.enum(["local", "s3"])),
   STORAGE_DIR: text(),
@@ -129,6 +133,12 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
     problems.push("BREAK_GLASS_ADMIN_EMAIL only applies with AUTH_MODE=oidc");
   if (problems.length) throw new EnvError(problems);
 
+  const hmacSecret = raw.WEBHOOK_HMAC_SECRET ?? raw.ENTITLEMENTS_WEBHOOK_SECRET ?? null;
+  const deprecatedUsed =
+    raw.ENTITLEMENTS_WEBHOOK_SECRET && !raw.WEBHOOK_HMAC_SECRET
+      ? ["ENTITLEMENTS_WEBHOOK_SECRET (use WEBHOOK_HMAC_SECRET)"]
+      : [];
+
   const port = raw.PORT ?? 3003;
   return {
     isProduction,
@@ -159,8 +169,17 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
     entitlements: {
       pullUrl: raw.ENTITLEMENTS_PULL_URL?.replace(/\/$/, "") ?? null,
       pullToken: raw.ENTITLEMENTS_PULL_TOKEN ?? null,
-      webhookSecret: raw.ENTITLEMENTS_WEBHOOK_SECRET ?? null,
+      /** The HMAC secret of the legacy push channel: `WEBHOOK_HMAC_SECRET`, else the deprecated `ENTITLEMENTS_WEBHOOK_SECRET`. */
+      webhookSecret: hmacSecret,
     },
+    /** Service API (`/api/v1`, docs/integration.md): disabled (404) while `serviceToken` is null. */
+    api: {
+      serviceToken: raw.API_SERVICE_TOKEN ?? null,
+      /** When set, every authenticated `/api/v1` request must carry a valid `X-Signature`. */
+      hmacSecret,
+    },
+    /** Names of deprecated variables that are set; `validateEnv()` warns once about them. */
+    deprecated: deprecatedUsed,
     storage: {
       driver: storageDriver,
       dir: resolve(raw.STORAGE_DIR ?? "data/uploads"),
@@ -196,7 +215,10 @@ let cached: Env | null = null;
 
 /** Parses once; throws an `EnvError` listing every problem. Call at boot to fail fast. */
 export function validateEnv(): Env {
-  cached ??= parseEnv(process.env);
+  if (!cached) {
+    cached = parseEnv(process.env);
+    for (const name of cached.deprecated) console.warn(`env: ${name} is deprecated (ADR-020)`);
+  }
   return cached;
 }
 

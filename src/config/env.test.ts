@@ -79,3 +79,28 @@ describe("THEME_DIR", () => {
     expect(parseEnv({ THEME_DIR: "" }).themeDirExplicit).toBe(false);
   });
 });
+
+describe("service API and webhook secret", () => {
+  it("leaves the API disabled without a token and rejects a short one", () => {
+    const e = parseEnv({});
+    expect(e.api.serviceToken).toBeNull();
+    expect(e.api.hmacSecret).toBeNull();
+    expect(parseEnv({ API_SERVICE_TOKEN: "" }).api.serviceToken).toBeNull();
+    expect(() => parseEnv({ API_SERVICE_TOKEN: "short" })).toThrow(/API_SERVICE_TOKEN/);
+    expect(parseEnv({ API_SERVICE_TOKEN: "x".repeat(32) }).api.serviceToken).toHaveLength(32);
+  });
+
+  it("uses WEBHOOK_HMAC_SECRET for both channels and keeps the old name as a deprecated alias", () => {
+    const old = parseEnv({ ENTITLEMENTS_WEBHOOK_SECRET: "old-secret" });
+    expect(old.api.hmacSecret).toBe("old-secret");
+    expect(old.entitlements.webhookSecret).toBe("old-secret");
+    expect(old.deprecated).toHaveLength(1);
+    const both = parseEnv({
+      ENTITLEMENTS_WEBHOOK_SECRET: "old-secret",
+      WEBHOOK_HMAC_SECRET: "new-secret",
+    });
+    expect(both.api.hmacSecret).toBe("new-secret");
+    expect(both.entitlements.webhookSecret).toBe("new-secret");
+    expect(both.deprecated).toEqual([]);
+  });
+});
