@@ -255,6 +255,34 @@ describe("sign-in", () => {
   });
 });
 
+describe("placeholder people from manual enrollment", () => {
+  it("is adopted on first sign-in, keeping the enrollment that waited for it", async () => {
+    const { course, enrollment } = m.schema;
+    const [pre] = await m.db
+      .insert(person())
+      .values({
+        email: "waiting@example.invalid",
+        name: "waiting@example.invalid",
+        roles: ["student"],
+      })
+      .returning({ id: person().id });
+    const [c] = await m.db
+      .insert(course)
+      .values({ slug: "placeholder-course", title: "P", language: "en", status: "published" })
+      .returning({ id: course.id });
+    await m.db.insert(enrollment).values({ personId: pre!.id, courseId: c!.id, source: "manual" });
+    await signIn({ sub: "s-wait", email: "Waiting@Example.invalid", name: "Waiting Learner" });
+    const rows = await m.db
+      .select()
+      .from(person())
+      .where(eq(person().email, "waiting@example.invalid"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: pre!.id, externalSub: "s-wait", name: "Waiting Learner" });
+    const enr = await m.db.select().from(enrollment).where(eq(enrollment.personId, pre!.id));
+    expect(enr).toMatchObject([{ source: "manual", status: "active" }]);
+  });
+});
+
 describe("claim-driven enrollments", () => {
   it("reconciles claims rows and never touches manual or webhook rows", async () => {
     const { course, cohort, enrollment } = m.schema;
