@@ -1,5 +1,37 @@
 # Status
 
+## 2026-10-01 · Phase 1 exit and Phase 2 — enrollment tools, drip rule, deploy walkthrough (ADR-018)
+
+- **Manual enrollment** (`mutations/enrollments.ts` + `enrollments-core.ts`): one address or a pasted
+  list (course tab _Enrollments_, cohort page), and "enroll the whole cohort". Local mode invites
+  unknown addresses; oidc mode inserts a placeholder person with null `external_sub`, adopted by email
+  at first sign-in (tested against the in-process fake IdP). Authorised by `requireCourseTeacher`,
+  audited per call.
+- **Drip generator** (`lib/drip.ts`, `cohorts-core.ts`, cohort page panel): writes chapter-level
+  `cohort_release` rows from a start date, N chapters every D days, in the deployment time zone;
+  replaces earlier chapter releases after confirmation.
+- **Assignments, quizzes, review** verified, not rebuilt: text/file/both submissions with resubmit,
+  reviewer note + `reviewed_at`/`reviewed_by`, review list now filterable by cohort. Quiz kind is
+  `form | self_check` (migration 0004); a form stores no score.
+- **Locale order** kept as in CLAUDE.md and now a tested pure function (`lib/locale-resolve.ts`);
+  the person's stored locale is the IdP-claim step. Every UI string goes through the typed catalogues.
+- **`pnpm sota`** (`scripts/sota.ts`): migrate, seed, create-admin, validate-config;
+  validate-theme exits 2 "not implemented" until Phase 3. The image runs it.
+- **Deployment**: root `compose.yml` (image + Postgres), dev stack moved to `compose.dev.yml`,
+  `docs/deploying.md` followed on an empty database with only `compose.yml` and a `.env`: admin via the
+  CLI, course created, learner invited by enrollment, accepted, finished the lesson (100%).
+- **Defects found while doing so, fixed**: `/admin` and the new enrollments page crashed in the
+  browser ("Buffer is not defined": server code reachable from the client through plain exports in
+  mutation files, now `*-core.ts`); better-auth's limiter used one shared bucket for all clients
+  (now keyed on the trusted client address); the image lacked `src/server/auth` for `create-admin`.
+- Integration test for the phase exit: `tests/cohort-journey.test.ts` (three learners, weekly drip on
+  a faked clock, a reviewed assignment, a self-check, 100% progress).
+- Not done / left: the image is not published (no release workflow; build it locally, see
+  `docs/deploying.md`); `/app/theme` is only a reserved mount; server error messages from mutations
+  are English strings (the UI shows a generic or the raw text); no per-teacher cap on invitation mail;
+  `pass_threshold` is still stored though nothing gates on it; the interactive password prompt of
+  `create-admin` was not exercised inside the container (the `ADMIN_PASSWORD` path was).
+
 ## 2026-10-01 · Phase 1 — two auth modes with better-auth (ADR-013, ADR-016, ADR-017)
 
 - `AUTH_MODE=local|oidc`, validated at boot with Zod (`src/config/env.ts`, `docs/configuration.md`

@@ -24,8 +24,9 @@ Two auth modes (`AUTH_MODE=local|oidc`, ADR-013, ADR-016, ADR-017) and the `enro
 - **Identity has few writers.** `person` is also the better-auth user (ADR-016); `person.roles` is
   `student | teacher | admin`, read live on every request. It is written only by better-auth (signup,
   magic link, OIDC sign-in and its after-callback hook, `completeOidcLogin`), the admin invitation and
-  role mutations (`mutations/people.ts`), `pnpm create-admin`, and `applyEnrollmentPayload` (pull and
-  webhook). In `oidc` mode people and roles are the IdP's and are overwritten at every sign-in; no local
+  role mutations (`mutations/people.ts`), manual enrollment by email (`mutations/enrollments.ts`: in `oidc`
+  mode a placeholder student with null `external_sub`, adopted by email at first sign-in), `pnpm
+create-admin`, and `applyEnrollmentPayload` (pull and webhook). In `oidc` mode people and roles are the IdP's and are overwritten at every sign-in; no local
   login, signup, magic link or invitation exists except the optional break-glass admin. In `local` mode
   signup follows `ALLOW_SIGNUP` and the first admin comes from `pnpm create-admin` (ADR-017). Sessions are
   better-auth's (`getAuth()` in `src/server/auth/auth.ts`); guards in `authz.ts` stay the only entry for
@@ -77,7 +78,9 @@ No telemetry. No org-specific code.
 
 ```bash
 docker compose -f compose.dev.yml up -d postgres mock-idp   # dev services (5433, 3013); files go to data/uploads
+                                  # compose.yml (root) is the production stack from the published image (docs/deploying.md)
 pnpm db:migrate && pnpm db:seed   # migrations + demo course, cohort, three mock users
+pnpm sota <migrate|seed|create-admin|validate-config|validate-theme>   # operator CLI (scripts/sota.ts); the image runs it
 pnpm create-admin                 # first admin (local mode) or the break-glass account (oidc mode)
 AUTH_MODE=oidc pnpm dev           # sign in through the mock IdP (default AUTH_MODE is local)
 pnpm dev                          # http://localhost:3003
@@ -106,6 +109,10 @@ dev/mock-idp/          oidc-provider + mock enrollment source     drizzle/  test
   `src/server/services/{notifications,email,storage}` and `scripts/*` run under Node's native TypeScript (the create-admin script and the sign-in hooks import them): relative imports
   with `.ts` extensions, no `~/` alias, no `enum`, no parameter properties.
 - `DATABASE_URL=pglite://memory` opens an in-memory PGlite (tests); anything else is `pg`.
+- In `src/server/mutations/`, a file with server functions exports nothing else that touches the database,
+  `better-auth` or Node APIs: that code lives in a `*-core.ts` sibling (`enrollments-core.ts`,
+  `people-core.ts`, `cohorts-core.ts`) that takes the actor and the transaction as arguments and is what
+  tests call. A plain export would pull the server into the client bundle and crash the page.
 - Server-only modules (`authz.ts`, `oidc.ts`, `src/db`, services) are imported only from server
   handlers; `src/server/auth/session.ts` is the client-safe surface.
 - Handlers that set cookies must return `new Response(null, { status, headers: { location } })`, never

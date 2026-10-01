@@ -33,8 +33,7 @@ product direction (SOTA owning identity) rather than missing pieces.
 - `/api/v1` service API (enrollments PUT/DELETE, progress, courses), OpenAPI document, bearer token.
 - Theming: `theme/` directory, `theme.json`, slots, email overrides, example themes (brand is
   `lms.config.ts` + CSS tokens today).
-- `sota` CLI (`migrate`, `seed`, `validate-*`), `sota export/import`, GHCR publish on tag.
-- Manual enrollment by email list.
+- `sota export/import`, GHCR publish on tag. (The `sota` CLI with `migrate`, `seed`, `create-admin` and `validate-config` and manual enrollment by email list/cohort exist since Phase 1; `validate-theme` waits for Phase 3.)
 
 ## Conflicts (need a decision, not code)
 

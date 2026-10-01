@@ -144,7 +144,7 @@ Access resolution: `canSeeLesson(U, L) = enrolled(U, course(L)) AND released(L, 
 
 - `student`: sees enrolled courses.
 - `teacher`: plus authoring of courses they're assigned to, reviewing submissions, viewing quiz results.
-- `admin`: everything, plus people/enrollment inspection, webhook log, and **manual enrollments** (`enrollment.source = 'manual'`). Manual enrollments are always allowed and never overwritten by a sync; optional write-back to the enrollment source via a configurable `ENTITLEMENTS_WRITE_URL` is a v1.1 feature (**OPEN** whether the reference deployment needs it at launch).
+- `admin`: everything, plus people/enrollment inspection, webhook log, and **manual enrollments** (`enrollment.source = 'manual'`: one address, a pasted list or a whole cohort, by admins and the course's teachers; an unknown address gets an invitation in `local` mode and a placeholder `person` without `external_sub` in `oidc` mode, adopted by email at first sign-in). Manual enrollments are always allowed and never overwritten by a sync; optional write-back to the enrollment source via a configurable `ENTITLEMENTS_WRITE_URL` is a v1.1 feature (**OPEN** whether the reference deployment needs it at launch).
 
 Roles come from the IdP claim; the LMS has no role management UI.
 
@@ -182,7 +182,7 @@ Conventions: UUID v7 primary keys, `created_at`/`updated_at` everywhere, soft de
 
 ### Quizzes / forms
 
-- `quiz` — `id`, `course_id`, `title`, `intro_md`, `kind` (`quiz` | `form`), `show_answers_after_submit bool`, `pass_threshold` (nullable %).
+- `quiz` — `id`, `course_id`, `title`, `intro_md`, `kind` (`form` | `self_check`; `form` stores no score, `self_check` shows choice feedback and never gates progress), `show_answers_after_submit bool`, `pass_threshold` (nullable %, informational).
 - `question` — `id`, `quiz_id`, `sort`, `type` (`single_choice` | `multi_choice` | `short_text` | `long_text`), `prompt_md`, `required bool`.
 - `question_option` — `id`, `question_id`, `sort`, `label`, `is_correct bool`.
 - `quiz_attempt` — `id`, `quiz_id`, `person_id`, `started_at`, `submitted_at`, `score` (nullable %), `passed bool null`.
