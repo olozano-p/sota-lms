@@ -334,20 +334,24 @@ export const submission = pgTable(
 export const QUIZ_KINDS = ["form", "self_check"] as const;
 export type QuizKind = (typeof QUIZ_KINDS)[number];
 
-export const quiz = pgTable("quiz", {
-  id: id(),
-  courseId: uuid("course_id")
-    .notNull()
-    .references(() => course.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  introMd: text("intro_md").notNull().default(""),
-  kind: text("kind", { enum: QUIZ_KINDS }).notNull().default("self_check"),
-  showAnswersAfterSubmit: boolean("show_answers_after_submit").notNull().default(true),
-  /** Percentage 0–100; null means nothing to pass (a reflective form). */
-  passThreshold: real("pass_threshold"),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
+export const quiz = pgTable(
+  "quiz",
+  {
+    id: id(),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => course.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    introMd: text("intro_md").notNull().default(""),
+    kind: text("kind", { enum: QUIZ_KINDS }).notNull().default("self_check"),
+    showAnswersAfterSubmit: boolean("show_answers_after_submit").notNull().default(true),
+    /** Percentage 0–100; null means nothing to pass (a reflective form). */
+    passThreshold: real("pass_threshold"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [check("quiz_kind_chk", sql`${t.kind} in ('form', 'self_check')`)],
+);
 
 export const QUESTION_TYPES = ["single_choice", "multi_choice", "short_text", "long_text"] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];

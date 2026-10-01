@@ -1,0 +1,2 @@
+UPDATE "quiz" SET "kind" = 'self_check' WHERE "kind" NOT IN ('form', 'self_check');--> statement-breakpoint
+ALTER TABLE "quiz" ADD CONSTRAINT "quiz_kind_chk" CHECK ("quiz"."kind" in ('form', 'self_check'));
