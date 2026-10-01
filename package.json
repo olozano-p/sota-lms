@@ -15,6 +15,7 @@
     "mock-idp": "node dev/mock-idp/server.mjs",
     "notify": "node scripts/notify.ts",
     "create-admin": "node --env-file-if-exists=.env scripts/create-admin.ts",
+    "sota": "node --env-file-if-exists=.env scripts/sota.ts",
     "lint": "oxlint",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
