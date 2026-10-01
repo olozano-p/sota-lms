@@ -6,6 +6,15 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { extname, join, normalize, sep } from "node:path";
 import { Readable } from "node:stream";
 
+// Fail at boot, with every problem listed, rather than on the first request.
+try {
+  const { validateEnv } = await import("../src/config/env.ts");
+  validateEnv();
+} catch (e) {
+  console.error(e.message);
+  process.exit(1);
+}
+
 const handler = (await import("../dist/server/server.js")).default;
 const clientDir = join(process.cwd(), "dist", "client");
 const port = Number(process.env.PORT ?? 3003);

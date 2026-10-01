@@ -1,0 +1,69 @@
+import { describe, expect, it } from "vitest";
+import { EnvError, parseEnv } from "./env.ts";
+
+const oidcVars = {
+  AUTH_MODE: "oidc",
+  OIDC_ISSUER: "https://idp.example.invalid/",
+  OIDC_CLIENT_ID: "sota",
+  OIDC_CLIENT_SECRET: "secret",
+};
+
+describe("parseEnv", () => {
+  it("defaults to local mode with signup closed", () => {
+    const e = parseEnv({});
+    expect(e.authMode).toBe("local");
+    expect(e.allowSignup).toBe(false);
+    expect(e.appUrl).toBe("http://localhost:3003");
+    expect(e.oidc.scopes).toEqual(["openid", "profile", "email"]);
+  });
+
+  it("treats empty values as unset and reads flags", () => {
+    const e = parseEnv({ ALLOW_SIGNUP: "true", S3_ENDPOINT: "", DEFAULT_LOCALE: "" });
+    expect(e.allowSignup).toBe(true);
+    expect(e.s3.endpoint).toBeNull();
+    expect(e.defaultLocale).toBeNull();
+  });
+
+  it("requires the OIDC variables in oidc mode and lists every missing one", () => {
+    expect(() => parseEnv({ AUTH_MODE: "oidc" })).toThrow(EnvError);
+    try {
+      parseEnv({ AUTH_MODE: "oidc" });
+    } catch (e) {
+      const message = (e as Error).message;
+      expect(message).toContain("OIDC_ISSUER is required when AUTH_MODE=oidc");
+      expect(message).toContain("OIDC_CLIENT_ID");
+      expect(message).toContain("OIDC_CLIENT_SECRET");
+    }
+  });
+
+  it("normalises the oidc block and ignores ALLOW_SIGNUP", () => {
+    const e = parseEnv({
+      ...oidcVars,
+      ALLOW_SIGNUP: "true",
+      OIDC_SCOPES: "openid email groups",
+      ENTITLEMENT_CLAIM: "enrollments",
+      BREAK_GLASS_ADMIN_EMAIL: "Root@Example.invalid",
+    });
+    expect(e.oidc.issuer).toBe("https://idp.example.invalid");
+    expect(e.oidc.scopes).toEqual(["openid", "email", "groups"]);
+    expect(e.oidc.entitlementClaim).toBe("enrollments");
+    expect(e.allowSignup).toBe(false);
+    expect(e.breakGlassAdminEmail).toBe("root@example.invalid");
+  });
+
+  it("rejects a break-glass admin outside oidc mode, bad enums and bad URLs", () => {
+    expect(() => parseEnv({ BREAK_GLASS_ADMIN_EMAIL: "a@example.invalid" })).toThrow(/oidc/);
+    expect(() => parseEnv({ AUTH_MODE: "saml" })).toThrow(EnvError);
+    expect(() => parseEnv({ APP_URL: "not a url" })).toThrow(/APP_URL/);
+    expect(() => parseEnv({ DEFAULT_LOCALE: "fr" })).toThrow(/DEFAULT_LOCALE/);
+  });
+
+  it("demands production secrets and the s3/smtp blocks when selected", () => {
+    expect(() => parseEnv({ NODE_ENV: "production" })).toThrow(/SESSION_SECRET/);
+    expect(() =>
+      parseEnv({ NODE_ENV: "production", SESSION_SECRET: "x".repeat(32), STORAGE_DIR: "/data" }),
+    ).not.toThrow();
+    expect(() => parseEnv({ STORAGE_DRIVER: "s3" })).toThrow(/S3_BUCKET/);
+    expect(() => parseEnv({ MAIL_TRANSPORT: "smtp" })).toThrow(/SMTP_HOST/);
+  });
+});

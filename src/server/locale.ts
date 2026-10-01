@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getCookie, getRequest, setCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { lmsConfig } from "~/config";
+import { defaultLocale } from "~/config/default-locale";
 import { env } from "~/config/env";
 import { isLocale, type Locale } from "~/i18n/locale";
 
@@ -33,13 +34,13 @@ export const getLocale = createServerFn({ method: "GET" })
     if (enabled(cookie)) return cookie;
     if (enabled(data.claim)) return data.claim;
     const negotiated = fromAcceptLanguage(getRequest().headers.get("accept-language"));
-    return negotiated ?? lmsConfig.locales.default;
+    return negotiated ?? defaultLocale();
   });
 
 export const setLocale = createServerFn({ method: "POST" })
   .validator(z.object({ locale: z.string() }))
   .handler(async ({ data }): Promise<Locale> => {
-    if (!enabled(data.locale)) return lmsConfig.locales.default;
+    if (!enabled(data.locale)) return defaultLocale();
     setLocaleCookie(data.locale);
     return data.locale;
   });
