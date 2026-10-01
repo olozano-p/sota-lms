@@ -1,5 +1,40 @@
 # Status
 
+## 2026-10-01 · Phase 4 — service API, OpenAPI, integration guide (ADR-020)
+
+- **Service API `/api/v1`** (`src/server/api/v1/`, thin catch-all route `src/routes/api/v1/$.ts`):
+  `PUT`/`DELETE /enrollments/{external_id}`, `GET /users/{sub}/progress`, `GET /courses`,
+  `GET /health` (also `/api/health`), `GET /openapi.json`. Bearer `API_SERVICE_TOKEN` (constant-time; empty
+  = 404 everywhere but health); `WEBHOOK_HMAC_SECRET`, when set, makes `X-Timestamp` + `X-Signature` over
+  `ts.METHOD.path.body` mandatory (5-minute window). Writes are `service-enrollments-core.ts` (webhook rows
+  only, audited as `service:api`); rate limit 300/min in `src/start.ts` via `security.ts`.
+- **Naming:** `WEBHOOK_HMAC_SECRET` signs both push channels; `ENTITLEMENTS_WEBHOOK_SECRET` is a deprecated
+  alias (boot warning); `ENTITLEMENT_CLAIM`, `ENTITLEMENTS_PULL_*` unchanged. `.env.example`, compose,
+  `docs/configuration.md` updated.
+- **Placeholders:** oidc mode creates a person by email (adopted by account linking) or by sub alone
+  (`u-<hash>@placeholder.invalid`, opted out of mail); `adoptSubPlaceholder` merges it into the person who
+  signs in with that sub. Local mode: unknown user is a 404. A revoked row is renewed under a new
+  `external_id` instead of colliding.
+- **OpenAPI** is generated from the route zod schemas (`z.toJSONSchema`); `tests/openapi.test.ts` asserts
+  registry and document list the same operations, 405 `Allow` equals the documented methods, every `$ref`
+  resolves, and `tests/service-api.test.ts` validates each response against its schema.
+- **Tests:** `tests/service-api.test.ts` (token, signature incl. stale/bad/wrong path, idempotent PUT,
+  reactivation, concurrency, unknown course, placeholders, manual/claims untouched, progress, view),
+  `tests/service-api-oidc.test.ts` (exit: push for a sub that never signed in, sign in through the fake IdP,
+  course opens, DELETE closes it), `tests/e2e/service-api.spec.ts` (same against `dev/mock-idp` in the
+  compose stack, run by the CI `e2e` job; the mock gained `mock-service-learner`). The fake IdP moved to
+  `tests/helpers/fake-idp.ts`.
+- **Admin visibility:** the person page already listed non-manual rows read-only with source and
+  `external_id`; the course _Enrollments_ tab now has a read-only table with origin, `external_id`, cohort,
+  status, window and a "has not signed in yet" mark.
+- Docs: `docs/integration.md` (OIDC registration, claims, curl and Node examples, signature, replay,
+  idempotency), ADR-020, `docs/entitlements-contract.md`, `docs/idp-integration.md`, `docs/spec.md`, `CLAUDE.md`.
+- Not done / left: no nonce store (replay inside 5 minutes, ADR-020); the complete-set channels and the API
+  must not serve the same people (the former revokes the latter's rows); `GET /users/{sub}/progress` is
+  keyed by `sub` only; no pagination on `GET /courses`; the `ENTITLEMENTS_WEBHOOK_SECRET` alias has no
+  removal date; the legacy webhook and pull write no audit row; the API was exercised with curl against the
+  production build and real Postgres, the CI `e2e` job itself was not run on GitHub.
+
 ## 2026-10-01 · Phase 3 — theming (ADR-019) and Phase 2 cleanups
 
 - **Cleanups.** Enrollment email lookup is case-insensitive (`lower(person.email)`); `isUnchanged`

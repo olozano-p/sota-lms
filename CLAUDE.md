@@ -26,13 +26,21 @@ Two auth modes (`AUTH_MODE=local|oidc`, ADR-013, ADR-016, ADR-017) and the `enro
   magic link, OIDC sign-in and its after-callback hook, `completeOidcLogin`), the admin invitation and
   role mutations (`mutations/people.ts`), manual enrollment by email (`mutations/enrollments.ts`: in `oidc`
   mode a placeholder student with null `external_sub`, adopted by email at first sign-in), `pnpm
-create-admin`, and `applyEnrollmentPayload` (pull and webhook). In `oidc` mode people and roles are the IdP's and are overwritten at every sign-in; no local
+create-admin`, `applyEnrollmentPayload` (pull and webhook) and the service API's placeholder people
+  (`mutations/service-enrollments-core.ts`, merged into the real person by `adoptSubPlaceholder` at sign-in). In `oidc` mode people and roles are the IdP's and are overwritten at every sign-in; no local
   login, signup, magic link or invitation exists except the optional break-glass admin. In `local` mode
   signup follows `ALLOW_SIGNUP` and the first admin comes from `pnpm create-admin` (ADR-017). Sessions are
   better-auth's (`getAuth()` in `src/server/auth/auth.ts`); guards in `authz.ts` stay the only entry for
   mutations. Enrollment rows with `source = 'claims'` (ID-token claim, `access/claims.ts`) or
-  `'webhook'` (`access/enrollments.ts`) are written only there, reconciled idempotently; admin
+  `'webhook'` (`access/enrollments.ts`, and per enrollment the service API `/api/v1`, ADR-020) are
+  written only there, reconciled idempotently; admin
   enrollments are `source = 'manual'` and no sync ever creates, changes or deletes them.
+- **The service API** (`/api/v1`, `docs/integration.md`, ADR-020) is the only non-person writer: bearer
+  `API_SERVICE_TOKEN` (empty = 404) plus an HMAC over `ts.METHOD.path.body` when `WEBHOOK_HMAC_SECRET` is set,
+  checked by `requireService()` in `src/server/auth/service.ts`, which mints the `ServiceActor` its
+  mutations demand; audit rows carry `diff.actor = "service:api"`. Each route is declared once in
+  `src/server/api/v1/routes.ts` (zod schemas) and both the validation and `/api/v1/openapi.json` derive from
+  it; never hand-write the document.
 - **Access is one pure function**: `canSeeLesson()` in `src/server/access/rules.ts` takes the
   enrollments, the course/lesson state, the cohort releases and `now` as data. Content loaders
   call `requireLessonAccess()`, which calls it. Nothing else decides who sees what.
@@ -100,7 +108,8 @@ THEME_DIR=examples/themes/ledger pnpm dev   # try a theme; slots need a dev-serv
 
 ```
 src/routes/            file routes; _authed = session, _authed/teach = teacher, _authed/admin = admin; api/ = handlers
-src/server/auth/       auth.ts (better-auth, both modes) · identity.ts · flows.ts · session.ts (client-safe getSession) · authz.ts (server-only guards)
+src/server/auth/       auth.ts (better-auth, both modes) · identity.ts · flows.ts · session.ts (client-safe getSession) · authz.ts (server-only guards) · service.ts (service-API token + HMAC)
+src/server/api/v1/     service API: routes.ts (registry, zod) · dispatch.ts · openapi.ts · queries.ts; src/routes/api/v1/$.ts is a thin wrapper
 src/server/access/     rules.ts (pure) · enrollments.ts (pull, cache, webhook) · require.ts · forum.ts (course/general forum gate)
 src/server/queries/ mutations/ services/   reads · writes+audit · video/, storage/, email/
 src/db/  src/lib/  src/i18n/  src/components/{ui,shell,syllabus,player,editor,forum,theme}  src/config/
