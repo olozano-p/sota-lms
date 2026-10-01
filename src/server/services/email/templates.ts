@@ -11,7 +11,20 @@ export type NotificationKind =
   | "feedback_returned"
   | "chapter_released"
   | "forum_reply"
-  | "forum_thread";
+  | "forum_thread"
+  | AccountMailKind;
+
+/** Account mail carries a one-time link and is addressed by email; it never enters a digest. */
+export const ACCOUNT_MAIL_KINDS = [
+  "auth_magic_link",
+  "auth_verify_email",
+  "auth_reset_password",
+  "auth_invite",
+] as const;
+export type AccountMailKind = (typeof ACCOUNT_MAIL_KINDS)[number];
+
+export const isAccountMailKind = (kind: string): kind is AccountMailKind =>
+  (ACCOUNT_MAIL_KINDS as readonly string[]).includes(kind);
 
 export interface NotificationPayload {
   /** Empty for the general forum, which belongs to no course. */
@@ -21,6 +34,8 @@ export interface NotificationPayload {
   /** Kind-specific: student name, assignment title, chapter title… */
   subject?: string;
   detail?: string;
+  /** Recipient language for account mail sent before a person row exists. */
+  locale?: string;
 }
 
 interface Rendered {
@@ -60,6 +75,7 @@ export function renderNotification(
     course: payload.courseTitle || t("mail.forum.general"),
     subject: payload.subject ?? "",
     detail: payload.detail ?? "",
+    brand,
   };
   switch (kind) {
     case "submission_received":
@@ -87,6 +103,26 @@ export function renderNotification(
     case "forum_thread":
       return layout(brand, t("mail.forumThread.title", p), [t("mail.forumThread.body", p)], {
         label: t("mail.forumThread.cta"),
+        url: payload.url,
+      });
+    case "auth_magic_link":
+      return layout(brand, t("mail.auth.magic.title", p), [t("mail.auth.magic.body", p)], {
+        label: t("mail.auth.magic.cta"),
+        url: payload.url,
+      });
+    case "auth_verify_email":
+      return layout(brand, t("mail.auth.verify.title", p), [t("mail.auth.verify.body", p)], {
+        label: t("mail.auth.verify.cta"),
+        url: payload.url,
+      });
+    case "auth_reset_password":
+      return layout(brand, t("mail.auth.reset.title", p), [t("mail.auth.reset.body", p)], {
+        label: t("mail.auth.reset.cta"),
+        url: payload.url,
+      });
+    case "auth_invite":
+      return layout(brand, t("mail.auth.invite.title", p), [t("mail.auth.invite.body", p)], {
+        label: t("mail.auth.invite.cta"),
         url: payload.url,
       });
   }

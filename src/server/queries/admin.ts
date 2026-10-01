@@ -1,8 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
-import { desc, eq, ilike, or, sql } from "drizzle-orm";
+import { desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/db";
-import { auditLog, cohort, course, enrollment, person, webhookEvent } from "~/db/schema";
+import {
+  auditLog,
+  cohort,
+  course,
+  enrollment,
+  invitation,
+  person,
+  webhookEvent,
+} from "~/db/schema";
 import { requireRole } from "~/server/auth/authz";
 
 export const listPeople = createServerFn({ method: "GET" })
@@ -29,7 +37,7 @@ export const listPeople = createServerFn({ method: "GET" })
           ? or(
               ilike(person.name, `%${q}%`),
               ilike(person.email, `%${q}%`),
-              ilike(person.idpSub, `%${q}%`),
+              ilike(person.externalSub, `%${q}%`),
             )
           : undefined,
       )
@@ -91,4 +99,24 @@ export const listAuditLog = createServerFn({ method: "GET" }).handler(async () =
     .orderBy(desc(auditLog.at))
     .limit(300);
   return rows.map((r) => ({ ...r, diff: r.diff === null ? null : JSON.stringify(r.diff) }));
+});
+
+/** Pending invitations (local mode): who was invited, with which roles, until when. */
+export const listInvitations = createServerFn({ method: "GET" }).handler(async () => {
+  await requireRole("admin");
+  return db
+    .select({
+      id: invitation.id,
+      personId: person.id,
+      email: person.email,
+      name: person.name,
+      roles: person.roles,
+      expiresAt: invitation.expiresAt,
+      createdAt: invitation.createdAt,
+    })
+    .from(invitation)
+    .innerJoin(person, eq(person.id, invitation.personId))
+    .where(isNull(invitation.acceptedAt))
+    .orderBy(desc(invitation.createdAt))
+    .limit(200);
 });

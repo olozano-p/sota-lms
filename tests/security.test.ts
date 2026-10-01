@@ -37,4 +37,17 @@ describe("allowRequest", () => {
     expect(allowRequest(b, "/auth/login", t0)).toBe(true);
     expect(allowRequest(a, "/auth/login", t0 + 60_000)).toBe(true);
   });
+  it("allows 10 credential or mail requests a minute across the auth endpoints, then refuses", () => {
+    const t0 = Date.now();
+    const a = req({ "x-sota-remote-addr": "10.2.2.1" });
+    const paths = [
+      "/api/auth/sign-in/email",
+      "/api/auth/sign-in/magic-link",
+      "/api/auth/invite/accept",
+    ];
+    for (let i = 0; i < 10; i++) expect(allowRequest(a, paths[i % 3]!, t0)).toBe(true);
+    expect(allowRequest(a, "/api/auth/sign-in/email", t0)).toBe(false);
+    expect(allowRequest(a, "/api/auth/request-password-reset", t0)).toBe(false);
+    expect(allowRequest(a, "/api/auth/get-session", t0)).toBe(true);
+  });
 });

@@ -37,7 +37,7 @@ export function contentSecurityPolicy(nonce: string): string {
   for (const p of enabledVideoProviders()) frames.add(`https://${p.embed("0").frameHost}`);
   for (const host of lmsConfig.embedAllowlist) frames.add(`https://${host}`);
   const storage = storageOrigins();
-  const idp = origin(process.env.OIDC_ISSUER);
+  const idp = env.authMode === "oidc" ? origin(env.oidc.issuer) : null;
   return [
     "default-src 'self'",
     "base-uri 'self'",
@@ -77,7 +77,21 @@ interface Bucket {
 }
 
 const buckets = new Map<string, Bucket>();
-const LIMITS: { prefix: string; perMinute: number }[] = [
+/** better-auth endpoints (mounted at /api/auth) that check or issue a credential or a mail. */
+export const AUTH_SENSITIVE_PREFIXES = [
+  "/api/auth/sign-in/email",
+  "/api/auth/sign-up/",
+  "/api/auth/sign-in/magic-link",
+  "/api/auth/magic-link/",
+  "/api/auth/request-password-reset",
+  "/api/auth/reset-password",
+  "/api/auth/send-verification-email",
+  "/api/auth/invite/",
+];
+const LIMITS: { prefix: string; perMinute: number; group?: string }[] = [
+  // Credential, magic-link, recovery and invitation endpoints: guessing and mail-flooding targets.
+  ...AUTH_SENSITIVE_PREFIXES.map((prefix) => ({ prefix, perMinute: 10, group: "auth-sensitive" })),
+  { prefix: "/api/auth/", perMinute: 120 },
   { prefix: "/auth/", perMinute: 60 },
   // Signed file GET/PUT (local driver): a page of inline images costs a redirect plus a fetch each.
   { prefix: "/api/storage/", perMinute: 600 },
@@ -108,7 +122,7 @@ export function clientKey(request: Request): string {
 export function allowRequest(request: Request, pathname: string, now = Date.now()): boolean {
   const limit = LIMITS.find((l) => pathname.startsWith(l.prefix));
   if (!limit) return true;
-  const key = `${limit.prefix}|${clientKey(request)}`;
+  const key = `${limit.group ?? limit.prefix}|${clientKey(request)}`;
   const bucket = buckets.get(key) ?? { tokens: limit.perMinute, updatedAt: now };
   const refill = ((now - bucket.updatedAt) / 60_000) * limit.perMinute;
   bucket.tokens = Math.min(limit.perMinute, bucket.tokens + refill);

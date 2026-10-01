@@ -21,11 +21,14 @@ import { isLocale } from "../../i18n/locale.ts";
 import { dateInZone } from "../../lib/dates.ts";
 import { sendMail } from "./email/mailer.ts";
 import {
+  isAccountMailKind,
   renderDigest,
   renderNotification,
+  type AccountMailKind,
   type NotificationKind,
   type NotificationPayload,
 } from "./email/templates.ts";
+import { defaultLocale } from "../../config/default-locale.ts";
 
 export async function enqueue(
   tx: DbOrTx,
@@ -38,6 +41,22 @@ export async function enqueue(
   await tx.insert(notification).values({ personId, kind, payload, immediate });
 }
 
+/**
+ * Queues account mail (magic link, verification, reset, invitation) for an address that may not
+ * have a person row yet. Not subject to `notifications.enabled` or to a person's opt-out: the
+ * recipient asked for it. The caller kicks `sendImmediate()` so the link arrives in seconds.
+ */
+export async function enqueueAccountMail(
+  tx: DbOrTx,
+  toEmail: string,
+  kind: AccountMailKind,
+  payload: NotificationPayload,
+): Promise<void> {
+  await tx
+    .insert(notification)
+    .values({ toEmail: toEmail.toLowerCase(), kind, payload, immediate: true });
+}
+
 async function recipient(personId: string) {
   const [p] = await db
     .select({ email: person.email, locale: person.locale, optOut: person.emailOptOut })
@@ -47,7 +66,7 @@ async function recipient(personId: string) {
   return p ?? null;
 }
 
-const localeOf = (v: string | null) => (isLocale(v) ? v : lmsConfig.locales.default);
+const localeOf = (v: string | null | undefined) => (isLocale(v) ? v : defaultLocale());
 
 /** Sends every immediate notification that is still pending. Safe to call often. */
 export async function sendImmediate(): Promise<number> {
@@ -58,8 +77,29 @@ export async function sendImmediate(): Promise<number> {
     .limit(100);
   let sent = 0;
   for (const n of pending) {
-    const to = await recipient(n.personId);
     try {
+      if (isAccountMailKind(n.kind)) {
+        const payload = n.payload as NotificationPayload;
+        const known = n.personId ? await recipient(n.personId) : null;
+        const email = n.toEmail ?? known?.email;
+        if (email) {
+          const mail = renderNotification(
+            n.kind,
+            payload,
+            localeOf(known?.locale ?? payload.locale),
+            lmsConfig.brand.name,
+          );
+          await sendMail({ to: email, ...mail });
+        }
+        // The payload holds a live one-time link; once sent there is no reason to keep it.
+        await db
+          .update(notification)
+          .set({ sentAt: new Date(), payload: { courseTitle: "", url: "" } })
+          .where(eq(notification.id, n.id));
+        sent++;
+        continue;
+      }
+      const to = n.personId ? await recipient(n.personId) : null;
       if (to && !to.optOut) {
         const mail = renderNotification(
           n.kind as NotificationKind,
@@ -89,7 +129,9 @@ export async function sendDigests(): Promise<number> {
     .where(and(isNull(notification.sentAt), eq(notification.immediate, false)))
     .limit(2000);
   const byPerson = new Map<string, typeof pending>();
-  for (const n of pending) byPerson.set(n.personId, [...(byPerson.get(n.personId) ?? []), n]);
+  for (const n of pending) {
+    if (n.personId) byPerson.set(n.personId, [...(byPerson.get(n.personId) ?? []), n]);
+  }
   let sent = 0;
   for (const [personId, items] of byPerson) {
     const to = await recipient(personId);
