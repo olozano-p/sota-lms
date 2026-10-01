@@ -644,6 +644,15 @@ export const en: Record<MessageKey, string> = {
     "Paste a list of addresses: they are enrolled in the course through this cohort.",
   "enroll.title": "Enroll by email",
   "enroll.lead": "Enroll one address or a pasted list, with or without a cohort.",
+  "enroll.list.title": "Course enrollments",
+  "enroll.list.lead":
+    "Read-only list. Synced rows are managed by the external system and cannot be edited here.",
+  "enroll.list.person": "Person",
+  "enroll.list.pending": "Has not signed in yet",
+  "enroll.list.synced":
+    "Synced enrollments (provider claims and webhook) are read-only: the external system manages them.",
+  "enroll.list.truncated": "Showing {n} of {total} enrollments.",
+  "enroll.list.empty": "There are no enrollments in this course yet.",
   "enroll.emails": "Email addresses",
   "enroll.emails.hint": "One per line, or separated by commas or semicolons. At most 500.",
   "enroll.cohort": "Cohort (optional)",

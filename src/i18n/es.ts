@@ -653,6 +653,15 @@ export const es: Record<MessageKey, string> = {
   "enroll.title": "Matricula por correo",
   "enroll.lead":
     "Matricula una dirección o una lista pegada, sin pasar por un grupo o a través de uno.",
+  "enroll.list.title": "Matrículas del curso",
+  "enroll.list.lead":
+    "Listado de solo lectura. Las filas sincronizadas las gestiona el sistema externo y aquí no se pueden editar.",
+  "enroll.list.person": "Persona",
+  "enroll.list.pending": "Aún no ha iniciado sesión",
+  "enroll.list.synced":
+    "Las matrículas sincronizadas (claims del proveedor y webhook) son de solo lectura: las gestiona el sistema externo.",
+  "enroll.list.truncated": "Se muestran {n} de {total} matrículas.",
+  "enroll.list.empty": "Todavía no hay ninguna matrícula en este curso.",
   "enroll.emails": "Direcciones de correo",
   "enroll.emails.hint": "Una por línea, o separadas por comas o punto y coma. Máximo 500.",
   "enroll.cohort": "Grupo (opcional)",

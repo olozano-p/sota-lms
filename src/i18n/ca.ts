@@ -649,6 +649,15 @@ export const ca = {
   "enroll.title": "Matricula per correu",
   "enroll.lead":
     "Matricula una adreça o una llista enganxada, sense passar per un grup o a través d'un.",
+  "enroll.list.title": "Matrícules del curs",
+  "enroll.list.lead":
+    "Llistat de només lectura. Les files sincronitzades les gestiona el sistema extern i aquí no es poden editar.",
+  "enroll.list.person": "Persona",
+  "enroll.list.pending": "Encara no ha iniciat sessió",
+  "enroll.list.synced":
+    "Les matrícules sincronitzades (claims del proveïdor i webhook) són de només lectura: les gestiona el sistema extern.",
+  "enroll.list.truncated": "Es mostren {n} de {total} matrícules.",
+  "enroll.list.empty": "Encara no hi ha cap matrícula en aquest curs.",
   "enroll.emails": "Adreces de correu",
   "enroll.emails.hint": "Una per línia, o separades per comes o punts i coma. Màxim 500.",
   "enroll.cohort": "Grup (opcional)",
