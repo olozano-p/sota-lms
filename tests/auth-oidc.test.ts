@@ -3,102 +3,14 @@
  * by sub, per-login refresh, roles, claim-driven enrollments, disabled local auth, break-glass
  * admin and RP-initiated logout.
  */
-import { createServer, type Server } from "node:http";
-import { createSign, generateKeyPairSync, randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
+import { createFakeIdp } from "./helpers/fake-idp.ts";
 
-const keys = generateKeyPairSync("rsa", { modulusLength: 2048 });
-const jwk = { ...keys.publicKey.export({ format: "jwk" }), kid: "k1", alg: "RS256", use: "sig" };
-const b64 = (v: unknown) =>
-  Buffer.from(typeof v === "string" ? v : JSON.stringify(v)).toString("base64url");
-function signJwt(payload: Record<string, unknown>) {
-  const head = b64({ alg: "RS256", typ: "JWT", kid: "k1" });
-  const body = b64(payload);
-  const sig = createSign("RSA-SHA256")
-    .update(`${head}.${body}`)
-    .sign(keys.privateKey)
-    .toString("base64url");
-  return `${head}.${body}.${sig}`;
-}
-
-/** The claims the fake IdP issues on the next sign-in. */
-let nextClaims: Record<string, unknown> = {};
-const codes = new Map<string, { nonce: string; claims: Record<string, unknown> }>();
+const fake = createFakeIdp();
+const CLIENT = fake.client;
 let issuer = "";
-const CLIENT = { id: "sota", secret: "sota-test-secret" };
 
-function startIdp(): Promise<Server> {
-  const server = createServer((req, res) => {
-    const url = new URL(req.url!, issuer);
-    const json = (body: unknown) => {
-      res.setHeader("content-type", "application/json");
-      res.end(JSON.stringify(body));
-    };
-    if (url.pathname === "/.well-known/openid-configuration") {
-      return json({
-        issuer,
-        authorization_endpoint: `${issuer}/authorize`,
-        token_endpoint: `${issuer}/token`,
-        userinfo_endpoint: `${issuer}/userinfo`,
-        jwks_uri: `${issuer}/jwks`,
-        end_session_endpoint: `${issuer}/logout`,
-        id_token_signing_alg_values_supported: ["RS256"],
-        response_types_supported: ["code"],
-        subject_types_supported: ["public"],
-      });
-    }
-    if (url.pathname === "/jwks") return json({ keys: [jwk] });
-    if (url.pathname === "/authorize") {
-      const code = randomUUID();
-      codes.set(code, { nonce: url.searchParams.get("nonce") ?? "", claims: nextClaims });
-      const back = new URL(url.searchParams.get("redirect_uri")!);
-      back.searchParams.set("code", code);
-      back.searchParams.set("state", url.searchParams.get("state")!);
-      res.statusCode = 302;
-      res.setHeader("location", back.toString());
-      return res.end();
-    }
-    if (url.pathname === "/token" && req.method === "POST") {
-      let raw = "";
-      req.on("data", (c) => (raw += c));
-      req.on("end", () => {
-        const form = new URLSearchParams(raw);
-        const entry = codes.get(form.get("code") ?? "");
-        const basic = Buffer.from(
-          (req.headers.authorization ?? "").replace("Basic ", ""),
-          "base64",
-        ).toString();
-        if (!entry || basic !== `${CLIENT.id}:${CLIENT.secret}`) {
-          res.statusCode = 400;
-          return json({ error: "invalid_grant" });
-        }
-        const now = Math.floor(Date.now() / 1000);
-        json({
-          access_token: "at-" + randomUUID(),
-          token_type: "Bearer",
-          expires_in: 3600,
-          id_token: signJwt({
-            iss: issuer,
-            aud: CLIENT.id,
-            iat: now,
-            exp: now + 600,
-            nonce: entry.nonce,
-            ...entry.claims,
-          }),
-        });
-      });
-      return;
-    }
-    if (url.pathname === "/userinfo")
-      return json({ sub: nextClaims.sub, roles: ["instructor"], name: "From Userinfo" });
-    res.statusCode = 404;
-    res.end();
-  });
-  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server)));
-}
-
-let idp: Server;
 const ORIGIN = "http://localhost:3003";
 type Mods = {
   db: typeof import("../src/db/index.ts").db;
@@ -140,7 +52,7 @@ async function call(path: string, init: { method?: string; body?: unknown; cooki
 
 /** Runs the whole authorization-code flow and returns the session cookie. */
 async function signIn(claims: Record<string, unknown>) {
-  nextClaims = { email_verified: true, ...claims };
+  fake.setClaims({ email_verified: true, ...claims });
   const start = await call("/sign-in/social", {
     body: { provider: "oidc", callbackURL: "/courses" },
   });
@@ -156,8 +68,8 @@ async function signIn(claims: Record<string, unknown>) {
 }
 
 beforeAll(async () => {
-  idp = await startIdp();
-  issuer = `http://127.0.0.1:${(idp.address() as { port: number }).port}`;
+  await fake.start();
+  issuer = fake.issuer;
   process.env.AUTH_MODE = "oidc";
   process.env.APP_URL = ORIGIN;
   process.env.OIDC_ISSUER = issuer;
@@ -175,7 +87,7 @@ beforeAll(async () => {
     resetEnvCache: (await import("../src/config/env.ts")).resetEnvCache,
   };
 });
-afterAll(() => idp?.close());
+afterAll(() => fake.close());
 
 const person = () => m.schema.person;
 
