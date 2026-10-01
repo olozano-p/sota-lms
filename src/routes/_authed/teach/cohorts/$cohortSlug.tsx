@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { createFileRoute, Link, notFound, useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2, X } from "lucide-react";
+import { CalendarClock, Plus, Trash2, Users, X } from "lucide-react";
 import { useI18n } from "~/i18n";
 import { COHORT_STATUSES } from "~/db/schema";
 import { getCohortEditor } from "~/server/queries/cohorts";
 import {
   addCohortMember,
   addRelease,
+  applyCohortDrip,
   deleteCohort,
   deleteRelease,
   removeCohortMember,
   updateCohort,
 } from "~/server/mutations/cohorts";
+import { enrollCohort } from "~/server/mutations/enrollments";
+import { EmailEnrollForm } from "~/components/enroll/EmailEnrollForm";
 import { SaveIndicator } from "~/components/editor/SaveIndicator";
 import { useAutosave } from "~/components/editor/useAutosave";
 import { Badge } from "~/components/ui/badge";
@@ -50,6 +53,53 @@ function CohortEditorPage() {
   const [target, setTarget] = useState("");
   const [at, setAt] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const mDrip = useServerFn(applyCohortDrip);
+  const mEnrollCohort = useServerFn(enrollCohort);
+  const [drip, setDrip] = useState({
+    everyDays: "7",
+    chaptersPerStep: "1",
+    startDate: cohort.startsAt ?? "",
+  });
+  const [confirmDrip, setConfirmDrip] = useState(false);
+  const [dripMsg, setDripMsg] = useState<string | null>(null);
+  const [dripBusy, setDripBusy] = useState(false);
+  const [enrolledMsg, setEnrolledMsg] = useState<string | null>(null);
+  const [enrollBusy, setEnrollBusy] = useState(false);
+  const hasChapterReleases = releases.some((r) => r.chapterTitle != null);
+  const dripValid =
+    Number.parseInt(drip.everyDays, 10) >= 1 &&
+    Number.parseInt(drip.chaptersPerStep, 10) >= 1 &&
+    Boolean(drip.startDate || cohort.startsAt);
+  const runDrip = async () => {
+    setDripBusy(true);
+    setDripMsg(null);
+    try {
+      const r = await run(() =>
+        mDrip({
+          data: {
+            cohortId: cohort.id,
+            everyDays: Number.parseInt(drip.everyDays, 10),
+            chaptersPerStep: Number.parseInt(drip.chaptersPerStep, 10),
+            startDate: drip.startDate || null,
+          },
+        }),
+      );
+      setDripMsg(t("teach.cohorts.drip.done", { n: r?.count ?? 0 }));
+      await refresh();
+    } finally {
+      setDripBusy(false);
+    }
+  };
+  const runEnrollCohort = async () => {
+    setEnrollBusy(true);
+    setEnrolledMsg(null);
+    try {
+      const r = await run(() => mEnrollCohort({ data: { cohortId: cohort.id } }));
+      setEnrolledMsg(t("teach.cohorts.enrollAll.done", { n: r?.enrolled ?? 0 }));
+    } finally {
+      setEnrollBusy(false);
+    }
+  };
   const refresh = () => router.invalidate();
   const patch = (p: Parameters<typeof updateCohort>[0]["data"]["patch"]) =>
     run(() => mUpdate({ data: { cohortId: cohort.id, patch: p } })).then(refresh);
@@ -162,6 +212,80 @@ function CohortEditorPage() {
             {t("teach.cohorts.schedule.lead")}
           </p>
         </div>
+        <form
+          className="flex flex-col gap-3 rounded-lg border bg-card p-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!dripValid) return;
+            if (hasChapterReleases) setConfirmDrip(true);
+            else void runDrip();
+          }}
+        >
+          <div>
+            <h3 className="text-base font-semibold">{t("teach.cohorts.drip")}</h3>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              {t("teach.cohorts.drip.lead")}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <Field label={t("teach.cohorts.drip.every")}>
+              {(c) => (
+                <Input
+                  {...c}
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={drip.everyDays}
+                  onChange={(e) => setDrip({ ...drip, everyDays: e.target.value })}
+                  className="w-28"
+                />
+              )}
+            </Field>
+            <Field label={t("teach.cohorts.drip.per")}>
+              {(c) => (
+                <Input
+                  {...c}
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={drip.chaptersPerStep}
+                  onChange={(e) => setDrip({ ...drip, chaptersPerStep: e.target.value })}
+                  className="w-28"
+                />
+              )}
+            </Field>
+            <Field label={t("teach.cohorts.drip.start")}>
+              {(c) => (
+                <Input
+                  {...c}
+                  type="date"
+                  value={drip.startDate}
+                  onChange={(e) => setDrip({ ...drip, startDate: e.target.value })}
+                />
+              )}
+            </Field>
+            <Button type="submit" variant="outline" loading={dripBusy} disabled={!dripValid}>
+              <CalendarClock aria-hidden="true" />
+              {t("teach.cohorts.drip.apply")}
+            </Button>
+          </div>
+          {!cohort.startsAt && !drip.startDate ? (
+            <p className="text-xs text-muted-foreground">{t("teach.cohorts.drip.noStart")}</p>
+          ) : null}
+          {dripMsg ? (
+            <p role="status" className="text-sm">
+              {dripMsg}
+            </p>
+          ) : null}
+        </form>
+        <ConfirmDialog
+          open={confirmDrip}
+          title={t("teach.cohorts.drip")}
+          description={t("teach.cohorts.drip.confirm")}
+          confirmLabel={t("teach.cohorts.drip.apply")}
+          onClose={() => setConfirmDrip(false)}
+          onConfirm={runDrip}
+        />
         {releases.length ? (
           <Table>
             <THead>
@@ -347,6 +471,34 @@ function CohortEditorPage() {
             {t("teach.cohorts.members.add")}
           </Button>
         </form>
+        <div className="flex flex-col gap-3 rounded-lg border bg-card p-5">
+          <div>
+            <h3 className="text-base font-semibold">{t("teach.cohorts.enrollAll")}</h3>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              {t("teach.cohorts.enrollAll.lead")}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" loading={enrollBusy} onClick={runEnrollCohort}>
+              <Users aria-hidden="true" />
+              {t("teach.cohorts.enrollAll")}
+            </Button>
+            {enrolledMsg ? (
+              <p role="status" className="text-sm">
+                {enrolledMsg}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 rounded-lg border bg-card p-5">
+          <div>
+            <h3 className="text-base font-semibold">{t("enroll.title")}</h3>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              {t("teach.cohorts.enrollEmails.lead")}
+            </p>
+          </div>
+          <EmailEnrollForm courseId={course.id} cohortSlug={cohort.slug} onDone={refresh} />
+        </div>
       </section>
 
       <div className="border-t pt-6">

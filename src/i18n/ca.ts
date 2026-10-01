@@ -363,7 +363,7 @@ export const ca = {
   "teach.submissions.student": "Alumne",
   "teach.submissions.assignment": "Tasca",
   "teach.submissions.submitted": "Entregada",
-  "teach.submissions.comment": "Comentaris",
+  "teach.submissions.comment": "Nota de revisió",
   "teach.submissions.markReviewed": "Marca com a revisada",
   "teach.submissions.return": "Retorna amb comentaris",
   "teach.submissions.empty": "Encara no hi ha entregues.",
@@ -626,6 +626,47 @@ export const ca = {
     "No s'han pogut desar els rols. L'últim administrador no es pot treure.",
   "admin.person.rolesFromIdp":
     "Els rols provenen del proveïdor d'identitat i aquí només es poden consultar.",
+  "teach.tabs.enrollments": "Matrícules",
+  "teach.submissions.cohort": "Grup",
+  "teach.submissions.cohort.all": "Tots els grups",
+  "teach.cohorts.drip": "Regla de goteig",
+  "teach.cohorts.drip.lead":
+    "Un capítol cada N dies a partir de la data d'inici. Escriu les dates de publicació del calendari de sota, que després pots editar una a una.",
+  "teach.cohorts.drip.every": "Cada (dies)",
+  "teach.cohorts.drip.per": "Capítols per pas",
+  "teach.cohorts.drip.start": "Data d'inici",
+  "teach.cohorts.drip.apply": "Aplica",
+  "teach.cohorts.drip.noStart": "El grup no té data d'inici: indica'n una.",
+  "teach.cohorts.drip.confirm":
+    "Aquest grup ja té dates de publicació per capítol. Aplicar la regla les substituirà totes; les de lliçons no es toquen.",
+  "teach.cohorts.drip.done": "S'han programat {n} dates de publicació.",
+  "teach.cohorts.enrollAll": "Matricula tot el grup",
+  "teach.cohorts.enrollAll.lead":
+    "Matricula al curs tot l'alumnat del grup, també qui s'hi va afegir sense matrícula.",
+  "teach.cohorts.enrollAll.done": "S'han matriculat {n} persones.",
+  "teach.cohorts.enrollEmails.lead":
+    "Enganxa una llista de correus: es matriculen al curs a través d'aquest grup.",
+  "enroll.title": "Matricula per correu",
+  "enroll.lead":
+    "Matricula una adreça o una llista enganxada, sense passar per un grup o a través d'un.",
+  "enroll.emails": "Adreces de correu",
+  "enroll.emails.hint": "Una per línia, o separades per comes o punts i coma. Màxim 500.",
+  "enroll.cohort": "Grup (opcional)",
+  "enroll.cohort.none": "Sense grup",
+  "enroll.from": "Vàlida des de",
+  "enroll.until": "Vàlida fins a",
+  "enroll.submit": "Matricula",
+  "enroll.nothing": "No s'ha trobat cap adreça.",
+  "enroll.invalid": "No vàlides",
+  "enroll.outcome.enrolled": "Matriculades",
+  "enroll.outcome.enrolled.hint": "Ja tenen accés al curs.",
+  "enroll.outcome.already": "Ja matriculades",
+  "enroll.outcome.already.hint": "No s'ha canviat res.",
+  "enroll.outcome.invited": "Convidades",
+  "enroll.outcome.invited.hint": "S'ha enviat un correu d'invitació.",
+  "enroll.outcome.placeholder": "Pendents del primer accés",
+  "enroll.outcome.placeholder.hint":
+    "La matrícula s'activarà quan la persona entri per primer cop.",
 } as const;
 
 export type MessageKey = keyof typeof ca;

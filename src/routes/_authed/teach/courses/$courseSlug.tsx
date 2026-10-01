@@ -75,6 +75,9 @@ function CourseEditorLayout() {
         <Tab to="/teach/courses/$courseSlug/cohorts" params={{ courseSlug: course.slug }}>
           {t("teach.tabs.cohorts")}
         </Tab>
+        <Tab to="/teach/courses/$courseSlug/enrollments" params={{ courseSlug: course.slug }}>
+          {t("teach.tabs.enrollments")}
+        </Tab>
         <Tab to="/teach/courses/$courseSlug/settings" params={{ courseSlug: course.slug }}>
           {t("teach.tabs.settings")}
         </Tab>
