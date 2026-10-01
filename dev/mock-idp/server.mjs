@@ -1,12 +1,12 @@
 /**
- * Development identity provider + entitlement source, so a contributor can run the full flow
+ * Development identity provider + enrollment source, so a contributor can run the full flow
  * without any real IdP. Plain Node, no build step.
  *
  *   node dev/mock-idp/server.mjs      (or `pnpm mock-idp`, or the `mock-idp` compose service)
  *
  * - OIDC provider (node-oidc-provider) at http://localhost:3013 with three users. The login
  *   page is a list of buttons: pick who you are. Claims: sub, email, name, locale, roles.
- * - Entitlement source: GET /entitlements/v1/:sub (Bearer token) returns the entitlements/v1
+ * - Enrollment source: GET /entitlements/v1/:sub (Bearer token) returns the enrollments/v1
  *   payload for that user; POST /push/:sub signs and pushes the same payload to the LMS webhook.
  * - GET / shows the users and a "push" button per user for the webhook demo.
  */
@@ -18,10 +18,14 @@ const ISSUER = process.env.MOCK_IDP_ISSUER ?? `http://localhost:${PORT}`;
 const APP_URL = process.env.APP_URL ?? "http://localhost:3003";
 const CLIENT_ID = process.env.OIDC_CLIENT_ID ?? "sota";
 const CLIENT_SECRET = process.env.OIDC_CLIENT_SECRET ?? "sota-dev-secret";
+const COURSE = "introduccio-a-la-contemplacio";
+const COHORT = "tardor-2026";
+const DAY_MS = 86_400_000;
+
 const PULL_TOKEN = process.env.ENTITLEMENTS_PULL_TOKEN ?? "sota-dev-pull-token";
 const WEBHOOK_SECRET = process.env.ENTITLEMENTS_WEBHOOK_SECRET ?? "sota-dev-webhook-secret";
 
-/** The three seeded people. `entitlements` follow docs/entitlements-contract.md. */
+/** The three seeded people. `enrollments` follow docs/entitlements-contract.md. */
 export const USERS = {
   student: {
     sub: "mock-student",
@@ -29,10 +33,7 @@ export const USERS = {
     name: "Aina Estudiant",
     locale: "ca",
     roles: ["student"],
-    entitlements: [
-      { scope: "course", ref: "introduccio-a-la-contemplacio", rule: "immediate", until: null },
-      { scope: "cohort", ref: "tardor-2026", rule: "immediate", until: null },
-    ],
+    enrollments: () => [{ external_id: "mock-student-1", course: COURSE, cohort: COHORT }],
   },
   delayed: {
     sub: "mock-delayed",
@@ -40,7 +41,14 @@ export const USERS = {
     name: "Pau Pacient",
     locale: "es",
     roles: ["student"],
-    entitlements: [{ scope: "all_courses", ref: null, rule: "delayed", until: "2027-12-31" }],
+    // Starts in 30 days: the course shows as locked until then.
+    enrollments: () => [
+      {
+        external_id: "mock-delayed-1",
+        course: COURSE,
+        valid_from: new Date(Date.now() + 30 * DAY_MS).toISOString(),
+      },
+    ],
   },
   teacher: {
     sub: "mock-teacher",
@@ -48,7 +56,8 @@ export const USERS = {
     name: "Marta Mestra",
     locale: "ca",
     roles: ["teacher"],
-    entitlements: [{ scope: "all_courses", ref: null, rule: "immediate", until: null }],
+    // Teachers and admins see courses through their role, not through enrollments.
+    enrollments: () => [],
   },
   admin: {
     sub: "mock-admin",
@@ -56,7 +65,8 @@ export const USERS = {
     name: "Oriol Administrador",
     locale: "en",
     roles: ["admin"],
-    entitlements: [{ scope: "all_courses", ref: null, rule: "immediate", until: null }],
+    // Teachers and admins see courses through their role, not through enrollments.
+    enrollments: () => [],
   },
 };
 
@@ -64,13 +74,13 @@ const bySub = Object.fromEntries(Object.values(USERS).map((u) => [u.sub, u]));
 
 function payloadFor(user) {
   return {
-    version: "entitlements/v1",
+    version: "enrollments/v1",
     sub: user.sub,
     email: user.email,
     name: user.name,
     locale: user.locale,
     roles: user.roles,
-    entitlements: user.entitlements,
+    enrollments: user.enrollments(),
   };
 }
 
@@ -172,7 +182,7 @@ async function readBody(req) {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-/** Everything that is not the OIDC protocol: login UI, entitlement pull, webhook push, index. */
+/** Everything that is not the OIDC protocol: login UI, enrollment pull, webhook push, index. */
 async function extra(req, res) {
   const url = new URL(req.url, ISSUER);
 
@@ -182,7 +192,7 @@ async function extra(req, res) {
       page(
         "Mock identity provider",
         `<p>Issuer <code>${ISSUER}</code> · client <code>${CLIENT_ID}</code> · app <code>${APP_URL}</code></p>
-         <h2>Push entitlements to the LMS webhook</h2>${userList("/push")}
+         <h2>Push enrollments to the LMS webhook</h2>${userList("/push")}
          <h2>Pull endpoint</h2><p><code>GET /entitlements/v1/{sub}</code> with <code>Authorization: Bearer ${PULL_TOKEN}</code></p>`,
       ),
     );

@@ -19,7 +19,7 @@ import {
   cohortRelease,
   course,
   courseTeacher,
-  entitlement,
+  enrollment,
   file,
   forumPost,
   forumReaction,
@@ -31,7 +31,6 @@ import {
   questionOption,
   quiz,
   type BlockType,
-  type EntitlementScope,
 } from "../src/db/schema.ts";
 
 const PEOPLE = [
@@ -622,61 +621,48 @@ async function main() {
   const releases = await seedContent(courseId);
   await seedCohort(courseId, ids, releases);
   await seedForum(courseId, ids);
-  // Mirror of what the mock entitlement source returns, so the catalogue is populated before the
-  // first login refreshes it.
-  const grants: {
-    sub: string;
-    scope: EntitlementScope;
-    ref: string | null;
-    rule: string;
-    until: string | null;
-  }[] = [
+  // Mirror of what the mock enrollment source returns, so the catalogue is populated before the
+  // first login refreshes it. Teacher and admin need none: they see the course through their role.
+  const [courseRow] = await db
+    .select({ id: course.id })
+    .from(course)
+    .where(eq(course.slug, COURSE_SLUG));
+  const [cohortRow] = await db
+    .select({ id: cohort.id })
+    .from(cohort)
+    .where(eq(cohort.slug, COHORT_SLUG));
+  const DAY_MS = 86_400_000;
+  const grants = [
     {
       sub: "mock-student",
-      scope: "course",
-      ref: COURSE_SLUG,
-      rule: "immediate",
-      until: null,
+      externalId: "mock-student-1",
+      cohortId: cohortRow!.id,
+      validFrom: new Date(),
     },
     {
-      sub: "mock-student",
-      scope: "cohort",
-      ref: COHORT_SLUG,
-      rule: "immediate",
-      until: null,
-    },
-    {
+      // Starts in the future, so the course shows as locked until then.
       sub: "mock-delayed",
-      scope: "all_courses",
-      ref: null,
-      rule: "delayed",
-      until: "2027-12-31",
+      externalId: "mock-delayed-1",
+      cohortId: null,
+      validFrom: new Date(Date.now() + 30 * DAY_MS),
     },
-    {
-      sub: "mock-teacher",
-      scope: "all_courses",
-      ref: null,
-      rule: "immediate",
-      until: null,
-    },
-    { sub: "mock-admin", scope: "all_courses", ref: null, rule: "immediate", until: null },
   ];
-  // Same shape `syncEntitlements` uses: replace the external rows for a person in one go.
+  // Same shape the sync uses: replace the webhook rows for a person in one go.
   for (const sub of new Set(grants.map((g) => g.sub))) {
     await db.transaction(async (tx) => {
       await tx
-        .delete(entitlement)
-        .where(and(eq(entitlement.personId, ids[sub]!), eq(entitlement.source, "external")));
-      await tx.insert(entitlement).values(
+        .delete(enrollment)
+        .where(and(eq(enrollment.personId, ids[sub]!), eq(enrollment.source, "webhook")));
+      await tx.insert(enrollment).values(
         grants
           .filter((g) => g.sub === sub)
           .map((g) => ({
             personId: ids[sub]!,
-            scope: g.scope,
-            ref: g.ref,
-            rule: g.rule,
-            until: g.until,
-            source: "external" as const,
+            courseId: courseRow!.id,
+            cohortId: g.cohortId,
+            source: "webhook" as const,
+            externalId: g.externalId,
+            validFrom: g.validFrom,
           })),
       );
     });
