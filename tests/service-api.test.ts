@@ -272,6 +272,20 @@ describe("PUT /enrollments/{external_id}", () => {
     expect(await rowsOf("re-1")).toHaveLength(1);
   });
 
+  it("re-keys a revoked row when the same slot comes back under a new external_id", async () => {
+    const user = { email: "renew@example.invalid" };
+    await put("renew-1", { user, course: "advanced" });
+    await del("renew-1");
+    const renewed = await put("renew-2", { user, course: "advanced" });
+    expect(renewed.status).toBe(200);
+    expect(renewed.json).toMatchObject({ created: false, changed: true });
+    expect(await rowsOf("renew-1")).toHaveLength(0);
+    const [row] = await rowsOf("renew-2");
+    expect(row).toMatchObject({ status: "active", source: "webhook" });
+    // While that row is active a third id for the slot is refused.
+    expect((await put("renew-3", { user, course: "advanced" })).status).toBe(409);
+  });
+
   it("is safe under concurrent identical calls: one row, one creation", async () => {
     const body = { user: { sub: "sub-race" }, course: "intro", cohort: "autumn" };
     const results = await Promise.all(Array.from({ length: 6 }, () => put("race-1", body)));

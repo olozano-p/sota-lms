@@ -154,8 +154,9 @@ const time = (d: Date | null | undefined) => d?.getTime() ?? null;
 /**
  * Idempotent upsert of the `webhook` enrollment `externalId`. PUT replaces the representation:
  * an omitted `cohort` or `valid_until` means none; an omitted `valid_from` keeps the stored one
- * (now on creation). A revoked row becomes active again. A row is never moved to another person
- * (409), and a person holds at most one `webhook` row per course and cohort (409).
+ * (now on creation). A revoked row becomes active again, and a revoked row of the same person,
+ * course and cohort is re-keyed to a new `external_id` (a renewal). A row is never moved to another
+ * person (409), and an active row of another `external_id` for the same slot is a 409.
  */
 export async function putServiceEnrollment(
   actor: ServiceActor,
@@ -199,7 +200,7 @@ export async function putServiceEnrollment(
     );
     const slotTaken = async (exceptId?: string) => {
       const [other] = await tx
-        .select({ externalId: enrollment.externalId })
+        .select()
         .from(enrollment)
         .where(exceptId ? and(sameSlot, ne(enrollment.id, exceptId)) : sameSlot)
         .limit(1);
@@ -218,35 +219,42 @@ export async function putServiceEnrollment(
     let changed = false;
     let before: typeof enrollment.$inferSelect | null = existing;
     let row: typeof enrollment.$inferSelect;
+    // A new external_id for a slot whose row was revoked is a renewal: the row is re-keyed.
+    let rekeyed: typeof enrollment.$inferSelect | null = null;
     if (!existing) {
       const other = await slotTaken();
-      if (other)
+      if (other && other.status === "revoked") rekeyed = other;
+      else if (other)
         throw new ServiceApiError(
           409,
           "duplicate_enrollment",
           `this user already has the webhook enrollment "${other.externalId}" for that course and cohort`,
         );
-      const [inserted] = await tx
-        .insert(enrollment)
-        .values({ personId: p.id, source: "webhook", externalId: input.externalId, ...values })
-        .onConflictDoNothing()
-        .returning();
-      if (inserted) {
-        row = inserted;
-        created = changed = true;
+      if (rekeyed) {
+        before = row = rekeyed;
       } else {
-        // A concurrent request inserted the same external_id between our read and write.
-        existing = await find();
-        if (!existing || existing.personId !== p.id)
-          throw new ServiceApiError(409, "external_id_conflict", "external_id is in use");
-        before = existing;
-        row = existing;
+        const [inserted] = await tx
+          .insert(enrollment)
+          .values({ personId: p.id, source: "webhook", externalId: input.externalId, ...values })
+          .onConflictDoNothing()
+          .returning();
+        if (inserted) {
+          row = inserted;
+          created = changed = true;
+        } else {
+          // A concurrent request inserted the same external_id between our read and write.
+          existing = await find();
+          if (!existing || existing.personId !== p.id)
+            throw new ServiceApiError(409, "external_id_conflict", "external_id is in use");
+          before = row = existing;
+        }
       }
     } else {
       row = existing;
     }
     if (!created) {
       const same =
+        row.externalId === input.externalId &&
         row.status === values.status &&
         row.courseId === values.courseId &&
         row.cohortId === values.cohortId &&
@@ -264,7 +272,7 @@ export async function putServiceEnrollment(
         }
         const [updated] = await tx
           .update(enrollment)
-          .set(values)
+          .set({ ...values, externalId: input.externalId })
           .where(eq(enrollment.id, row.id))
           .returning();
         row = updated!;
@@ -285,6 +293,7 @@ export async function putServiceEnrollment(
         entity: "enrollment",
         entityId: row.id,
         before: before && {
+          externalId: before.externalId,
           status: before.status,
           validFrom: before.validFrom,
           validUntil: before.validUntil,

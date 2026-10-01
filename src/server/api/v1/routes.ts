@@ -80,7 +80,7 @@ const putEnrollment = defineRoute<
   operationId: "putEnrollment",
   summary: "Create or update an enrollment",
   description:
-    "Idempotent upsert of the `webhook` enrollment keyed by `external_id`. Repeating a call changes nothing; calling it after a DELETE reactivates the enrollment. In `oidc` mode an unknown user gets a placeholder person that the first sign-in adopts. `manual` and `claims` enrollments are never touched.",
+    "Idempotent upsert of the `webhook` enrollment keyed by `external_id`. Repeating a call changes nothing; calling it after a DELETE reactivates the enrollment, and a new `external_id` for a course and cohort whose enrollment was revoked renews that row. In `oidc` mode an unknown user gets a placeholder person that the first sign-in adopts. `manual` and `claims` enrollments are never touched.",
   tags: ["Enrollments"],
   auth: "service",
   params: externalIdParams,
@@ -92,7 +92,7 @@ const putEnrollment = defineRoute<
     404: { description: "Unknown course, cohort or (in local mode) user.", schema: errorSchema },
     409: {
       description:
-        "external_id belongs to another user, or the user already has another enrollment for that course and cohort.",
+        "external_id belongs to another user, or the user already has another active enrollment for that course and cohort.",
       schema: errorSchema,
     },
     422: invalid,
