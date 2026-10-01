@@ -4,7 +4,7 @@
  *
  *   node dev/mock-idp/server.mjs      (or `pnpm mock-idp`, or the `mock-idp` compose service)
  *
- * - OIDC provider (node-oidc-provider) at http://localhost:3013 with three users. The login
+ * - OIDC provider (node-oidc-provider) at http://localhost:3013 with its users. The login
  *   page is a list of buttons: pick who you are. Claims: sub, email, name, locale, roles.
  * - Enrollment source: GET /entitlements/v1/:sub (Bearer token) returns the enrollments/v1
  *   payload for that user; POST /push/:sub signs and pushes the same payload to the LMS webhook.
@@ -26,7 +26,10 @@ const DAY_MS = 86_400_000;
 const ENTITLEMENT_CLAIM = process.env.MOCK_IDP_ENTITLEMENT_CLAIM ?? "enrollments";
 
 const PULL_TOKEN = process.env.ENTITLEMENTS_PULL_TOKEN ?? "sota-dev-pull-token";
-const WEBHOOK_SECRET = process.env.ENTITLEMENTS_WEBHOOK_SECRET ?? "sota-dev-webhook-secret";
+const WEBHOOK_SECRET =
+  process.env.WEBHOOK_HMAC_SECRET ??
+  process.env.ENTITLEMENTS_WEBHOOK_SECRET ??
+  "sota-dev-webhook-secret";
 
 /** The three seeded people. `enrollments` follow docs/entitlements-contract.md. */
 export const USERS = {
@@ -60,6 +63,17 @@ export const USERS = {
     locale: "ca",
     roles: ["teacher"],
     // Teachers and admins see courses through their role, not through enrollments.
+    enrollments: () => [],
+  },
+  // Enrolled only through the service API (docs/integration.md): no claim, and the pull endpoint
+  // answers 404 so the complete-set reconciliation of the pull channel never revokes the API's rows.
+  service: {
+    sub: "mock-service-learner",
+    email: "service-learner@example.invalid",
+    name: "Sergi Servei",
+    locale: "ca",
+    roles: ["student"],
+    pull: false,
     enrollments: () => [],
   },
   admin: {
@@ -256,7 +270,7 @@ async function extra(req, res) {
     }
     const user = bySub[decodeURIComponent(pull[1])];
     res.setHeader("content-type", "application/json");
-    if (!user) {
+    if (!user || user.pull === false) {
       res.statusCode = 404;
       res.end(JSON.stringify({ error: "not_found" }));
       return true;

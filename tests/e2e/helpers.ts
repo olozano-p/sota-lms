@@ -8,7 +8,7 @@ export async function ready(page: Page) {
 /** Completes the mock IdP flow: any protected URL → IdP button list → back with a session. */
 export async function loginAs(
   page: Page,
-  sub: "mock-student" | "mock-delayed" | "mock-teacher" | "mock-admin",
+  sub: "mock-student" | "mock-delayed" | "mock-teacher" | "mock-admin" | "mock-service-learner",
   returnTo = "/courses",
 ) {
   await page.goto(`/auth/login?returnTo=${encodeURIComponent(returnTo)}`);

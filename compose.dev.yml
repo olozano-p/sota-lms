@@ -31,7 +31,7 @@ services:
       OIDC_CLIENT_ID: sota
       OIDC_CLIENT_SECRET: sota-dev-secret
       ENTITLEMENTS_PULL_TOKEN: sota-dev-pull-token
-      ENTITLEMENTS_WEBHOOK_SECRET: sota-dev-webhook-secret
+      WEBHOOK_HMAC_SECRET: sota-dev-webhook-secret
     ports:
       - "3013:3013"
     volumes:
@@ -60,7 +60,8 @@ services:
       ENTITLEMENT_CLAIM: enrollments
       ENTITLEMENTS_PULL_URL: http://mock-idp:3013/entitlements/v1
       ENTITLEMENTS_PULL_TOKEN: sota-dev-pull-token
-      ENTITLEMENTS_WEBHOOK_SECRET: sota-dev-webhook-secret
+      WEBHOOK_HMAC_SECRET: sota-dev-webhook-secret
+      API_SERVICE_TOKEN: sota-dev-service-token-0123456789abcdef
       STORAGE_DRIVER: local
       STORAGE_DIR: /app/data/uploads
       MAIL_TRANSPORT: console
