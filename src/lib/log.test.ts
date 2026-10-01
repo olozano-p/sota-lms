@@ -60,6 +60,26 @@ describe("log", () => {
   });
 });
 
+describe("log safety", () => {
+  it("does not let a field overwrite the envelope", () => {
+    capture();
+    log("warn", "real", { level: "debug", msg: "fake", time: "never" });
+    expect(JSON.parse(lines[0]!)).toMatchObject({ level: "warn", msg: "real" });
+  });
+  it("drops the bound parameters a database driver appends to a failed query", () => {
+    const e = new Error("Failed query: select 1 where x = $1\nparams: Alice Smith,tok_abc123");
+    const { message } = errorFields(e);
+    expect(message).toBe("Failed query: select 1 where x = $1");
+    capture();
+    log("error", "boom", { err: e });
+    expect(lines[0]).not.toContain("Alice");
+  });
+  it("scrubs before truncating, so a cut address cannot leak", () => {
+    const text = `${"x".repeat(495)} a.b@example.org tail`;
+    expect(String(sanitize(text))).not.toMatch(/example|a\.b/);
+  });
+});
+
 describe("scrubbing", () => {
   it("scrubs addresses, bearer values, query secrets and long hex strings", () => {
     expect(scrubText("to bob@example.org")).toBe("to [email]");

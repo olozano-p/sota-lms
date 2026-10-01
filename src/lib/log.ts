@@ -33,7 +33,7 @@ export function scrubText(text: string): string {
 
 /** Copies a value for logging with sensitive keys masked and strings scrubbed (bounded depth). */
 export function sanitize(value: unknown, depth = 0): unknown {
-  if (typeof value === "string") return scrubText(value.length > 500 ? value.slice(0, 500) : value);
+  if (typeof value === "string") return scrubText(value).slice(0, 500);
   if (value === null || typeof value !== "object") return value;
   if (value instanceof Error) return errorFields(value);
   if (value instanceof Date) return value.toISOString();
@@ -48,8 +48,10 @@ export function sanitize(value: unknown, depth = 0): unknown {
 
 /** The loggable part of an error: its name and a scrubbed message, never the stack. */
 export function errorFields(e: unknown): { error: string; message: string } {
-  if (e instanceof Error) return { error: e.name, message: scrubText(e.message).slice(0, 2000) };
-  return { error: "NonError", message: scrubText(String(e)).slice(0, 2000) };
+  const text = e instanceof Error ? e.message : String(e);
+  // The database driver appends the bound parameters (names, tokens, addresses) to a failed query.
+  const message = scrubText(text.split(/\s+params:/)[0]!).slice(0, 2000);
+  return { error: e instanceof Error ? e.name : "NonError", message };
 }
 
 /**
@@ -85,7 +87,8 @@ export function logLevel(): LogLevel {
 export function log(level: Emitting, msg: string, fields: Record<string, unknown> = {}): void {
   if (RANK[level] < RANK[logLevel()]) return;
   const safe = sanitize(fields) as Record<string, unknown>;
-  sink(level, JSON.stringify({ time: new Date().toISOString(), level, msg, ...safe }));
+  // The envelope comes last, so a field named `level`, `msg` or `time` cannot overwrite it.
+  sink(level, JSON.stringify({ ...safe, time: new Date().toISOString(), level, msg }));
 }
 
 export const logger = {
