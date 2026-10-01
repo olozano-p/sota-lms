@@ -46,7 +46,7 @@ function PeoplePage() {
             <tr>
               <Th>{t("common.name")}</Th>
               <Th>{t("admin.people.roles")}</Th>
-              <Th className="text-right">{t("admin.people.entitlements")}</Th>
+              <Th className="text-right">{t("admin.people.enrollments")}</Th>
               <Th>{t("admin.people.lastSeen")}</Th>
               <Th>{t("admin.people.synced")}</Th>
             </tr>
@@ -67,7 +67,7 @@ function PeoplePage() {
                 <Td>
                   <RoleBadges roles={p.roles} />
                 </Td>
-                <Td className="text-right tabular-nums">{p.entitlementCount}</Td>
+                <Td className="text-right tabular-nums">{p.enrollmentCount}</Td>
                 <Td
                   className="text-muted-foreground"
                   title={p.lastSeenAt ? fmtDateTime(p.lastSeenAt) : undefined}

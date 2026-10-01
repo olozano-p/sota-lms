@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { RefreshCw } from "lucide-react";
 import { useI18n } from "~/i18n";
 import { getPerson } from "~/server/queries/admin";
-import { grantEntitlement, resyncPerson, revokeEntitlement } from "~/server/mutations/entitlements";
+import { grantEnrollment, resyncPerson, revokeEnrollment } from "~/server/mutations/enrollments";
 import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { ConfirmDialog } from "~/components/ui/dialog";
 import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
-import { Select } from "~/components/ui/select";
 import { Table, TBody, Td, Th, THead, Tr } from "~/components/ui/table";
 import { Eyebrow } from "~/components/ui/eyebrow";
 import { RoleBadges } from "~/components/admin/RoleBadges";
@@ -27,11 +26,11 @@ export const Route = createFileRoute("/_authed/admin/people/$personId")({
 });
 
 function PersonPage() {
-  const { t, fmtDate, fmtDateTime, fmtRelative } = useI18n();
-  const { person, entitlements, ruleNames } = Route.useLoaderData();
+  const { t, fmtDateTime, fmtRelative } = useI18n();
+  const { person, enrollments } = Route.useLoaderData();
   const router = useRouter();
-  const grant = useServerFn(grantEntitlement);
-  const revoke = useServerFn(revokeEntitlement);
+  const grant = useServerFn(grantEnrollment);
+  const revoke = useServerFn(revokeEnrollment);
   const resync = useServerFn(resyncPerson);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,12 +38,7 @@ function PersonPage() {
     kind: "success" | "warning" | "destructive";
     text: string;
   } | null>(null);
-  const [form, setForm] = useState({
-    scope: "course",
-    ref: "",
-    rule: ruleNames[0] ?? "",
-    until: "",
-  });
+  const [form, setForm] = useState({ course: "", cohort: "", from: "", until: "" });
 
   const submitGrant = async (e: FormEvent) => {
     e.preventDefault();
@@ -54,13 +48,13 @@ function PersonPage() {
       await grant({
         data: {
           personId: person.id,
-          scope: form.scope as "course" | "all_courses" | "cohort",
-          ref: form.scope === "all_courses" ? null : form.ref.trim(),
-          rule: form.rule,
-          until: form.until || null,
+          courseSlug: form.course.trim(),
+          cohortSlug: form.cohort.trim() || null,
+          validFrom: form.from || null,
+          validUntil: form.until || null,
         },
       });
-      setForm({ ...form, ref: "", until: "" });
+      setForm({ course: "", cohort: "", from: "", until: "" });
       await router.invalidate();
     } catch (err) {
       setNotice({ kind: "destructive", text: (err as Error).message });
@@ -134,47 +128,55 @@ function PersonPage() {
 
       <section className="flex flex-col gap-3">
         <div>
-          <h3 className="text-lg">{t("admin.person.entitlements")}</h3>
+          <h3 className="text-lg">{t("admin.person.enrollments")}</h3>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            {t("admin.person.entitlements.lead")}
+            {t("admin.person.enrollments.lead")}
           </p>
         </div>
-        {entitlements.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("admin.person.noEntitlements")}</p>
+        {enrollments.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t("admin.person.noEnrollments")}</p>
         ) : (
           <Table>
             <THead>
               <tr>
-                <Th>{t("scope.course")}</Th>
-                <Th>{t("admin.person.ref")}</Th>
-                <Th>{t("admin.person.rule")}</Th>
+                <Th>{t("admin.person.course")}</Th>
+                <Th>{t("admin.person.cohort")}</Th>
+                <Th>{t("admin.person.from")}</Th>
                 <Th>{t("admin.person.until")}</Th>
+                <Th>{t("admin.person.status")}</Th>
                 <Th>{t("admin.person.source")}</Th>
                 <Th />
               </tr>
             </THead>
             <TBody>
-              {entitlements.map((e) => (
+              {enrollments.map((e) => (
                 <Tr key={e.id}>
-                  <Td>{t(`scope.${e.scope}`)}</Td>
-                  <Td className="font-mono text-xs">{e.ref ?? "—"}</Td>
+                  <Td>{e.courseTitle}</Td>
+                  <Td className="font-mono text-xs">{e.cohortSlug ?? "—"}</Td>
+                  <Td>{fmtDateTime(e.validFrom)}</Td>
+                  <Td>{e.validUntil ? fmtDateTime(e.validUntil) : "—"}</Td>
                   <Td>
-                    {ruleNames.includes(e.rule) ? (
-                      e.rule
-                    ) : (
-                      <Badge variant="destructive">
-                        {e.rule} · {t("admin.person.grant.unknownRule")}
-                      </Badge>
-                    )}
-                  </Td>
-                  <Td>{e.until ? fmtDate(e.until) : "—"}</Td>
-                  <Td>
-                    <Badge variant={e.source === "admin" ? "info" : "outline"}>
-                      {t(`source.${e.source}`)}
+                    <Badge variant={e.status === "active" ? "success" : "outline"}>
+                      {t(`enrollment.status.${e.status}`)}
                     </Badge>
                   </Td>
+                  <Td>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant={e.source === "manual" ? "info" : "outline"}>
+                        {t(`source.${e.source}`)}
+                      </Badge>
+                      {e.externalId ? (
+                        <span
+                          className="font-mono text-xs text-muted-foreground"
+                          title={t("admin.person.externalId")}
+                        >
+                          {e.externalId}
+                        </span>
+                      ) : null}
+                    </div>
+                  </Td>
                   <Td className="text-right">
-                    {e.source === "admin" ? (
+                    {e.source === "manual" && e.status !== "revoked" ? (
                       <Button variant="outline" size="sm" onClick={() => setRevoking(e.id)}>
                         {t("admin.person.revoke")}
                       </Button>
@@ -193,50 +195,33 @@ function PersonPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={submitGrant} className="grid gap-4 sm:grid-cols-2" noValidate>
-            <Field label={t("admin.person.source")}>
-              {(c) => (
-                <Select
-                  {...c}
-                  value={form.scope}
-                  onChange={(e) => setForm({ ...form, scope: e.target.value })}
-                >
-                  <option value="course">{t("scope.course")}</option>
-                  <option value="cohort">{t("scope.cohort")}</option>
-                  <option value="all_courses">{t("scope.all_courses")}</option>
-                </Select>
-              )}
-            </Field>
-            <Field
-              label={t("admin.person.ref")}
-              hint={
-                form.scope === "all_courses"
-                  ? t("common.optional")
-                  : t("admin.person.grant.ref.hint")
-              }
-            >
+            <Field label={t("admin.person.course")} hint={t("admin.person.grant.course.hint")}>
               {(c) => (
                 <Input
                   {...c}
-                  value={form.ref}
-                  disabled={form.scope === "all_courses"}
-                  onChange={(e) => setForm({ ...form, ref: e.target.value })}
-                  required={form.scope !== "all_courses"}
+                  value={form.course}
+                  onChange={(e) => setForm({ ...form, course: e.target.value })}
+                  required
                 />
               )}
             </Field>
-            <Field label={t("admin.person.rule")}>
+            <Field label={t("admin.person.cohort")} hint={t("admin.person.grant.cohort.hint")}>
               {(c) => (
-                <Select
+                <Input
                   {...c}
-                  value={form.rule}
-                  onChange={(e) => setForm({ ...form, rule: e.target.value })}
-                >
-                  {ruleNames.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </Select>
+                  value={form.cohort}
+                  onChange={(e) => setForm({ ...form, cohort: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label={t("admin.person.from")} hint={t("common.optional")}>
+              {(c) => (
+                <Input
+                  {...c}
+                  type="date"
+                  value={form.from}
+                  onChange={(e) => setForm({ ...form, from: e.target.value })}
+                />
               )}
             </Field>
             <Field label={t("admin.person.until")} hint={t("common.optional")}>
@@ -270,7 +255,7 @@ function PersonPage() {
           if (!revoking) return;
           setBusy(true);
           try {
-            await revoke({ data: { entitlementId: revoking } });
+            await revoke({ data: { enrollmentId: revoking } });
             setRevoking(null);
             await router.invalidate();
           } finally {
