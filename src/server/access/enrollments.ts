@@ -158,7 +158,7 @@ export async function applyEnrollmentPayload(
   return conn.transaction((tx) => applyPayload(tx, payload, channel));
 }
 
-/** Writes the person and the reconciled rows, and one audit row when any enrollment changed. */
+/** Writes the person and the reconciled rows, and one audit row when an enrollment or the person changed. */
 async function applyPayload(
   tx: DbOrTx,
   payload: EnrollmentPayload,
@@ -169,13 +169,18 @@ async function applyPayload(
   const locale = isLocale(payload.locale) ? payload.locale : null;
   const roles = mapRoles(payload.roles);
   const [bySub] = await tx
-    .select({ id: person.id })
+    .select({ id: person.id, roles: person.roles })
     .from(person)
     .where(eq(person.externalSub, payload.sub))
     .limit(1);
   let personId: string;
+  // What happened to the person itself: recorded with the enrollment changes, or alone when only
+  // the person changed (a new placeholder, an adopted sub, new roles).
+  let personEvent: Record<string, unknown> | null = null;
   if (bySub) {
     personId = bySub.id;
+    if (bySub.roles.slice().sort().join() !== roles.slice().sort().join())
+      personEvent = { rolesBefore: bySub.roles, rolesAfter: roles };
     await tx
       .update(person)
       .set({ email, name: payload.name, locale, roles, entitlementsSyncedAt: now })
@@ -188,6 +193,7 @@ async function applyPayload(
       .limit(1);
     if (byEmail) {
       personId = byEmail.id;
+      personEvent = { adoptedSub: true };
       await tx
         .update(person)
         .set({ externalSub: payload.sub, entitlementsSyncedAt: now })
@@ -205,19 +211,23 @@ async function applyPayload(
         })
         .returning({ id: person.id });
       personId = created!.id;
+      personEvent = { personCreated: true, roles };
     }
   }
 
   const changes = await reconcileEnrollments(tx, personId, payload.enrollments, now);
   // A repeat of the same state (every pull and webhook retry) changes nothing and logs nothing.
-  if (changes.length)
+  if (changes.length || personEvent)
     await audit(tx, {
       actorId: null,
       actor: `sync:${channel}`,
       action: "enrollment.sync",
       entity: "person",
       entityId: personId,
-      after: enrollmentDetail(changes, { channel }),
+      after: enrollmentDetail(changes, {
+        channel,
+        ...(personEvent ? { person: personEvent } : {}),
+      }),
     });
   return personId;
 }

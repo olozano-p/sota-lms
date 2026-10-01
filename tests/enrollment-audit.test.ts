@@ -185,6 +185,30 @@ describe("complete-set sync (legacy webhook and pull)", () => {
     });
   });
 
+  it("audits a change to the person alone: a new placeholder, new roles, an adopted sub", async () => {
+    const only = (sub: string, email: string, roles: string[]) =>
+      body({ sub, email, roles, enrollments: [] });
+    await post(only("pr-1", "pr1@example.invalid", ["student"]), "ev-p1");
+    const [p] = await db.select().from(s.person).where(eq(s.person.externalSub, "pr-1"));
+    let rows = await audits("enrollment.sync", p!.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.diff.after.person).toMatchObject({ personCreated: true });
+    await post(only("pr-1", "pr1@example.invalid", ["student"]), "ev-p2");
+    expect(await audits("enrollment.sync", p!.id)).toHaveLength(1);
+    await post(only("pr-1", "pr1@example.invalid", ["teacher"]), "ev-p3");
+    rows = await audits("enrollment.sync", p!.id);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.diff.after.person).toMatchObject({
+      rolesBefore: ["student"],
+      rolesAfter: ["teacher"],
+    });
+    const waiting = await person("pr-adopt@example.invalid");
+    await post(only("pr-2", "pr-adopt@example.invalid", ["student"]), "ev-p4");
+    expect((await audits("enrollment.sync", waiting.id))[0]!.diff.after.person).toMatchObject({
+      adoptedSub: true,
+    });
+  });
+
   it("audits the pull channel with its own actor", async () => {
     vi.stubGlobal(
       "fetch",
