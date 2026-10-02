@@ -24,6 +24,8 @@ export const buttonVariants = cva(
         link: "h-auto px-0 text-link underline-offset-[3px] hover:underline",
       },
       size: {
+        // Quiet secondary actions (forum posts and threads): 11 px regular label, 12 px icon.
+        xs: "h-7 gap-1.5 px-2 text-[0.6875rem] font-normal [&_svg:not([class*='size-'])]:size-3",
         sm: "h-8 px-3 text-sm",
         default: "h-10 px-4 text-sm",
         lg: "h-11 px-5 text-base",

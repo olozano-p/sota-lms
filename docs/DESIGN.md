@@ -100,10 +100,12 @@ slide on press or open; dialogs fade. `prefers-reduced-motion` keeps opacity and
   footer with previous · progress rule · next; ←/→ move between lessons. "Next" is never blocked.
 - Admin and teacher tables are dense (`text-sm`, `py-2`), zebra-free, hairline row separators.
 - Forum: the thread list is hairline rows in one card (avatar, title, one-line excerpt, meta),
-  pinned rows under a «Pinned» eyebrow. In a thread the opening post has no card: a 2 px
-  `--primary` left rule and the full prose size; replies are rows under hairlines at `0.95rem`.
-  Author, role («Teacher», never colour alone), relative time with the exact instant on hover.
-  Reactions are ghost icon buttons with a count, `aria-pressed` when yours; the one filled button
+  pinned rows under a «Pinned» eyebrow. In a thread the opening post has no card and no
+  rule (a left rule is a citation), only the full prose size; replies are rows under hairlines at
+  `0.95rem`. Author, role («Teacher», never colour alone), relative time with the exact instant on
+  hover. Thread actions, post actions and reactions are quiet ghost buttons (`Button size="xs"`:
+  11 px regular label, 12 px icon, 28 px tall; the 44 px touch target still applies), reactions with a
+  count, `aria-pressed` when yours; the one filled button
   is «Post the reply». Avatars are initials on `--accent`, the one circle.
 - Rich-text editor (`RichTextField`): a hairline toolbar of ghost icon buttons (`aria-pressed`
   for the marks at the cursor) over the writing surface, which is the reader's `.prose` column

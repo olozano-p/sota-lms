@@ -162,7 +162,7 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
         {thread.canRename || moderator ? (
           <div className="flex flex-wrap gap-1">
             {thread.canRename && !renaming ? (
-              <Button size="sm" variant="ghost" onClick={() => setRenaming(true)}>
+              <Button size="xs" variant="ghost" onClick={() => setRenaming(true)}>
                 <Pencil aria-hidden="true" />
                 {t("forum.thread.rename")}
               </Button>
@@ -170,7 +170,7 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
             {moderator ? (
               <>
                 <Button
-                  size="sm"
+                  size="xs"
                   variant="ghost"
                   loading={busy === "pin"}
                   onClick={() => patch("pin", { pinned: !thread.pinned })}
@@ -179,7 +179,7 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
                   {thread.pinned ? t("forum.thread.unpin") : t("forum.thread.pin")}
                 </Button>
                 <Button
-                  size="sm"
+                  size="xs"
                   variant="ghost"
                   loading={busy === "lock"}
                   onClick={() => patch("lock", { locked: !thread.locked })}
@@ -187,7 +187,7 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
                   {thread.locked ? <LockOpen aria-hidden="true" /> : <Lock aria-hidden="true" />}
                   {thread.locked ? t("forum.thread.unlock") : t("forum.thread.lock")}
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(true)}>
+                <Button size="xs" variant="ghost" onClick={() => setConfirmDelete(true)}>
                   <Trash2 aria-hidden="true" />
                   {t("forum.thread.delete")}
                 </Button>

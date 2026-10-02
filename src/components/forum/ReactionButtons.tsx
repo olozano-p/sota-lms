@@ -52,13 +52,13 @@ export function ReactionButtons({ postId, likes, dislikes, myReaction, enabled }
       disabled={!enabled}
       onClick={() => press(value)}
       className={cn(
-        "inline-flex min-h-8 items-center gap-1.5 rounded px-2 text-xs text-muted-foreground tabular-nums",
+        "inline-flex min-h-7 items-center gap-1.5 rounded px-2 text-[0.6875rem] text-muted-foreground tabular-nums",
         "transition-colors duration-[120ms] ease-(--ease) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         enabled ? "hover:bg-accent hover:text-foreground" : "cursor-default",
         state.mine === value && "bg-accent text-foreground",
       )}
     >
-      <Icon className="size-4" aria-hidden="true" />
+      <Icon className="size-3" aria-hidden="true" />
       {count}
     </button>
   );

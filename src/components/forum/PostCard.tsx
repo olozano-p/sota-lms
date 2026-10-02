@@ -29,8 +29,9 @@ interface Props {
 }
 
 /**
- * One message. The opening post has no card: a 2 px gold rule and the larger prose; replies are
- * rows under a hairline. Status (edited, deleted, role) is always a word, never colour alone.
+ * One message. The opening post has no card and no rule (a left rule means a citation), only the
+ * larger prose; replies are rows under a hairline. Actions are 11 px labels with 12 px icons.
+ * Status (edited, deleted, role) is always a word, never colour alone.
  */
 export function PostCard({ post, onCite, upload }: Props) {
   const { t } = useI18n();
@@ -77,7 +78,7 @@ export function PostCard({ post, onCite, upload }: Props) {
       id={`post-${post.id}`}
       className={cn(
         "flex flex-col gap-3 scroll-mt-24 target:bg-accent target:transition-colors",
-        post.isOpening ? "border-l-2 border-primary pl-5" : "py-5",
+        !post.isOpening && "py-5",
       )}
       aria-label={post.isOpening ? t("forum.opening") : undefined}
     >
@@ -92,8 +93,11 @@ export function PostCard({ post, onCite, upload }: Props) {
           {post.editedAt ? <> · {t("forum.post.edited")}</> : null}
         </span>
         {post.replyTo ? (
-          <a href={`#post-${post.replyTo.id}`} className="inline-flex items-center gap-1 text-xs">
-            <CornerUpLeft className="size-3.5" aria-hidden="true" />
+          <a
+            href={`#post-${post.replyTo.id}`}
+            className="inline-flex items-center gap-1 text-[0.6875rem]"
+          >
+            <CornerUpLeft className="size-3" aria-hidden="true" />
             {t("forum.post.inReplyTo", {
               name: post.replyTo.authorName || t("forum.unknownAuthor"),
             })}
@@ -142,19 +146,19 @@ export function PostCard({ post, onCite, upload }: Props) {
             enabled={post.canReact}
           />
           {onCite ? (
-            <Button size="sm" variant="ghost" onClick={() => onCite(post)}>
+            <Button size="xs" variant="ghost" onClick={() => onCite(post)}>
               <Quote aria-hidden="true" />
               {t("forum.post.cite")}
             </Button>
           ) : null}
           {post.canEdit ? (
-            <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+            <Button size="xs" variant="ghost" onClick={() => setEditing(true)}>
               <Pencil aria-hidden="true" />
               {t("forum.post.edit")}
             </Button>
           ) : null}
           {post.canDelete ? (
-            <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(true)}>
+            <Button size="xs" variant="ghost" onClick={() => setConfirmDelete(true)}>
               <Trash2 aria-hidden="true" />
               {t("forum.post.delete")}
             </Button>
