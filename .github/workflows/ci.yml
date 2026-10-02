@@ -63,6 +63,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: docker compose -f compose.dev.yml up -d --build
+      # The app migrates and seeds before it listens; the first test would hit a closed port.
+      - name: Wait for the app
+        run: curl -sf --retry 60 --retry-delay 2 --retry-all-errors -o /dev/null http://localhost:3003/api/health
       - run: pnpm e2e
       - if: always()
         run: docker compose -f compose.dev.yml logs app mock-idp
