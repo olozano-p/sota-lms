@@ -8,6 +8,7 @@
  * The user model is `person`. Sessions, accounts and one-time values live in the `auth_*` tables.
  * Plain-Node safe (relative imports with .ts extensions): `scripts/create-admin.ts` uses it too.
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -25,6 +26,7 @@ import {
   completeOidcLogin,
   noAdminYet,
   profileFromClaims,
+  queueOidcSignIn,
   stashOidcProfile,
   takeOidcProfile,
 } from "./identity.ts";
@@ -40,6 +42,9 @@ export const pastAbsoluteLimit = (createdAt: Date, now = Date.now()): boolean =>
   createdAt.getTime() + SESSION_ABSOLUTE_MS <= now;
 export const OIDC_PROVIDER_ID = "oidc";
 export const MIN_PASSWORD_LENGTH = 10;
+
+/** Per request: releases the subject's sign-in slot taken in `getUserInfo` once the callback ends. */
+const signInSlot = new AsyncLocalStorage<{ release?: () => void }>();
 
 /** Account mail is queued, then flushed at once so the link arrives in seconds, not at the next tick. */
 async function sendAccountMail(
@@ -135,6 +140,8 @@ function createAuth(discovery: Discovery | null) {
                 }
                 const profile = profileFromClaims(claims);
                 if (!profile) return null;
+                const slot = signInSlot.getStore();
+                if (slot && !slot.release) slot.release = await queueOidcSignIn(profile.sub);
                 stashOidcProfile(profile);
                 return {
                   id: profile.sub,
@@ -347,7 +354,14 @@ function createAuth(discovery: Discovery | null) {
     },
   });
   const handle = auth.handler;
-  auth.handler = (request) => handle(withClientIp(request));
+  auth.handler = async (request) => {
+    const slot: { release?: () => void } = {};
+    try {
+      return await signInSlot.run(slot, () => handle(withClientIp(request)));
+    } finally {
+      slot.release?.();
+    }
+  };
   return auth;
 }
 

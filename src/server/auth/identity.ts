@@ -63,6 +63,27 @@ export function takeOidcProfile(sub: string, now = Date.now()): OidcProfile | nu
   return entry && now - entry.at <= PENDING_TTL_MS ? entry.profile : null;
 }
 
+const signingIn = new Map<string, Promise<void>>();
+
+/**
+ * Serialises the OIDC callbacks of one subject in this process. Two at once (a first sign-in in
+ * two tabs) would both link the IdP account, failing the second on the unique index, and share
+ * one `pending` entry. Resolves once the earlier callbacks of `sub` have released; the returned
+ * function releases this one.
+ */
+export async function queueOidcSignIn(sub: string): Promise<() => void> {
+  const earlier = signingIn.get(sub) ?? Promise.resolve();
+  let release: () => void = () => {};
+  const done = new Promise<void>((resolve) => (release = resolve));
+  const tail = earlier.then(() => done);
+  signingIn.set(sub, tail);
+  await earlier;
+  return () => {
+    release();
+    if (signingIn.get(sub) === tail) signingIn.delete(sub);
+  };
+}
+
 /** Normalises ID-token (and userinfo) claims into the profile SOTA mirrors. */
 export function profileFromClaims(
   claims: Record<string, unknown>,

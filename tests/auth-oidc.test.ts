@@ -50,8 +50,8 @@ async function call(path: string, init: { method?: string; body?: unknown; cooki
   };
 }
 
-/** Runs the whole authorization-code flow and returns the session cookie. */
-async function signIn(claims: Record<string, unknown>) {
+/** Runs the flow up to the IdP's redirect back; the returned function makes the callback. */
+async function authorize(claims: Record<string, unknown>) {
   fake.setClaims({ email_verified: true, ...claims });
   const start = await call("/sign-in/social", {
     body: { provider: "oidc", callbackURL: "/courses" },
@@ -59,12 +59,13 @@ async function signIn(claims: Record<string, unknown>) {
   expect(start.res.status).toBe(200);
   const { url } = await start.json();
   const authz = await fetch(url, { redirect: "manual" });
-  const callback = await call(
-    new URL(authz.headers.get("location")!).pathname.replace("/api/auth", "") +
-      new URL(authz.headers.get("location")!).search,
-    { cookie: start.cookie },
-  );
-  return callback;
+  const back = new URL(authz.headers.get("location")!);
+  return () => call(back.pathname.replace("/api/auth", "") + back.search, { cookie: start.cookie });
+}
+
+/** Runs the whole authorization-code flow and returns the session cookie. */
+async function signIn(claims: Record<string, unknown>) {
+  return (await authorize(claims))();
 }
 
 beforeAll(async () => {
@@ -164,6 +165,46 @@ describe("sign-in", () => {
       .where(eq(m.schema.authAccount.userId, pre!.id));
     expect(accounts.map((a) => a.providerId)).toEqual(["oidc"]);
     expect(accounts[0]!.accessToken).toBeNull();
+  });
+
+  it("links a person signing in from two tabs at once a single time and opens both sessions", async () => {
+    const [pre] = await m.db
+      .insert(person())
+      .values({ email: "twin@example.invalid", name: "Twin", roles: ["student"] })
+      .returning({ id: person().id });
+    const claims = { sub: "s-twin", email: "twin@example.invalid", name: "Twin", roles: ["admin"] };
+    const callbacks = [await authorize(claims), await authorize(claims)];
+    const both = await Promise.all(callbacks.map((callback) => callback()));
+    for (const r of both) {
+      expect(r.res.headers.get("location")).toContain("/courses");
+      expect(r.cookie).toContain("sota.session_token");
+    }
+    const accounts = await m.db
+      .select()
+      .from(m.schema.authAccount)
+      .where(eq(m.schema.authAccount.userId, pre!.id));
+    expect(accounts).toHaveLength(1);
+    const [p] = await m.db.select().from(person()).where(eq(person().id, pre!.id));
+    expect(p).toMatchObject({ externalSub: "s-twin", roles: ["admin"] });
+  });
+
+  it("queues the callbacks of one subject and lets other subjects through", async () => {
+    const { queueOidcSignIn } = await import("../src/server/auth/identity.ts");
+    const order: string[] = [];
+    const first = await queueOidcSignIn("q-1");
+    const second = queueOidcSignIn("q-1").then((release) => {
+      order.push("second");
+      release();
+    });
+    const other = await queueOidcSignIn("q-2");
+    order.push("other");
+    other();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    order.push("first done");
+    first();
+    await second;
+    expect(order).toEqual(["other", "first done", "second"]);
+    (await queueOidcSignIn("q-1"))();
   });
 });
 
