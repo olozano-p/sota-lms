@@ -16,6 +16,8 @@ import Provider from "oidc-provider";
 const PORT = Number(process.env.MOCK_IDP_PORT ?? 3013);
 const ISSUER = process.env.MOCK_IDP_ISSUER ?? `http://localhost:${PORT}`;
 const APP_URL = process.env.APP_URL ?? "http://localhost:3003";
+/** Webhook push target: inside a container `localhost` is the container itself, so compose points this at the host. */
+const PUSH_URL = process.env.MOCK_PUSH_URL ?? APP_URL;
 const CLIENT_ID = process.env.OIDC_CLIENT_ID ?? "sota";
 const CLIENT_SECRET = process.env.OIDC_CLIENT_SECRET ?? "sota-dev-secret";
 const COURSE = "introduccio-a-la-contemplacio";
@@ -294,7 +296,7 @@ async function extra(req, res) {
       .digest("hex");
     let result;
     try {
-      const r = await fetch(`${APP_URL}/api/webhooks/entitlements`, {
+      const r = await fetch(`${PUSH_URL}/api/webhooks/entitlements`, {
         method: "POST",
         headers: {
           "content-type": "application/json",

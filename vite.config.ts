@@ -9,7 +9,12 @@ export default defineConfig(({ mode }) => {
   const themeDir = process.env.THEME_DIR ?? loadEnv(mode, process.cwd(), "").THEME_DIR;
   return {
     // 3000–3002 are held by other projects on the dev machine.
-    server: { port: Number(process.env.PORT ?? 3003), strictPort: true },
+    server: {
+      port: Number(process.env.PORT ?? 3003),
+      strictPort: true,
+      // The mock IdP container pushes webhooks to the host (run `pnpm dev --host` for that demo).
+      allowedHosts: ["host.docker.internal"],
+    },
     resolve: { tsconfigPaths: true },
     plugins: [
       sotaTheme({ themeDir: themeDir || "theme", explicit: Boolean(themeDir) }),

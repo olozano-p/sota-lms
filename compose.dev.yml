@@ -28,10 +28,13 @@ services:
       MOCK_IDP_PORT: "3013"
       MOCK_IDP_ISSUER: http://localhost:3013
       APP_URL: http://localhost:3003
+      MOCK_PUSH_URL: http://host.docker.internal:3003
       OIDC_CLIENT_ID: sota
       OIDC_CLIENT_SECRET: sota-dev-secret
       ENTITLEMENTS_PULL_TOKEN: sota-dev-pull-token
       WEBHOOK_HMAC_SECRET: sota-dev-webhook-secret
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "3013:3013"
     volumes:
