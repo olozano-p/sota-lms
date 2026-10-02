@@ -29,7 +29,9 @@ test("student submits an assignment, teacher returns feedback, student reads it"
     .filter({ hasText: `(${stamp})` })
     .first();
   await expect(card).toBeVisible();
-  await card.getByRole("textbox", { name: /Comentaris|Feedback/ }).fill(`Molt bé. (${stamp})`);
+  await card
+    .getByRole("textbox", { name: /Nota de revisió|Reviewer note/ })
+    .fill(`Molt bé. (${stamp})`);
   await card.getByRole("button", { name: /Retorna amb comentaris|Return with feedback/ }).click();
   await expect(card.getByText(/Retornada|Returned/)).toBeVisible();
 
