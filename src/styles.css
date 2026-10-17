@@ -1,8 +1,8 @@
 @import "tailwindcss";
-@import "@fontsource-variable/literata";
-@import "@fontsource-variable/literata/wght-italic.css";
-@import "@fontsource-variable/schibsted-grotesk";
-@import "@fontsource-variable/schibsted-grotesk/wght-italic.css";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
+@import "@fontsource-variable/dm-sans/opsz.css";
+@import "@fontsource-variable/dm-sans/opsz-italic.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -53,8 +53,10 @@
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
   --color-code: var(--code);
-  /* Two radii: `rounded` for controls, `rounded-lg` for surfaces. Nothing rounder. */
-  --radius-sm: calc(var(--radius) - 1px);
+  --color-tint: var(--tint);
+  /* Three radii from two variables: `rounded-sm` for tags, `rounded` for controls and media,
+     `rounded-lg` for panels and cards. Nothing rounder. */
+  --radius-sm: calc(var(--radius) / 2);
   --radius: var(--radius);
   --radius-md: var(--radius);
   --radius-lg: var(--radius-surface);
@@ -87,6 +89,8 @@
   --secondary-foreground: var(--ink);
   --link: var(--brand-link);
   --code: --alpha(var(--ink) / 5%);
+  /* The sand of buttons, tags and course cards; used whole or at 40 %. */
+  --tint: color-mix(in oklab, var(--ink) 9%, var(--paper));
 }
 
 /* A theme that sets one of these in light must set it in dark too: a theme.css `:root` value
@@ -100,6 +104,7 @@
   --ring: var(--brand-primary);
   --secondary: --alpha(var(--ink) / 7%);
   --code: --alpha(var(--ink) / 6%);
+  --tint: color-mix(in oklab, var(--ink) 14%, var(--paper));
 }
 
 @layer base {
@@ -120,7 +125,7 @@
     line-height: 1.5;
   }
   h1 {
-    @apply font-serif font-medium tracking-normal;
+    @apply font-serif text-2xl leading-[1.2] font-medium tracking-normal;
     text-wrap: balance;
   }
   h2,
@@ -146,27 +151,40 @@
   }
 }
 
-/* Lesson prose, rendered from sanitised Markdown (src/lib/markdown.ts). Literata, book measure. */
+/* Labels: tags, eyebrows, breadcrumbs, buttons and navigation. Small, uppercase, tracked. */
+@utility label {
+  @apply font-sans text-xs leading-[1.2] font-medium tracking-[0.1em] uppercase;
+}
+
+/* Lesson prose, rendered from sanitised Markdown (src/lib/markdown.ts). Serif, book measure. A
+   second-level heading reads as a section label («Materials», «Schedule»), as in the panels. */
 @utility prose {
-  @apply max-w-measure font-serif text-[1.0625rem] leading-[1.65];
+  @apply font-serif text-[0.9375rem] leading-[1.4];
+  /* Text keeps the measure; a video line spans the column like the lesson player. */
+  & > :not(figure.embed) {
+    max-width: var(--measure);
+  }
   & > * + * {
     margin-top: 1em;
   }
-  & h2,
+  & h2 {
+    @apply font-sans text-xs leading-[1.2] font-medium tracking-[0.1em] text-muted-foreground uppercase;
+    margin-top: 2.5rem;
+  }
+  & h2 + * {
+    margin-top: 1rem;
+  }
   & h3,
   & h4 {
     @apply font-serif font-medium tracking-normal;
-    margin-top: 1.8em;
+    margin-top: 1.6em;
     line-height: 1.25;
   }
-  & h2 {
-    font-size: 1.5em;
-  }
   & h3 {
-    font-size: 1.25em;
+    font-size: 1.125em;
   }
   & h4 {
-    font-size: 1.0625em;
+    font-size: 1em;
   }
   & ul,
   & ol {
@@ -200,7 +218,7 @@
     @apply rounded-lg;
   }
   & figure.embed iframe {
-    @apply aspect-video w-full rounded-lg border bg-card;
+    @apply aspect-video w-full rounded-lg bg-foreground;
   }
   & table {
     @apply w-full text-[0.9375em];

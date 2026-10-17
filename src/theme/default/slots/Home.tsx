@@ -14,10 +14,7 @@ export default function Home({ brand, loginFailed, loginHref }: HomeProps) {
       <p className="text-lg text-muted-foreground">{t("home.lead")}</p>
       <a
         href={loginHref}
-        className={
-          buttonVariants({ size: "lg" }) +
-          " text-primary-foreground no-underline hover:no-underline"
-        }
+        className={buttonVariants({ size: "lg" }) + " no-underline hover:no-underline"}
       >
         {t("home.cta")}
       </a>

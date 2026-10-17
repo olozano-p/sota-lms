@@ -16,7 +16,7 @@ export function Tab({ children, ...props }: LinkProps & { children: ReactNode })
     <Link
       {...props}
       className={cn(
-        "-mb-px whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm text-muted-foreground no-underline",
+        "label -mb-px whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-foreground/60 no-underline",
         "transition-colors duration-[120ms] ease-(--ease) hover:text-foreground hover:no-underline",
         "[&.active]:border-primary [&.active]:text-foreground",
       )}

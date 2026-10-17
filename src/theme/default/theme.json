@@ -9,11 +9,11 @@
   "legalLinks": [],
   "colors": {
     "light": {
-      "ink": "#1e1c19",
-      "paper": "#ffffff",
-      "primary": "#e0a51c",
-      "primaryForeground": "#1e1c19",
-      "link": "#8c5f0a",
+      "ink": "#1a1a18",
+      "paper": "#f3f3f0",
+      "primary": "#2d6a64",
+      "primaryForeground": "#ffffff",
+      "link": "#2d6a64",
       "success": "#587a5a",
       "successForeground": "#3f5c41",
       "warning": "#c2661d",
@@ -21,14 +21,16 @@
       "destructive": "#a34a3e",
       "destructiveForeground": "#8a3a30",
       "info": "#4b6a8a",
-      "infoForeground": "#3c5670"
+      "infoForeground": "#3c5670",
+      "card": "#ffffff",
+      "tint": "#e4e2dc"
     },
     "dark": {
-      "ink": "#e9e5dc",
-      "paper": "#161514",
-      "primary": "#f0c455",
-      "primaryForeground": "#161514",
-      "link": "#f0c455",
+      "ink": "#e8e6e1",
+      "paper": "#161615",
+      "primary": "#7fc4b8",
+      "primaryForeground": "#161615",
+      "link": "#8fd0c4",
       "success": "#8bab8c",
       "successForeground": "#a9c4aa",
       "warning": "#dd8f52",
@@ -36,15 +38,24 @@
       "destructive": "#c8776b",
       "destructiveForeground": "#dc9c92",
       "info": "#93accb",
-      "infoForeground": "#adc1da"
+      "infoForeground": "#adc1da",
+      "card": "#1f1f1d",
+      "tint": "#2c2b28"
     }
   },
   "fonts": {
-    "sans": "\"Schibsted Grotesk Variable\", ui-sans-serif, system-ui, \"Segoe UI\", Helvetica, Arial, sans-serif",
-    "serif": "\"Literata Variable\", Georgia, \"Iowan Old Style\", \"Times New Roman\", serif",
+    "sans": "\"DM Sans Variable\", ui-sans-serif, system-ui, \"Segoe UI\", Helvetica, Arial, sans-serif",
+    "serif": "\"Newsreader Variable\", Georgia, \"Iowan Old Style\", \"Times New Roman\", serif",
     "mono": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
     "faces": []
   },
-  "radius": { "control": "0.25rem", "surface": "0.5rem" },
-  "spacing": { "unit": "0.25rem", "contentWidth": "72rem", "proseWidth": "68ch" }
+  "radius": {
+    "control": "0.5rem",
+    "surface": "1rem"
+  },
+  "spacing": {
+    "unit": "0.25rem",
+    "contentWidth": "87rem",
+    "proseWidth": "68ch"
+  }
 }

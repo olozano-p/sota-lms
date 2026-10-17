@@ -60,10 +60,7 @@ export function ForumIndex({
         <ForumLink
           courseSlug={courseSlug}
           dest={{ kind: "new" }}
-          className={cn(
-            buttonVariants(),
-            "text-primary-foreground no-underline hover:no-underline",
-          )}
+          className={cn(buttonVariants(), "no-underline hover:no-underline")}
         >
           <Plus aria-hidden="true" />
           {t("forum.newThread")}

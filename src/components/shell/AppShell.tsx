@@ -31,7 +31,7 @@ export function AppShell({ brand, locales, nav, children }: AppShellProps) {
         localeSwitch={<LocaleSwitch enabled={locales} />}
         themeToggle={<ThemeToggle />}
       />
-      <main id="content" className="mx-auto w-full max-w-content flex-1 px-4 py-8 sm:px-6">
+      <main id="content" className="mx-auto w-full max-w-content flex-1 px-4 pt-4 pb-16 sm:px-6">
         {children}
       </main>
       <Slot name="Footer" brand={brand} />

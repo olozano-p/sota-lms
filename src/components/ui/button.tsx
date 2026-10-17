@@ -5,7 +5,8 @@ import { cn } from "~/lib/cn";
 
 export const buttonVariants = cva(
   [
-    "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded font-medium",
+    // Labels are the uppercase, tracked sans of the tags (docs/DESIGN.md); `xs` stays sentence case.
+    "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded font-sans text-xs leading-[1.2] font-semibold tracking-[0.1em] uppercase",
     "transition-[background-color,color,border-color] duration-[120ms] ease-(--ease)",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
     "disabled:pointer-events-none disabled:opacity-50",
@@ -16,19 +17,21 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-accent",
-        outline: "border border-input bg-card text-foreground hover:bg-accent",
-        ghost: "text-foreground hover:bg-accent",
+        // The action of the screen: sand at 40 %, ink label.
+        default: "bg-tint/40 text-foreground hover:bg-tint",
+        secondary: "bg-tint text-foreground hover:bg-tint/70",
+        outline: "border border-tint text-foreground hover:bg-tint/40",
+        ghost: "text-foreground hover:bg-tint/40",
         destructive: "bg-destructive text-background hover:bg-destructive/90",
-        link: "h-auto px-0 text-link underline-offset-[3px] hover:underline",
+        // The text link of the panels: an underlined label.
+        link: "h-auto px-0 text-foreground underline underline-offset-[3px] hover:text-muted-foreground hover:no-underline",
       },
       size: {
         // Quiet secondary actions (forum posts and threads): 11 px regular label, 12 px icon.
-        xs: "h-7 gap-1.5 px-2 text-[0.6875rem] font-normal [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-8 px-3 text-sm",
-        default: "h-10 px-4 text-sm",
-        lg: "h-11 px-5 text-base",
+        xs: "h-7 gap-1.5 px-2 text-[0.6875rem] font-normal tracking-normal normal-case [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-9 px-3",
+        default: "h-12 pr-4 pl-3.5",
+        lg: "h-12 px-5",
         icon: "size-10",
         "icon-sm": "size-8",
       },

@@ -33,8 +33,8 @@ describe("loadTheme: defaults and partial themes", () => {
     const t = loadTheme("/nonexistent/theme-dir");
     expect(t.exists).toBe(false);
     expect(t.config.name).toBe("SOTA");
-    expect(t.config.colors.light.primary).toBe("#e0a51c");
-    expect(t.css).toContain("--brand-primary:#e0a51c");
+    expect(t.config.colors.light.primary).toBe("#2d6a64");
+    expect(t.css).toContain("--brand-primary:#2d6a64");
     expect(t.css).toContain(".dark{");
   });
 
@@ -50,9 +50,9 @@ describe("loadTheme: defaults and partial themes", () => {
     );
     expect(t.config.name).toBe("Acme");
     expect(t.config.colors.light.primary).toBe("#112233");
-    expect(t.config.colors.light.ink).toBe("#1e1c19");
-    expect(t.config.colors.dark.primary).toBe("#f0c455");
-    expect(t.config.radius.control).toBe("0.25rem");
+    expect(t.config.colors.light.ink).toBe("#1a1a18");
+    expect(t.config.colors.dark.primary).toBe("#7fc4b8");
+    expect(t.config.radius.control).toBe("0.5rem");
   });
 
   it("a directory with only custom.css is a valid theme and the CSS comes last", () => {

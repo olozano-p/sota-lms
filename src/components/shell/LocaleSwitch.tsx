@@ -10,7 +10,7 @@ export function LocaleSwitch({ enabled }: { enabled: readonly Locale[] }) {
   const change = useServerFn(setLocale);
   if (enabled.length < 2) return null;
   return (
-    <div role="group" aria-label={t("locale.label")} className="flex items-center gap-0.5 text-xs">
+    <div role="group" aria-label={t("locale.label")} className="flex items-center gap-0.5">
       {enabled.map((l) => (
         <button
           key={l}
@@ -24,10 +24,8 @@ export function LocaleSwitch({ enabled }: { enabled: readonly Locale[] }) {
             await router.invalidate();
           }}
           className={cn(
-            "min-h-8 rounded px-2 uppercase tracking-[0.06em] transition-colors duration-[120ms] ease-(--ease)",
-            l === locale
-              ? "bg-accent text-foreground"
-              : "text-muted-foreground hover:text-foreground",
+            "label h-8 rounded-sm px-2 transition-colors duration-[120ms] ease-(--ease)",
+            l === locale ? "bg-tint text-foreground" : "text-foreground/60 hover:text-foreground",
           )}
         >
           {l}

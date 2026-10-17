@@ -28,10 +28,7 @@ function LoginPage() {
         {errorText ? <Alert variant="destructive" title={errorText} /> : null}
         <a
           href={`/auth/login?returnTo=${encodeURIComponent(returnTo)}`}
-          className={
-            buttonVariants({ size: "lg" }) +
-            " self-start text-primary-foreground no-underline hover:no-underline"
-          }
+          className={buttonVariants({ size: "lg" }) + " self-start no-underline hover:no-underline"}
         >
           {t("common.continue")}
         </a>

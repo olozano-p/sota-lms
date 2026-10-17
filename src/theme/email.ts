@@ -15,6 +15,8 @@ export const EMAIL_VARS = [
   "supportEmail",
   "color.ink",
   "color.paper",
+  "color.card",
+  "color.tint",
   "color.muted",
   "color.border",
   "color.primary",
@@ -67,6 +69,8 @@ export function emailPalette(theme: Pick<ThemeConfig, "colors" | "fonts">): Reco
   return {
     "color.ink": c.ink,
     "color.paper": c.paper,
+    "color.card": c.card ?? c.paper,
+    "color.tint": c.tint ?? mixHex(c.ink, c.paper, 0.09, c.paper),
     "color.muted": c.mutedForeground ?? mixHex(c.ink, c.paper, 0.65, c.ink),
     "color.border": c.border ?? mixHex(c.ink, c.paper, 0.12, "#dddddd"),
     "color.primary": c.primary,

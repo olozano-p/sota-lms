@@ -13,12 +13,12 @@ export function BrandMark({
   logo: string | null;
   name: string;
 }) {
-  if (logo) return <img src={logo} alt={name} className={cn("h-7 w-auto", className)} />;
+  if (logo) return <img src={logo} alt={name} className={cn("h-8 w-auto", className)} />;
   return (
     <svg
       viewBox="0 0 32 32"
       aria-hidden="true"
-      className={cn("size-7", className)}
+      className={cn("size-8", className)}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.75"

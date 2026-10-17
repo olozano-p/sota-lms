@@ -5,10 +5,11 @@ import { lmsConfig } from "~/config";
 import type { SessionUser } from "~/server/auth/session";
 import { cn } from "~/lib/cn";
 
+// The stepper tags of the panels: a label at 60 %, the current section in a sand box.
 const linkClass = cn(
-  "inline-flex min-h-8 items-center rounded px-2.5 text-sm text-muted-foreground no-underline",
-  "transition-colors duration-[120ms] ease-(--ease) hover:bg-accent hover:text-foreground hover:no-underline",
-  "[&.active]:text-foreground",
+  "label inline-flex h-8 items-center rounded-sm px-2 text-foreground/60 no-underline",
+  "transition-colors duration-[120ms] ease-(--ease) hover:text-foreground hover:no-underline",
+  "[&.active]:bg-tint [&.active]:text-foreground",
 );
 
 export function AccountNav({ user }: { user: SessionUser | null }) {
@@ -23,7 +24,7 @@ export function AccountNav({ user }: { user: SessionUser | null }) {
   const teaches = user.roles.includes("teacher") || user.roles.includes("admin");
   const admin = user.roles.includes("admin");
   return (
-    <nav aria-label={t("nav.account")} className="flex items-center gap-0.5">
+    <nav aria-label={t("nav.account")} className="flex flex-wrap items-center gap-1">
       <Link to="/courses" className={linkClass}>
         {t("nav.courses")}
       </Link>
@@ -47,7 +48,7 @@ export function AccountNav({ user }: { user: SessionUser | null }) {
         className={cn(linkClass, "gap-1.5")}
         title={t("app.signedInAs", { name: user.name })}
       >
-        <LogOut className="size-4" aria-hidden="true" />
+        <LogOut className="size-3.5" aria-hidden="true" />
         <span className="sr-only sm:not-sr-only">{t("nav.logout")}</span>
       </a>
     </nav>

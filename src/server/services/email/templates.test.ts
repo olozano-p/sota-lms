@@ -51,7 +51,7 @@ describe("themed mail", () => {
         expect(r.subject, `${kind} ${locale}`).not.toMatch(/^mail\./);
         expect(r.html).toContain(payload.url);
         expect(r.html).not.toMatch(/\{\{|\{\w+\}/);
-        expect(r.html).toContain("#e0a51c");
+        expect(r.html).toContain("#e4e2dc");
       }
   });
 

@@ -2,19 +2,27 @@ import type { HTMLAttributes } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "~/lib/cn";
 
-// Status is never colour alone: the badge always carries its text. Square-ish, never a pill.
+/**
+ * A tag. `secondary` is the sand box (module labels, steps); `outline` is the bare label of
+ * metadata, optionally with a 14 px icon; the state variants are a dot plus the word, so status is
+ * never colour alone.
+ */
+// The status dot sits where the 14 px icon would: a 6 px disc with 4 px either side.
+const DOT = "before:mx-1 before:size-1.5 before:shrink-0 before:rounded-full";
+
 export const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium leading-4 whitespace-nowrap [&>svg]:size-3",
+  "label inline-flex items-center gap-1 whitespace-nowrap rounded-sm text-foreground/60 [&>svg]:size-3.5",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground",
-        secondary: "border-transparent bg-secondary text-secondary-foreground",
-        outline: "border-border text-muted-foreground",
-        success: "border-success/40 text-success-foreground",
-        warning: "border-warning/50 text-warning-foreground",
-        destructive: "border-destructive/40 text-destructive-foreground",
-        info: "border-info/40 text-info-foreground",
+        default: "h-8 bg-primary px-2 text-primary-foreground",
+        secondary: "h-8 bg-tint px-2",
+        outline: "",
+        success: [DOT, "before:bg-success"],
+        warning: [DOT, "before:bg-warning"],
+        destructive: [DOT, "before:bg-destructive"],
+        info: [DOT, "before:bg-info"],
+        progress: [DOT, "before:bg-primary"],
       },
     },
     defaultVariants: { variant: "outline" },

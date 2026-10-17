@@ -62,6 +62,7 @@ export const COLOR_VARS = {
   secondary: "--secondary",
   code: "--code",
   ring: "--ring",
+  tint: "--tint",
 } as const;
 export type ColorKey = keyof typeof COLOR_VARS;
 /** Keys a theme must supply (via the shipped default) because nothing can derive them. */

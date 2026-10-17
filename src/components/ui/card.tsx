@@ -1,11 +1,9 @@
 import type { HTMLAttributes } from "react";
 import { cn } from "~/lib/cn";
 
-// A surface is a hairline on a slightly lighter fill; no shadow (docs/DESIGN.md).
+// A panel is the card fill on the page, rounded; no hairline and no shadow (docs/DESIGN.md).
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={cn("rounded-lg border bg-card text-card-foreground", className)} {...props} />
-  );
+  return <div className={cn("rounded-lg bg-card text-card-foreground", className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
@@ -13,7 +11,12 @@ export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElemen
 }
 
 export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-  return <h2 className={cn("text-base leading-snug", className)} {...props} />;
+  return (
+    <h2
+      className={cn("font-serif text-base leading-snug font-medium tracking-normal", className)}
+      {...props}
+    />
+  );
 }
 
 export function CardDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
