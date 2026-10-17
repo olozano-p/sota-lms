@@ -192,6 +192,7 @@ function LessonView({ data }: { data: NonNullable<Awaited<ReturnType<typeof getL
               title={next.locked ? t("lesson.nextLocked") : next.title}
             >
               {t("lesson.nextLesson")}
+              {next.locked ? <span className="sr-only">: {t("lesson.nextLocked")}</span> : null}
               {next.locked ? <Lock aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
             </Link>
           ) : (

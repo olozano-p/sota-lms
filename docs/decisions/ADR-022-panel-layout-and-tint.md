@@ -23,7 +23,8 @@ rules of ADR-009 (which stays as written); extends ADR-019 (theme tokens and slo
   label, so a teacher can write «Materials» or «Schedule» sections like the panels.
 - **Three radii from the two variables:** `rounded-sm` (half the control radius) for tags,
   `rounded` for controls and media, `rounded-lg` for panels and cards. Defaults 0.5 rem and 1 rem.
-- **Translucency is allowed for the tint only** (`bg-tint/40`); still no shadows or gradients.
+- **Translucency is allowed for fills only** (the tint at 40 % or 70 % on hover, the paper as a hover
+  in a panel); text is not faded by opacity; still no shadows, gradients or blur.
   Student surfaces are told apart by fill, not hairlines; dense teacher and admin tables keep their
   row rules.
 - **The `default` button is the tint button** with an ink label; the primary colour is for
@@ -42,8 +43,11 @@ single-column player.
 ## Consequences
 
 - `tint` joins the palette, the email placeholders (`color.card`, `color.tint`) and the docs.
-- The `CourseCard` and `LessonLayout` slot props grow (cover, state, position; meta, media).
-  Additions only, so an older custom slot still compiles, but it will not show the new data.
+- The `CourseCard` and `LessonLayout` slot props grow (cover, state, position; meta, media). An
+  older custom slot still compiles, but a `LessonLayout` written before this decision must render
+  `media`: the opening video moved out of `children` and would otherwise not show.
+- A theme that sets its own `ink` or `paper` does not inherit the default's `card` and `tint`; they
+  derive from its palette (`withoutForeignDerived` in `src/theme/load.ts`).
 - Dark mode stays, derived like every other token.
 - Do not re-propose a fixed bottom bar for the lesson or hairline cards on student screens; the
   actions sit under the content and panels are fills.

@@ -168,7 +168,7 @@
     margin-top: 1em;
   }
   & h2 {
-    @apply font-sans text-xs leading-[1.2] font-medium tracking-[0.1em] text-muted-foreground uppercase;
+    @apply label text-muted-foreground;
     margin-top: 2.5rem;
   }
   & h2 + * {

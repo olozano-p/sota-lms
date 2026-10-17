@@ -65,5 +65,5 @@ test("the course list files a started course under «In progress»", async ({ pa
   await loginAs(page, "mock-student");
   const active = page.getByRole("region", { name: /^En curs$|^In progress$/ });
   await expect(active.getByRole("listitem")).toHaveCount(1);
-  await expect(active.getByRole("link", { name: /Ves al curs|Go to my course/ })).toBeVisible();
+  await expect(active.getByRole("link", { name: /Ves al meu curs|Go to my course/ })).toBeVisible();
 });

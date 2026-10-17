@@ -124,12 +124,12 @@ export function AudioPlayer({
       ) : (
         <p className="pl-9 font-serif text-sm text-muted-foreground">{t("lesson.fileMissing")}</p>
       )}
-      {url && (playing || time > 0) ? (
+      {url && length && (playing || time > 0) ? (
         <div className="flex max-w-md items-center gap-3 pl-9">
           <input
             type="range"
             min={0}
-            max={length ?? 0}
+            max={length}
             step={1}
             value={time}
             onChange={(e) => {
@@ -137,11 +137,11 @@ export function AudioPlayer({
               if (el) el.currentTime = Number(e.target.value);
             }}
             aria-label={t("lesson.audio.seek", { title })}
+            aria-valuetext={`${clock(time)} / ${clock(length)}`}
             className="h-1 flex-1 accent-primary"
           />
           <span className="label text-muted-foreground tabular-nums">
-            {clock(time)}
-            {length ? ` / ${clock(length)}` : ""}
+            {clock(time)} / {clock(length)}
           </span>
         </div>
       ) : null}

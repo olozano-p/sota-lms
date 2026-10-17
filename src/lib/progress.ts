@@ -35,15 +35,14 @@ export type CourseState = "not_started" | "in_progress" | "finished" | "locked";
 
 /**
  * Where a course stands for one person, for the «In progress» / «Finished» split of the course
- * list: every published lesson done, or access that has run out, is finished; a course that does
- * not open (yet) is locked; otherwise any progress at all makes it in progress.
+ * list: every published lesson done is finished; a course that does not open (yet) is locked;
+ * otherwise any progress at all makes it in progress.
  */
 export function courseState(
   progress: CourseProgress,
-  access: { ok: boolean; reason?: string },
+  access: { ok: boolean },
   started: boolean,
 ): CourseState {
-  if (!access.ok && access.reason === "expired") return "finished";
   if (progress.total > 0 && progress.completed === progress.total) return "finished";
   if (!access.ok) return "locked";
   return started ? "in_progress" : "not_started";

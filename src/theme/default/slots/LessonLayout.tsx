@@ -44,7 +44,7 @@ export default function LessonLayout({
             </p>
           ) : null}
           {lesson.summary ? (
-            <p className="max-w-measure font-serif text-[0.9375rem] leading-[1.4] text-foreground/80">
+            <p className="max-w-measure font-serif text-[0.9375rem] leading-[1.4] text-foreground">
               {lesson.summary}
             </p>
           ) : null}

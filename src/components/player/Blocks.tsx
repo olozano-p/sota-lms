@@ -14,7 +14,6 @@ import {
 import { useI18n } from "~/i18n";
 import type { ResolvedBlock } from "~/server/services/blocks";
 import { buttonVariants } from "~/components/ui/button";
-import { Eyebrow } from "~/components/ui/eyebrow";
 import { Markdown } from "./Markdown";
 import { VideoPlayer } from "./VideoPlayer";
 import { AudioPlayer } from "./AudioPlayer";
@@ -178,8 +177,14 @@ export function Blocks({
     <div className="flex flex-col gap-10">
       {grouped(blocks).map(({ group, blocks: bs }) =>
         group ? (
-          <section key={bs[0]!.id} className="flex flex-col gap-4">
-            <Eyebrow>{t(`lesson.group.${group}`)}</Eyebrow>
+          <section
+            key={bs[0]!.id}
+            aria-labelledby={`group-${bs[0]!.id}`}
+            className="flex flex-col gap-4"
+          >
+            <h2 id={`group-${bs[0]!.id}`} className="label text-muted-foreground">
+              {t(`lesson.group.${group}`)}
+            </h2>
             <ul className="flex flex-col gap-3">{bs.map(one)}</ul>
           </section>
         ) : (

@@ -140,7 +140,7 @@ export const ca = {
 
   "courses.section.active": "En curs",
   "courses.section.finished": "Finalitzats",
-  "courses.goTo": "Ves al curs",
+  "courses.goTo": "Ves al meu curs",
   "courses.watchAgain": "Torna-hi",
   "courses.chapterOf": "Capítol {index} de {total}",
   "courses.state.in_progress": "En curs",
@@ -481,7 +481,7 @@ export const ca = {
     "Un espai on l'alumnat pot fer preguntes i obrir converses sobre el curs.",
   "teach.settings.forum.enable": "Activa el fòrum",
   "teach.settings.forum.hint":
-    "Apareix com una pestanya a la pàgina del curs. Els docents del curs el moderen.",
+    "Apareix al temari, al costat de les lliçons. Els docents del curs el moderen.",
 
   "courses.tabs.forum": "Fòrum",
 

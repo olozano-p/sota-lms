@@ -10,7 +10,7 @@ or `src/lib`** — if a query or mutation you need is missing or wrong, report i
 working around it (never fetch or write data from a component).
 
 Rules that bind you: root `CLAUDE.md` and `docs/DESIGN.md`. In particular: tokens only, no raw
-palette colours, no shadows/gradients/blur, translucency only as `bg-tint/40`; radii `rounded-sm`
+palette colours, no shadows/gradients/blur, translucency only from the tint (40 %, 70 % on hover); radii `rounded-sm`
 for tags, `rounded` for controls and media, `rounded-lg` for panels; the serif for titles, rows and
 `.prose`, the `label` utility for labels and buttons; every string
 through `t()` with the key added to `ca.ts`, `es.ts` and `en.ts`; filter and tab state in the URL;

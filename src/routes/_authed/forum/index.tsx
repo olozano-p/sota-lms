@@ -29,7 +29,7 @@ function GeneralForumPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("forum.title")}
-        meta={<p className="font-serif text-sm text-foreground/80">{t("forum.general.lead")}</p>}
+        meta={<p className="font-serif text-sm text-foreground">{t("forum.general.lead")}</p>}
       />
       <ForumIndex data={data} courseSlug={null} q={q} />
     </div>

@@ -37,16 +37,16 @@ function CohortPage() {
               <Badge variant={cohort.status === "active" ? "success" : "outline"}>
                 {t(`cohort.status.${cohort.status}`)}
               </Badge>
-              <Badge>
-                {cohort.startsAt && cohort.endsAt
-                  ? t("cohort.dates", {
-                      start: fmtDate(cohort.startsAt),
-                      end: fmtDate(cohort.endsAt),
-                    })
-                  : cohort.startsAt
-                    ? t("cohort.from", { start: fmtDate(cohort.startsAt) })
-                    : null}
-              </Badge>
+              {cohort.startsAt ? (
+                <Badge>
+                  {cohort.endsAt
+                    ? t("cohort.dates", {
+                        start: fmtDate(cohort.startsAt),
+                        end: fmtDate(cohort.endsAt),
+                      })
+                    : t("cohort.from", { start: fmtDate(cohort.startsAt) })}
+                </Badge>
+              ) : null}
             </>
           }
         />

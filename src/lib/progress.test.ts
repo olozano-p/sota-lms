@@ -53,12 +53,12 @@ describe("continueTarget", () => {
 
 describe("courseState", () => {
   const p = (completed: number, total: number) => ({ completed, total, ratio: 0 });
-  it("is finished when every lesson is done or access has expired", () => {
+  it("is finished when every lesson is done, open or not", () => {
     expect(courseState(p(3, 3), { ok: true }, true)).toBe("finished");
-    expect(courseState(p(1, 3), { ok: false, reason: "expired" }, true)).toBe("finished");
+    expect(courseState(p(3, 3), { ok: false }, true)).toBe("finished");
   });
   it("is locked when the course does not open, unless it is complete", () => {
-    expect(courseState(p(0, 3), { ok: false, reason: "not_yet_released" }, false)).toBe("locked");
+    expect(courseState(p(0, 3), { ok: false }, false)).toBe("locked");
   });
   it("is in progress once anything was started, else not started", () => {
     expect(courseState(p(0, 3), { ok: true }, true)).toBe("in_progress");

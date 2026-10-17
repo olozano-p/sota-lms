@@ -248,7 +248,7 @@ Contributors may add `YouTubeProvider`, `MuxProvider`, `SelfHostedProvider` behi
 /api/auth/*                         → better-auth (sessions, OIDC callback, magic link, invitations)
 /login /signup /forgot-password /reset-password /accept-invite → local mode only (/login/break-glass: oidc mode, if configured)
 /courses                            → my courses, progress
-/courses/$courseSlug                → syllabus, lock states, "Continue" (tab when the forum is on)
+/courses/$courseSlug                → syllabus, lock states, "Continue"; the course frame (syllabus panel, forum row when on)
 /courses/$courseSlug/forum          → course forum: threads, /new, /$threadId
 /courses/$courseSlug/$lessonSlug    → lesson player
 /forum                              → general forum (lms.config.ts forum.general): threads, /new, /$threadId

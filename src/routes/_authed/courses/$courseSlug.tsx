@@ -55,7 +55,12 @@ function CourseFrame() {
             className={cn("size-4 transition-transform", shown && "rotate-180")}
           />
         </button>
-        <div id="course-syllabus" className={cn(!shown && "hidden", "lg:block")}>
+        {/* On phones, choosing a row closes the disclosure so the page opens at its content. */}
+        <div
+          id="course-syllabus"
+          className={cn(!shown && "hidden", "lg:block")}
+          onClick={(e) => (e.target as HTMLElement).closest("a") && setShown(false)}
+        >
           <Syllabus
             courseSlug={course.slug}
             chapters={chapters}

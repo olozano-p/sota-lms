@@ -482,7 +482,7 @@ export const es: Record<MessageKey, string> = {
     "Un espacio donde el alumnado puede hacer preguntas y abrir conversaciones sobre el curso.",
   "teach.settings.forum.enable": "Activar el foro",
   "teach.settings.forum.hint":
-    "Aparece como una pestaña en la página del curso. Los docentes del curso lo moderan.",
+    "Aparece en el temario, junto a las lecciones. Los docentes del curso lo moderan.",
 
   "courses.tabs.forum": "Foro",
 

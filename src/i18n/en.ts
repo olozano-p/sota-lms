@@ -480,7 +480,7 @@ export const en: Record<MessageKey, string> = {
     "A place where students ask questions and start conversations about the course.",
   "teach.settings.forum.enable": "Enable the forum",
   "teach.settings.forum.hint":
-    "Shows as a tab on the course page. The course's teachers moderate it.",
+    "Shows in the syllabus, next to the lessons. The course's teachers moderate it.",
 
   "courses.tabs.forum": "Forum",
 

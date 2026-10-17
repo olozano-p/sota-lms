@@ -5,7 +5,8 @@ import { cn } from "~/lib/cn";
 
 const buttonStyles = cva(
   [
-    // Labels are the uppercase, tracked sans of the tags (docs/DESIGN.md); `xs` stays sentence case.
+    // The `label` style spelled out in semibold, so the size variants can override it through the
+    // class merge (which cannot see inside `label`); `xs` stays sentence case.
     "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded font-sans text-xs leading-[1.2] font-semibold tracking-[0.1em] uppercase",
     "transition-[background-color,color,border-color] duration-[120ms] ease-(--ease)",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",

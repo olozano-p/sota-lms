@@ -44,7 +44,7 @@ export default function CourseCard({ course: c }: CourseCardProps) {
       ) : (
         <div
           aria-hidden="true"
-          className="flex aspect-square w-full shrink-0 items-center justify-center rounded bg-tint text-foreground/30 sm:aspect-auto sm:w-75"
+          className="flex aspect-square w-full shrink-0 items-center justify-center rounded bg-tint text-muted-foreground sm:aspect-auto sm:w-75"
         >
           <BrandMark logo={null} name={brand.name} className="size-12" />
         </div>

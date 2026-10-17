@@ -6,9 +6,9 @@
   new optional `tint` colour (the sand of buttons, tags and course cards), Newsreader and DM Sans, a `label`
   utility for every uppercase label, radii 0.5 / 1 rem. Primitives restyled in place (`Button` default is the
   tint button, `link` the underlined label; `Badge` is the Figma tag with status dots). Dark mode derived as before.
-- **My courses**: cover cards in «In progress» and «Finished» (`courseState`, `chapterPosition` in
-  `src/lib/progress.ts`); covers set in the course settings and served by `/api/files` to anyone with an
-  enrollment in the course.
+- **My courses**: cover cards in «In progress» and «Finished» (every lesson done; `courseState`,
+  `chapterPosition` in `src/lib/progress.ts`); covers are images uploaded in the course settings, served by
+  `/api/files` to whoever has the course among their courses (`enrolledCourses`).
 - **Course frame**: the lesson route is now a child of the course layout, so the syllabus panel (collapsible
   chapters, release dates from `chapterRelease`) sits beside the course page, every lesson and the course forum.
   The lesson opens with its video, then labels and summary; files, audios and activities are labelled lists;

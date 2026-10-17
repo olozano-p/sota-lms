@@ -66,7 +66,7 @@ function CoursePage() {
       {course.subtitle || course.descriptionHtml ? (
         <div className="flex flex-col gap-4">
           {course.subtitle ? (
-            <p className="max-w-measure font-serif text-[0.9375rem] leading-[1.4] text-foreground/80">
+            <p className="max-w-measure font-serif text-[0.9375rem] leading-[1.4] text-foreground">
               {course.subtitle}
             </p>
           ) : null}
@@ -81,7 +81,7 @@ function CoursePage() {
           <ProgressRule value={progress.ratio} label={t("courses.progress.label")} />
         </div>
         {allDone ? (
-          <p className="font-serif text-sm text-foreground/80">{t("syllabus.completed.all")}</p>
+          <p className="font-serif text-sm text-foreground">{t("syllabus.completed.all")}</p>
         ) : null}
         {continueLesson ? (
           <Link

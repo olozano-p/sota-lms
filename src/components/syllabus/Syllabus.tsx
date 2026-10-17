@@ -32,7 +32,7 @@ const row =
   "flex w-full items-center gap-3 rounded text-left font-serif text-sm leading-[1.2] text-foreground no-underline transition-colors duration-[120ms] ease-(--ease) hover:bg-background/60 hover:no-underline";
 
 /**
- * The syllabus panel beside every course page: «Welcome», the chapters as collapsible rows and,
+ * The syllabus panel beside every course page: the course page («Overview»), the chapters as collapsible rows and,
  * when on, the forum. A closed chapter is faded and says when it opens; lesson state is also a word
  * (title attribute and sr-only text), never fading alone.
  */
@@ -80,7 +80,12 @@ export function Syllabus({
               onClick={() => setToggled((m) => new Map(m).set(ch.id, !expanded))}
               className={cn(row, "p-4")}
             >
-              <span className={cn("min-w-0 flex-1", ch.locked && "opacity-40")}>{ch.title}</span>
+              <span className={cn("min-w-0 flex-1", ch.locked && "opacity-40")}>
+                {ch.title}
+                {ch.locked && !ch.availableAt ? (
+                  <span className="sr-only"> · {t("syllabus.locked")}</span>
+                ) : null}
+              </span>
               {ch.availableAt ? (
                 <span className="label shrink-0 text-muted-foreground">
                   <span className="sr-only">{t("syllabus.opensOn")} </span>

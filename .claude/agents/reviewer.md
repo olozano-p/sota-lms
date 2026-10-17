@@ -21,7 +21,8 @@ Highest-priority findings, in order:
 - a user-facing string not going through `t()`, or a key present in `ca.ts` but missing in `es.ts`
   or `en.ts` (typecheck catches the second — confirm it was run);
 - a raw Tailwind palette colour (`slate-*`, `gray-*`, `emerald-*`…) or a hex instead of a token;
-  a drop shadow, gradient or blur; translucency other than `bg-tint/40`; a radius above
+  a drop shadow, gradient or blur; translucency other than the tint (40 %, 70 % on hover), a paper hover in a panel or the dialog
+  backdrop; text faded by opacity; a radius above
   `rounded-lg`; the serif used in a control or a label;
 - a secret, a real email address or real person data in the diff (fixtures use `@example.invalid`);
 - narration comments ("added", "now uses", "changed to");

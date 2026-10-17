@@ -35,7 +35,9 @@ sets it in dark too.
 
 Each state colour has a `-foreground` twin for text (`#3f5c41`, `#8a4712`, `#8a3a30`, `#3c5670` in
 light) so words stay above 4.5:1 while the fill stays recognisable. `card` and `tint` are optional
-for a theme: unset, `card` is the paper and `tint` is ink 9 % over paper (14 % in dark).
+for a theme: unset, `card` is the paper (ink 4 % into paper in dark) and `tint` is ink 9 % over paper
+(14 % in dark). A theme that sets its own `ink` or `paper` for a mode derives them from its own palette;
+the default's white card and sand are not carried over.
 
 `--input`, `--muted`, `--secondary` and `--code` are derived the same way (ink at 5–18 %), and
 `--ring` is the link colour in light and the primary in dark. Contrast of derived text stays at or
@@ -65,8 +67,11 @@ family.
 
 - Three radii from two variables: tags `rounded-sm` (half of `--radius`), controls, media and
   syllabus rows `rounded` (`--radius`, default 0.5 rem), panels and cards `rounded-lg`
-  (`--radius-surface`, default 1 rem). Avatars and the audio play button are the only circles.
-- **No drop shadows or gradients.** Translucency only as `bg-tint/40` (buttons, course cards). Student
+  (`--radius-surface`, default 1 rem). Circles are for avatars, the audio play button, status dots
+  and the ends of the progress rule.
+- **No drop shadows, gradients or blur.** Translucency only on fills: the tint at 40 % (buttons,
+  course cards, notices) or 70 % (hover), the paper as a hover inside a panel, and the dialog
+  backdrop. Text is never faded by opacity, except closed rows (40 %), which say why in words. Student
   surfaces are told apart by fill: a white panel on paper, a sand card on paper, the selected row
   in paper inside a white panel. Teacher and admin tables keep hairline row separators.
 - Focus is a 2 px `--ring` outline with offset. Progress is a 4 px rounded rule on the sand
@@ -77,7 +82,7 @@ family.
 ## Spacing and widths
 
 `--spacing` is Tailwind's base unit (default `0.25rem`), so every `p-*`, `gap-*` and `m-*` scales
-with the theme. `--content-width` (default `72rem`) is the page column, used as `max-w-content`;
+with the theme. `--content-width` (default `87rem`) is the page column, used as `max-w-content`;
 `--measure` is the reading width, `max-w-measure`. Neither `max-w-6xl` nor `68ch` is written in a
 component.
 
@@ -95,10 +100,10 @@ slide on press or open; dialogs fade. `prefers-reduced-motion` keeps opacity and
 - **My courses** (`/courses`): a centred `max-w-2xl` column. «In progress» and «Finished» as serif
   section heads, each a list of course cards: sand at 40 %, the cover on the left (a sand block
   with the mark when there is none; stacked on phones), title, subtitle, a «Chapter 2 of 9» tag, a
-  status dot with its word, and an underlined label link at the bottom. Finished cards fade to 50 %.
+  status dot with its word, and an underlined label link at the bottom. Finished cards fade the cover to 50 % and set their text in `muted-foreground`.
 - **Course frame** (`courses/$courseSlug` layout): the syllabus panel on the left (20 rem, sticky,
   a «← My courses» tag above it; on phones a «Syllabus» disclosure above the content) and the
-  course page, a lesson or the course forum on the right. The panel: «Overview» (the course page),
+  course page, a lesson or the course forum on the right. The panel: the course page («Overview»; «Presentació», «Presentación»),
   chapters as collapsible serif rows with a caret and, when closed to the reader, faded with the
   date they open; lessons indented, the current one on paper, done ones with a small check; «Forum»
   at the bottom when on.

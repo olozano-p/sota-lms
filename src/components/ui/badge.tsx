@@ -17,7 +17,6 @@ export const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "h-8 bg-primary px-2 text-primary-foreground",
         secondary: "h-8 bg-tint px-2",
         outline: "",
         success: [DOT, "before:bg-success"],
