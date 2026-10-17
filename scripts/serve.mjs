@@ -23,6 +23,8 @@ try {
 const handler = (await import("../dist/server/server.js")).default;
 const clientDir = join(process.cwd(), "dist", "client");
 const port = Number(process.env.PORT ?? 3003);
+// Unset: every interface (what a container needs). 127.0.0.1 when a proxy on the same host is the only way in.
+const host = process.env.HOST || undefined;
 
 // Notification tick every 15 minutes in a child process (plain Node runs the .ts directly).
 // Set NOTIFY_INTERVAL_MS=0 to disable when cron runs scripts/notify.ts instead.
@@ -99,4 +101,4 @@ http
       else res.end();
     }
   })
-  .listen(port, () => logger.info("listening", { port }));
+  .listen(port, host, () => logger.info("listening", { port, host: host ?? "*" }));

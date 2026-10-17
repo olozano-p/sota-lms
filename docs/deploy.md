@@ -56,7 +56,8 @@ For a host that already runs Node applications without Docker:
 - Node 24 and pnpm on the server; Postgres reachable from it.
 - Environment in `/etc/sota/env` (chmod 600), the same variables as `.env`, with
   `STORAGE_DIR=/srv/sota/shared/uploads`: releases under `/srv/sota/releases` are pruned, so
-  uploads must live outside them.
+  uploads must live outside them. Set `HOST=127.0.0.1` so only the proxy reaches the process:
+  unset, it listens on every interface and the proxy's rules can be walked around.
 - `pm2` ecosystem file at `/srv/sota/ecosystem.config.cjs`:
 
 ```js

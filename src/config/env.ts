@@ -32,6 +32,7 @@ const rawSchema = z.object({
   NODE_ENV: text(),
   APP_URL: opt(z.url()),
   PORT: opt(z.coerce.number().int().min(1).max(65535)),
+  HOST: opt(z.string().min(1)),
   DATABASE_URL: text(),
   SESSION_SECRET: text(),
   COOKIE_DOMAIN: text(),

@@ -1,7 +1,8 @@
 #!/bin/sh
 # Alternative to the Docker image: build locally, rsync a release to a VPS, migrate, flip a
 # symlink, reload pm2. Assumes Node 24 + pnpm on the server and env in /etc/sota/env with
-# STORAGE_DIR=$ROOT/shared/uploads (releases are pruned; uploads must live outside them).
+# STORAGE_DIR=$ROOT/shared/uploads (releases are pruned; uploads must live outside them) and
+# HOST=127.0.0.1 (only the proxy reaches the process).
 #   deploy/rsync-deploy.sh user@host /srv/sota
 set -eu
 HOST=${1:?user@host}
