@@ -67,6 +67,21 @@ export const Route = createFileRoute("/api/files/$fileId")({
           }
         }
         if (!allowed) {
+          // A course cover: anyone with an enrollment in that course (finished ones too, so the
+          // «Finished» cards keep their picture) and its teachers.
+          const [c] = await db
+            .select()
+            .from(course)
+            .where(eq(course.coverImageKey, f.key))
+            .limit(1);
+          if (c) {
+            const facts = await loadPersonFacts(user);
+            allowed =
+              isPrivileged(facts, c.id) ||
+              facts.enrollments.some((e) => e.courseSlug === c.slug && e.status !== "revoked");
+          }
+        }
+        if (!allowed) {
           // A forum image: whoever may read that forum.
           const scope = forumScopeFromFileKey(f.key);
           if (scope) {

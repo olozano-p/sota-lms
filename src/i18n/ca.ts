@@ -281,6 +281,10 @@ export const ca = {
   "teach.settings.slug": "Adreça (slug)",
   "teach.settings.slug.hint": "Canviar-la trenca els enllaços existents",
   "teach.settings.subtitle": "Subtítol",
+  "teach.settings.cover": "Imatge de portada",
+  "teach.settings.cover.hint":
+    "Es mostra a la fitxa del curs. Millor quadrada o vertical, almenys 600 px.",
+  "teach.settings.cover.remove": "Treu la portada",
   "teach.settings.description": "Descripció",
   "teach.settings.language": "Idioma del contingut",
   "teach.settings.status": "Estat",

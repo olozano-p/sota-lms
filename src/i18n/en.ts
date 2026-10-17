@@ -280,6 +280,10 @@ export const en: Record<MessageKey, string> = {
   "teach.settings.slug": "Address (slug)",
   "teach.settings.slug.hint": "Changing it breaks existing links",
   "teach.settings.subtitle": "Subtitle",
+  "teach.settings.cover": "Cover image",
+  "teach.settings.cover.hint":
+    "Shown on the course card. Square or portrait works best, at least 600 px.",
+  "teach.settings.cover.remove": "Remove the cover",
   "teach.settings.description": "Description",
   "teach.settings.language": "Content language",
   "teach.settings.status": "Status",

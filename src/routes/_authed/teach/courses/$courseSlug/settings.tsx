@@ -3,7 +3,14 @@ import { createFileRoute, useRouter, getRouteApi } from "@tanstack/react-router"
 import { useServerFn } from "@tanstack/react-start";
 import { useI18n } from "~/i18n";
 import { COURSE_STATUSES } from "~/db/schema";
-import { setCourseTeachers, updateCourse } from "~/server/mutations/authoring";
+import {
+  confirmUpload,
+  requestUpload,
+  setCourseTeachers,
+  updateCourse,
+} from "~/server/mutations/authoring";
+import { UploadField } from "~/components/editor/UploadField";
+import { Button } from "~/components/ui/button";
 import { RichTextField } from "~/components/editor/RichTextField";
 import { SaveIndicator } from "~/components/editor/SaveIndicator";
 import { useAutosave } from "~/components/editor/useAutosave";
@@ -20,11 +27,14 @@ export const Route = createFileRoute("/_authed/teach/courses/$courseSlug/setting
 
 function SettingsPage() {
   const { t } = useI18n();
-  const { course, isAdmin, teachers, candidates, languages } = parent.useLoaderData();
+  const { course, coverUrl, isAdmin, teachers, candidates, languages, uploads } =
+    parent.useLoaderData();
   const router = useRouter();
   const { state, run } = useAutosave();
   const update = useServerFn(updateCourse);
   const setTeachers = useServerFn(setCourseTeachers);
+  const request = useServerFn(requestUpload);
+  const confirm = useServerFn(confirmUpload);
   const [description, setDescription] = useState(course.descriptionMd);
 
   const patch = (p: Parameters<typeof updateCourse>[0]["data"]["patch"]) =>
@@ -71,6 +81,33 @@ function SettingsPage() {
             />
           )}
         </Field>
+        <fieldset className="flex flex-col gap-1.5 lg:col-span-2">
+          <legend className="mb-1.5 text-sm font-medium">{t("teach.settings.cover")}</legend>
+          <div className="flex flex-wrap items-start gap-4">
+            {coverUrl ? (
+              <img src={coverUrl} alt="" className="size-32 rounded object-cover" />
+            ) : null}
+            <div className="flex flex-col items-start gap-2">
+              <UploadField
+                label={t("teach.settings.cover")}
+                accept={uploads.allowedMime.filter((m) => m.startsWith("image/"))}
+                maxBytes={uploads.maxBytes}
+                current={course.coverImageKey ? { key: course.coverImageKey } : null}
+                request={(f) => request({ data: { courseId: course.id, inline: true, ...f } })}
+                confirm={(key, filename) =>
+                  confirm({ data: { courseId: course.id, key, filename } })
+                }
+                onUploaded={(f) => patch({ coverImageKey: f.key })}
+              />
+              {course.coverImageKey ? (
+                <Button variant="ghost" size="sm" onClick={() => patch({ coverImageKey: null })}>
+                  {t("teach.settings.cover.remove")}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">{t("teach.settings.cover.hint")}</p>
+        </fieldset>
         <Field label={t("teach.settings.description")} className="lg:col-span-2">
           {(c) => (
             <RichTextField

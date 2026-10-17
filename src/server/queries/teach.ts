@@ -15,6 +15,7 @@ import {
 import { lmsConfig } from "~/config";
 import { hasRole, requireCourseTeacher, requireRole } from "~/server/auth/authz";
 import { enabledVideoProviders } from "~/server/services/video";
+import { coverUrls } from "./covers";
 
 /** Courses the caller may author: all for admins, assigned ones for teachers. */
 export const listTeachCourses = createServerFn({ method: "GET" }).handler(async () => {
@@ -95,12 +96,15 @@ export const getCourseEditor = createServerFn({ method: "GET" })
             .orderBy(asc(person.name))
         : Promise.resolve([]),
     ]);
+    const covers = await coverUrls([c.coverImageKey]);
     return {
       course: c,
+      coverUrl: c.coverImageKey ? (covers.get(c.coverImageKey) ?? null) : null,
       isAdmin,
       teachers,
       candidates,
       languages: lmsConfig.locales.enabled,
+      uploads: lmsConfig.uploads,
       chapters: chapters.map((ch) => ({
         ...ch,
         lessons: lessons.filter((l) => l.chapterId === ch.id),

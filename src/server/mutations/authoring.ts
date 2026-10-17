@@ -123,6 +123,7 @@ export const updateCourse = createServerFn({ method: "POST" })
             .regex(/^\d{4}-\d{2}-\d{2}$/)
             .nullable(),
           forumEnabled: z.boolean(),
+          coverImageKey: z.string().max(500).nullable(),
         })
         .partial(),
     }),
@@ -140,6 +141,9 @@ export const updateCourse = createServerFn({ method: "POST" })
           .limit(1);
         if (clash[0]) throw new Error("slug already in use");
       }
+      // A cover is one of this course's own uploads, never another course's file.
+      if (data.patch.coverImageKey && !data.patch.coverImageKey.startsWith(`courses/${before.id}/`))
+        throw new Error("cover must be a file of this course");
       const [after] = await tx
         .update(course)
         .set(data.patch)

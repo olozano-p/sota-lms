@@ -282,6 +282,10 @@ export const es: Record<MessageKey, string> = {
   "teach.settings.slug": "Dirección (slug)",
   "teach.settings.slug.hint": "Cambiarla rompe los enlaces existentes",
   "teach.settings.subtitle": "Subtítulo",
+  "teach.settings.cover": "Imagen de portada",
+  "teach.settings.cover.hint":
+    "Se muestra en la ficha del curso. Mejor cuadrada o vertical, al menos 600 px.",
+  "teach.settings.cover.remove": "Quitar la portada",
   "teach.settings.description": "Descripción",
   "teach.settings.language": "Idioma del contenido",
   "teach.settings.status": "Estado",
