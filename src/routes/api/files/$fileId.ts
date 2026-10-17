@@ -5,6 +5,7 @@ import { assignment, course, file, lessonBlock, submission } from "~/db/schema";
 import { AuthorizationError, currentUser } from "~/server/auth/authz";
 import {
   decideCourse,
+  enrolledCourses,
   isPrivileged,
   loadPersonFacts,
   requireLessonAccess,
@@ -67,8 +68,8 @@ export const Route = createFileRoute("/api/files/$fileId")({
           }
         }
         if (!allowed) {
-          // A course cover: anyone with an enrollment in that course (finished ones too, so the
-          // «Finished» cards keep their picture) and its teachers.
+          // A course cover: whoever has the course among their courses (the same filter that
+          // decides which cards `/courses` shows) and its teachers.
           const [c] = await db
             .select()
             .from(course)
@@ -76,9 +77,7 @@ export const Route = createFileRoute("/api/files/$fileId")({
             .limit(1);
           if (c) {
             const facts = await loadPersonFacts(user);
-            allowed =
-              isPrivileged(facts, c.id) ||
-              facts.enrollments.some((e) => e.courseSlug === c.slug && e.status !== "revoked");
+            allowed = isPrivileged(facts, c.id) || enrolledCourses(facts, [c]).length > 0;
           }
         }
         if (!allowed) {

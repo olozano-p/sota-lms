@@ -141,9 +141,26 @@ export const updateCourse = createServerFn({ method: "POST" })
           .limit(1);
         if (clash[0]) throw new Error("slug already in use");
       }
-      // A cover is one of this course's own uploads, never another course's file.
-      if (data.patch.coverImageKey && !data.patch.coverImageKey.startsWith(`courses/${before.id}/`))
-        throw new Error("cover must be a file of this course");
+      // A cover is an image this course uploaded: `/api/files` shows it to every enrolled person, so
+      // it must never be a lesson's file (which keeps its per-lesson access) or another course's.
+      if (data.patch.coverImageKey) {
+        const [img] = await tx
+          .select({ mime: file.mime })
+          .from(file)
+          .where(eq(file.key, data.patch.coverImageKey))
+          .limit(1);
+        if (
+          !img?.mime.startsWith("image/") ||
+          !data.patch.coverImageKey.startsWith(`courses/${before.id}/`)
+        )
+          throw new Error("cover must be an image uploaded to this course");
+        const [inBlock] = await tx
+          .select({ id: lessonBlock.id })
+          .from(lessonBlock)
+          .where(sql`${lessonBlock.payload}->>'file_key' = ${data.patch.coverImageKey}`)
+          .limit(1);
+        if (inBlock) throw new Error("cover must be an image uploaded to this course");
+      }
       const [after] = await tx
         .update(course)
         .set(data.patch)
