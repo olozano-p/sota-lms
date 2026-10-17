@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, asc, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/db";
-import { course, courseTeacher, forumPost, forumReaction, forumThread, person } from "~/db/schema";
+import { courseTeacher, forumPost, forumReaction, forumThread, person } from "~/db/schema";
 import { lmsConfig } from "~/config";
 import { markdownExcerpt, renderMarkdown } from "~/lib/markdown";
 import { AuthorizationError, requireUser, type SessionUser } from "~/server/auth/authz";
@@ -13,12 +13,6 @@ import {
   type ForumAccess,
   type ForumCourse,
 } from "~/server/access/forum";
-import {
-  decideCourse,
-  enrolledCourses,
-  isPrivileged,
-  loadPersonFacts,
-} from "~/server/access/require";
 
 export type AuthorRole = "admin" | "teacher" | null;
 
@@ -285,23 +279,5 @@ export const getThread = createServerFn({ method: "GET" })
           canReact: !deleted && !own,
         };
       }),
-    };
-  });
-
-/** What the course layout needs above its tabs. Null when the person may not see the course. */
-export const getCourseHeader = createServerFn({ method: "GET" })
-  .validator(z.object({ slug: z.string() }))
-  .handler(async ({ data }) => {
-    const user = await requireUser();
-    const [c] = await db.select().from(course).where(eq(course.slug, data.slug)).limit(1);
-    if (!c) return null;
-    const facts = await loadPersonFacts(user);
-    const privileged = isPrivileged(facts, c.id);
-    if (!privileged && enrolledCourses(facts, [c]).length === 0) return null;
-    return {
-      course: { id: c.id, slug: c.slug, title: c.title, subtitle: c.subtitle, status: c.status },
-      privileged,
-      // The tab shows only to people the forum gate would let in.
-      forumEnabled: c.forumEnabled && (privileged || decideCourse(facts, c).ok),
     };
   });

@@ -11,7 +11,7 @@ import { cn } from "~/lib/cn";
 const DOT = "before:mx-1 before:size-1.5 before:shrink-0 before:rounded-full";
 
 export const badgeVariants = cva(
-  "label inline-flex items-center gap-1 whitespace-nowrap rounded-sm text-foreground/60 [&>svg]:size-3.5",
+  "label inline-flex items-center gap-1 whitespace-nowrap rounded-sm text-muted-foreground [&>svg]:size-3.5",
   {
     variants: {
       variant: {

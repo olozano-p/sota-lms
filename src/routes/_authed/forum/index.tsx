@@ -3,6 +3,7 @@ import { z } from "zod";
 import { useI18n } from "~/i18n";
 import { listThreads } from "~/server/queries/forum";
 import { ForumIndex } from "~/components/forum/ForumIndex";
+import { PageHeader } from "~/components/ui/page-header";
 
 const search = z.object({
   page: z.coerce.number().int().min(1).optional().catch(undefined),
@@ -26,10 +27,10 @@ function GeneralForumPage() {
   const { q } = Route.useSearch();
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-4xl leading-tight">{t("forum.title")}</h1>
-        <p className="max-w-2xl text-lg text-muted-foreground">{t("forum.general.lead")}</p>
-      </header>
+      <PageHeader
+        title={t("forum.title")}
+        meta={<p className="font-serif text-sm text-foreground/80">{t("forum.general.lead")}</p>}
+      />
       <ForumIndex data={data} courseSlug={null} q={q} />
     </div>
   );

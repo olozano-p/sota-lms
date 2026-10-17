@@ -18,7 +18,7 @@ const STATE_BADGE = {
 /**
  * One course as a sand card: the cover on the left (stacked above on phones), then title, subtitle,
  * the chapter it is in and its state, and the link at the bottom. Renders an `<li>`: the route owns
- * the `<ul>`. A finished course is faded; its state word says why.
+ * the `<ul>`. A finished course has a faded cover and quiet text; its state word says why.
  */
 export default function CourseCard({ course: c }: CourseCardProps) {
   const { t } = useI18n();
@@ -28,7 +28,7 @@ export default function CourseCard({ course: c }: CourseCardProps) {
     <li
       className={cn(
         "flex flex-col gap-6 rounded-lg bg-tint/40 p-2 sm:min-h-85 sm:flex-row",
-        finished && "opacity-50",
+        finished && "text-muted-foreground",
       )}
     >
       {c.coverUrl ? (
@@ -36,7 +36,10 @@ export default function CourseCard({ course: c }: CourseCardProps) {
           src={c.coverUrl}
           alt=""
           loading="lazy"
-          className="aspect-square w-full shrink-0 rounded object-cover sm:aspect-auto sm:w-75"
+          className={cn(
+            "aspect-square w-full shrink-0 rounded object-cover sm:aspect-auto sm:w-75",
+            finished && "opacity-50",
+          )}
         />
       ) : (
         <div
@@ -52,7 +55,7 @@ export default function CourseCard({ course: c }: CourseCardProps) {
             <Link
               to="/courses/$courseSlug"
               params={{ courseSlug: c.slug }}
-              className="text-foreground no-underline hover:no-underline"
+              className="text-inherit no-underline hover:no-underline"
             >
               {c.title}
             </Link>

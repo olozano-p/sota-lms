@@ -28,7 +28,7 @@ export function PageHeader({
     <header className={cn("flex max-w-3xl flex-col gap-4", className)}>
       {crumbs.length ? (
         <nav aria-label={t("nav.breadcrumb")}>
-          <ol className="label flex flex-wrap items-center gap-x-3 gap-y-1 text-foreground/50">
+          <ol className="label flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
             {crumbs.map((c, i) => (
               <Fragment key={i}>
                 {i > 0 ? <li aria-hidden="true">/</li> : null}
@@ -36,7 +36,7 @@ export function PageHeader({
                   {c.link ? (
                     <Link
                       {...c.link}
-                      className="text-foreground/50 no-underline hover:text-foreground hover:no-underline"
+                      className="text-muted-foreground no-underline hover:text-foreground hover:no-underline"
                     >
                       {c.label}
                     </Link>

@@ -58,3 +58,19 @@ export function chapterPosition(
   const i = distinct.indexOf(chapterId);
   return i < 0 ? null : { index: i + 1, total: distinct.length };
 }
+
+/**
+ * When a chapter opens: the earliest release date if every lesson in it waits for one, else null.
+ * A chapter with any open lesson, or locked for another reason, has no date to show.
+ */
+export function chapterRelease(
+  decisions: { ok: boolean; reason?: string; availableAt?: Date }[],
+): Date | null {
+  if (!decisions.length) return null;
+  let first: Date | null = null;
+  for (const d of decisions) {
+    if (d.ok || d.reason !== "not_yet_released" || !d.availableAt) return null;
+    if (!first || d.availableAt < first) first = d.availableAt;
+  }
+  return first;
+}

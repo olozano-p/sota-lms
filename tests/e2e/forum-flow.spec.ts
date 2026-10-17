@@ -18,12 +18,12 @@ test("student opens a thread, teacher quotes and pins it, student reacts", async
     await expect(teacher.getByRole("status").filter({ hasText: /Desat|Saved/ })).toBeVisible();
   }
 
-  // The student finds the tab, opens a thread with bold text and a video link.
+  // The student finds the forum in the syllabus panel, opens a thread with bold text and a video link.
   const studentCtx = await browser.newContext();
   const student = await studentCtx.newPage();
   await loginAs(student, "mock-student", COURSE);
   await student
-    .getByRole("navigation", { name: /Introducció/ })
+    .getByRole("navigation", { name: /Temari|Syllabus/ })
     .getByRole("link", { name: /Fòrum|Forum/ })
     .click();
   await student.getByRole("link", { name: /Nou fil|New thread/ }).click();
@@ -63,7 +63,7 @@ test("student opens a thread, teacher quotes and pins it, student reacts", async
 
   // Pinned threads lead the listing.
   await open(student, `${COURSE}/forum`);
-  const list = student.locator("main li");
+  const list = student.locator("main li:not(nav li)");
   await expect(list.first()).toContainText(title);
 
   // The student likes the reply, then takes it back; their own post cannot be reacted to.

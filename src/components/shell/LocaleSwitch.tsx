@@ -25,7 +25,9 @@ export function LocaleSwitch({ enabled }: { enabled: readonly Locale[] }) {
           }}
           className={cn(
             "label h-8 rounded-sm px-2 transition-colors duration-[120ms] ease-(--ease)",
-            l === locale ? "bg-tint text-foreground" : "text-foreground/60 hover:text-foreground",
+            l === locale
+              ? "bg-tint text-foreground"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           {l}

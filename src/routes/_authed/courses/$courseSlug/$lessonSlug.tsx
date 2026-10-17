@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createFileRoute, Link, notFound, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  getRouteApi,
+  Link,
+  notFound,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, ArrowRight, Check, Lock } from "lucide-react";
 import { useI18n } from "~/i18n";
@@ -9,10 +16,11 @@ import { Blocks } from "~/components/player/Blocks";
 import { LockNotice } from "~/components/LockNotice";
 import { Slot } from "~/components/theme/Slot";
 import { Button, buttonVariants } from "~/components/ui/button";
-import { ProgressRule } from "~/components/ui/progress-rule";
 import { cn } from "~/lib/cn";
 
-export const Route = createFileRoute("/_authed/courses/$courseSlug_/$lessonSlug")({
+const frame = getRouteApi("/_authed/courses/$courseSlug");
+
+export const Route = createFileRoute("/_authed/courses/$courseSlug/$lessonSlug")({
   loader: async ({ params }) => {
     const data = await getLesson({
       data: { courseSlug: params.courseSlug, lessonSlug: params.lessonSlug },
@@ -30,7 +38,8 @@ function LessonPage() {
 }
 
 function LessonView({ data }: { data: NonNullable<Awaited<ReturnType<typeof getLesson>>> }) {
-  const { t } = useI18n();
+  const { t, fmtDuration } = useI18n();
+  const { chapters, teachers } = frame.useLoaderData();
   const { course, chapter, lesson, decision, blocks, mediaOnly, prev, next, position, privileged } =
     data;
   const router = useRouter();
@@ -103,6 +112,34 @@ function LessonView({ data }: { data: NonNullable<Awaited<ReturnType<typeof getL
     return () => window.removeEventListener("keydown", handler);
   }, [prev, next, course.slug, navigate]);
 
+  // The opening video sits above the summary; everything else follows it.
+  const media = decision.ok && blocks?.[0]?.type === "video" ? blocks[0] : null;
+  const rest = media ? blocks!.slice(1) : (blocks ?? []);
+  const resumeBlockId = blocks?.find((b) => b.type === "video" || b.type === "audio")?.id ?? null;
+  const mediaS = (blocks ?? []).reduce(
+    (n, b) => n + ((b.type === "video" || b.type === "audio" ? b.durationS : null) ?? 0),
+    0,
+  );
+  const chapterIndex = chapters.findIndex((ch) => ch.slug === chapter.slug) + 1;
+  const meta = [
+    chapterIndex
+      ? t("lesson.meta.position", { chapter: chapterIndex, lesson: position.index })
+      : t("lesson.position", { index: position.index, total: position.total }),
+    ...teachers,
+    ...(lesson.estimatedMinutes
+      ? [t("common.minutes", { n: lesson.estimatedMinutes })]
+      : mediaS
+        ? [fmtDuration(mediaS)]
+        : []),
+  ];
+  const playerProps = {
+    resumeBlockId,
+    mediaPositionS: data.progress?.mediaPositionS ?? null,
+    onMediaProgress,
+    onMediaWatched,
+  };
+  const link = buttonVariants({ variant: "link" });
+
   return (
     <Slot
       name="LessonLayout"
@@ -110,99 +147,70 @@ function LessonView({ data }: { data: NonNullable<Awaited<ReturnType<typeof getL
       chapter={{ title: chapter.title }}
       lesson={{ title: lesson.title, summary: lesson.summary }}
       position={position}
+      meta={meta}
       draftPreview={privileged && lesson.status === "draft"}
+      media={media ? <Blocks blocks={[media]} {...playerProps} /> : null}
       footer={
-        <>
+        <div
+          className="flex flex-wrap items-center gap-x-6 gap-y-4"
+          title={t("lesson.keyboardHint")}
+        >
           {decision.ok && !privileged ? (
-            <div className="flex flex-wrap items-center gap-3 border-t pt-6">
-              {completed ? (
-                <>
-                  <span className="inline-flex items-center gap-2 text-sm text-success-foreground">
-                    <Check className="size-4" aria-hidden="true" />
-                    {t("lesson.done")}
-                  </span>
-                  <Button variant="ghost" size="sm" loading={busy} onClick={() => setDone(false)}>
-                    {t("lesson.markUndone")}
-                  </Button>
-                </>
-              ) : (
-                <Button variant="outline" loading={busy} onClick={() => setDone(true)}>
-                  <Check aria-hidden="true" />
-                  {t("lesson.markDone")}
-                </Button>
-              )}
-            </div>
-          ) : null}
-          <footer className="fixed inset-x-0 bottom-0 z-10 border-t bg-background">
-            <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
-              {prev ? (
-                <Link
-                  to="/courses/$courseSlug/$lessonSlug"
-                  params={{ courseSlug: course.slug, lessonSlug: prev.slug }}
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "sm" }),
-                    "max-w-[40%] text-foreground no-underline hover:no-underline",
-                  )}
-                  title={prev.title}
-                >
-                  <ArrowLeft aria-hidden="true" />
-                  <span className="truncate">{t("lesson.previous")}</span>
-                </Link>
-              ) : (
-                <span />
-              )}
-              <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-                <ProgressRule
-                  value={position.index / position.total}
-                  label={t("lesson.position", { index: position.index, total: position.total })}
-                  className="max-w-48"
-                />
-                <span
-                  className="sr-only sm:not-sr-only sm:text-xs sm:text-muted-foreground"
-                  title={t("lesson.keyboardHint")}
-                >
-                  {t("lesson.position", { index: position.index, total: position.total })}
+            completed ? (
+              <>
+                <span className="label inline-flex h-12 items-center gap-2 text-muted-foreground">
+                  <Check className="size-3.5" aria-hidden="true" />
+                  {t("lesson.done")}
                 </span>
-              </div>
-              {next ? (
-                <Link
-                  to="/courses/$courseSlug/$lessonSlug"
-                  params={{ courseSlug: course.slug, lessonSlug: next.slug }}
-                  className={cn(
-                    buttonVariants({ variant: next.locked ? "ghost" : "default", size: "sm" }),
-                    "max-w-[40%] no-underline hover:no-underline",
-                    next.locked ? "text-muted-foreground" : "text-primary-foreground",
-                  )}
-                  title={next.locked ? t("lesson.nextLocked") : next.title}
-                >
-                  <span className="truncate">{t("lesson.next")}</span>
-                  {next.locked ? <Lock aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
-                </Link>
-              ) : (
-                <Link
-                  to="/courses/$courseSlug"
-                  params={{ courseSlug: course.slug }}
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "max-w-[40%] text-foreground no-underline hover:no-underline",
-                  )}
-                  title={t("lesson.finished")}
-                >
-                  <span className="truncate">{t("lesson.backToCourse")}</span>
-                </Link>
-              )}
-            </div>
-          </footer>
-        </>
+                <Button variant="link" loading={busy} onClick={() => setDone(false)}>
+                  {t("lesson.markUndone")}
+                </Button>
+              </>
+            ) : (
+              <Button loading={busy} onClick={() => setDone(true)}>
+                <Check aria-hidden="true" />
+                {t("lesson.markDone")}
+              </Button>
+            )
+          ) : null}
+          {prev ? (
+            <Link
+              to="/courses/$courseSlug/$lessonSlug"
+              params={{ courseSlug: course.slug, lessonSlug: prev.slug }}
+              className={link}
+              title={prev.title}
+            >
+              <ArrowLeft aria-hidden="true" />
+              {t("lesson.previous")}
+            </Link>
+          ) : null}
+          {next ? (
+            <Link
+              to="/courses/$courseSlug/$lessonSlug"
+              params={{ courseSlug: course.slug, lessonSlug: next.slug }}
+              className={cn(link, next.locked && "text-muted-foreground")}
+              title={next.locked ? t("lesson.nextLocked") : next.title}
+            >
+              {t("lesson.nextLesson")}
+              {next.locked ? <Lock aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
+            </Link>
+          ) : (
+            <Link
+              to="/courses/$courseSlug"
+              params={{ courseSlug: course.slug }}
+              className={link}
+              title={t("lesson.finished")}
+            >
+              {t("lesson.backToCourse")}
+            </Link>
+          )}
+        </div>
       }
     >
       {decision.ok && blocks ? (
-        <Blocks
-          blocks={blocks}
-          mediaPositionS={data.progress?.mediaPositionS ?? null}
-          onMediaProgress={onMediaProgress}
-          onMediaWatched={onMediaWatched}
-        />
+        rest.length ? (
+          <Blocks blocks={rest} {...playerProps} />
+        ) : null
       ) : (
         <LockNotice decision={decision} />
       )}

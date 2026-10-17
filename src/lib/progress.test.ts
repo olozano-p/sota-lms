@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { chapterPosition, continueTarget, courseProgress, courseState } from "./progress";
+import {
+  chapterPosition,
+  chapterRelease,
+  continueTarget,
+  courseProgress,
+  courseState,
+} from "./progress";
 
 const L = (
   id: string,
@@ -65,5 +71,23 @@ describe("chapterPosition", () => {
   it("counts distinct chapters in order", () => {
     expect(chapterPosition(["a", "a", "b", "c", "c"], "b")).toEqual({ index: 2, total: 3 });
     expect(chapterPosition(["a"], "z")).toBeNull();
+  });
+});
+
+describe("chapterRelease", () => {
+  const wait = (iso: string) => ({
+    ok: false,
+    reason: "not_yet_released",
+    availableAt: new Date(iso),
+  });
+  it("is the earliest date when every lesson waits for a release", () => {
+    expect(chapterRelease([wait("2026-11-11"), wait("2026-11-04")])).toEqual(
+      new Date("2026-11-04"),
+    );
+  });
+  it("is null when any lesson is open or locked for another reason", () => {
+    expect(chapterRelease([wait("2026-11-04"), { ok: true }])).toBeNull();
+    expect(chapterRelease([wait("2026-11-04"), { ok: false, reason: "expired" }])).toBeNull();
+    expect(chapterRelease([])).toBeNull();
   });
 });

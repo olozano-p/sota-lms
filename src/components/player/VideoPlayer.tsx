@@ -75,7 +75,7 @@ export function VideoPlayer({
   }, [provider, iframeSrc, startAt, onProgress, onWatched]);
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-foreground/95">
+    <div className="overflow-hidden rounded-lg bg-foreground">
       <iframe
         ref={frameRef}
         src={iframeSrc}

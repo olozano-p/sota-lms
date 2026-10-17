@@ -1,5 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { loginAs, open } from "./helpers";
+
+/** Chapters in the syllabus panel are collapsible; open one if it is closed. */
+async function openChapter(nav: Locator, name: RegExp) {
+  const button = nav.getByRole("button", { name });
+  if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+}
 
 const COURSE = "/courses/introduccio-a-la-contemplacio";
 
@@ -11,8 +17,10 @@ test("student reads a lesson, marks it done and sees progress; drip lock is expl
     "Introducció a la contemplació",
   );
 
-  // The syllabus rail lists the lessons; the drip-locked one says when it opens.
+  // The syllabus panel lists the lessons; the drip-locked one says when it opens.
   const nav = page.getByRole("navigation", { name: /temari|syllabus|temario/i });
+  await openChapter(nav, /Asseure's/);
+  await openChapter(nav, /Obrir-se/);
   await expect(nav.getByRole("link", { name: /Benvinguda/ })).toBeVisible();
   await expect(nav.getByRole("link", { name: /Els sons/ })).toHaveAttribute(
     "title",
@@ -41,6 +49,7 @@ test("student reads a lesson, marks it done and sees progress; drip lock is expl
 
   await open(page, COURSE);
   await expect(page.getByText(/[1-9] de \d+ lliçons|[1-9] of \d+ lessons/).first()).toBeVisible();
+  await openChapter(nav, /Asseure's/);
   await expect(nav.getByRole("link", { name: /La postura/ })).toHaveAttribute(
     "title",
     /Completada|Completed/,

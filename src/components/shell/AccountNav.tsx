@@ -7,7 +7,7 @@ import { cn } from "~/lib/cn";
 
 // The stepper tags of the panels: a label at 60 %, the current section in a sand box.
 const linkClass = cn(
-  "label inline-flex h-8 items-center rounded-sm px-2 text-foreground/60 no-underline",
+  "label inline-flex h-8 items-center rounded-sm px-2 text-muted-foreground no-underline",
   "transition-colors duration-[120ms] ease-(--ease) hover:text-foreground hover:no-underline",
   "[&.active]:bg-tint [&.active]:text-foreground",
 );

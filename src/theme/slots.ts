@@ -73,11 +73,15 @@ export interface LessonLayoutProps {
   chapter: { title: string };
   lesson: { title: string; summary: string | null };
   position: { index: number; total: number };
+  /** Labels for the line under the media, already translated: «Chapter 2 · Lesson 7», teachers, «50 min». */
+  meta: string[];
   /** A teacher is previewing an unpublished lesson. */
   draftPreview: boolean;
-  /** The blocks, or the lock notice when the lesson is not open. */
+  /** The lesson's opening video, when its first block is one; render it before the summary. */
+  media: ReactNode | null;
+  /** The rest of the blocks, or the lock notice when the lesson is not open. */
   children: ReactNode;
-  /** Mark-as-done row and the previous/next bar (fixed to the viewport bottom). Render it after the content. */
+  /** Mark as done and the previous/next links. Render it after the content. */
   footer: ReactNode;
 }
 

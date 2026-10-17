@@ -2,9 +2,24 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/db";
-import { chapter, cohort, cohortMember, course, lesson, lessonProgress } from "~/db/schema";
+import {
+  chapter,
+  cohort,
+  cohortMember,
+  course,
+  courseTeacher,
+  lesson,
+  lessonProgress,
+  person,
+} from "~/db/schema";
 import { renderMarkdown } from "~/lib/markdown";
-import { chapterPosition, continueTarget, courseProgress, courseState } from "~/lib/progress";
+import {
+  chapterPosition,
+  chapterRelease,
+  continueTarget,
+  courseProgress,
+  courseState,
+} from "~/lib/progress";
 import { requireUser } from "~/server/auth/authz";
 import {
   decideCourse,
@@ -132,7 +147,10 @@ export type SyllabusLesson = {
   progress: "none" | "started" | "completed";
 };
 
-/** Everything the course page needs. Null when the person is not enrolled (→ 404). */
+/**
+ * Everything the course frame needs: the syllabus beside every course page, the welcome view and
+ * the lesson meta (teachers). Null when the person is not enrolled (→ 404).
+ */
 export const getCourseSyllabus = createServerFn({ method: "GET" })
   .validator(z.object({ slug: z.string() }))
   .handler(async ({ data }) => {
@@ -143,7 +161,7 @@ export const getCourseSyllabus = createServerFn({ method: "GET" })
     const privileged = isPrivileged(facts, c.id);
     if (!privileged && enrolledCourses(facts, [c]).length === 0) return null;
 
-    const [chapters, lessons, progressRows, cohorts] = await Promise.all([
+    const [chapters, lessons, progressRows, cohorts, teachers] = await Promise.all([
       db.select().from(chapter).where(eq(chapter.courseId, c.id)).orderBy(asc(chapter.sort)),
       lessonsOf([c.id]),
       db.select().from(lessonProgress).where(eq(lessonProgress.personId, user.id)),
@@ -152,6 +170,12 @@ export const getCourseSyllabus = createServerFn({ method: "GET" })
         .from(cohortMember)
         .innerJoin(cohort, eq(cohort.id, cohortMember.cohortId))
         .where(and(eq(cohortMember.personId, user.id), eq(cohort.courseId, c.id))),
+      db
+        .select({ name: person.name })
+        .from(courseTeacher)
+        .innerJoin(person, eq(person.id, courseTeacher.personId))
+        .where(eq(courseTeacher.courseId, c.id))
+        .orderBy(asc(person.name)),
     ]);
     const decisions = decideLessons(facts, c, lessons);
     const progressByLesson = new Map(progressRows.map((p) => [p.lessonId, p]));
@@ -162,6 +186,7 @@ export const getCourseSyllabus = createServerFn({ method: "GET" })
       completed: progressByLesson.get(l.id)?.status === "completed",
     }));
     const next = continueTarget(rows);
+    const decision = decideCourse(facts, c);
 
     return {
       course: {
@@ -175,7 +200,10 @@ export const getCourseSyllabus = createServerFn({ method: "GET" })
         endedAt: c.endedAt,
       },
       privileged,
-      decision: decideCourse(facts, c),
+      decision,
+      // The forum shows only to people the forum gate would let in.
+      forumEnabled: c.forumEnabled && (privileged || decision.ok),
+      teachers: teachers.map((p) => p.name),
       chapters: chapters
         .map((ch) => ({
           id: ch.id,
@@ -197,9 +225,17 @@ export const getCourseSyllabus = createServerFn({ method: "GET" })
                 "none",
             })),
         }))
+        .map((ch) => ({
+          ...ch,
+          locked: ch.lessons.length > 0 && ch.lessons.every((l) => !l.decision.ok),
+          availableAt: chapterRelease(ch.lessons.map((l) => l.decision)),
+        }))
         .filter((ch) => privileged || ch.lessons.length > 0),
+      minutes: visibleLessons.reduce((n, l) => n + (l.estimatedMinutes ?? 0), 0),
       progress: courseProgress(rows),
-      continueLesson: next ? { slug: next.slug, title: next.title } : null,
+      continueLesson: next
+        ? { slug: next.slug, title: next.title, chapterId: next.chapterId }
+        : null,
       cohorts,
     };
   });

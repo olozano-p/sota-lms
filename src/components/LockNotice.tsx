@@ -25,16 +25,11 @@ export function LockNotice({ decision, className }: { decision: Decision; classN
   const message = lockMessage(decision, i18n);
   if (!message) return null;
   return (
-    <div
-      className={cn(
-        "flex items-start gap-3 rounded-lg border border-dashed p-5 text-sm",
-        className,
-      )}
-    >
-      <Lock className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      <div className="flex flex-col gap-1">
-        <p className="font-medium">{i18n.t("lock.title")}</p>
-        <p className="text-muted-foreground">{message}</p>
+    <div className={cn("flex items-start gap-3 rounded-lg bg-tint/40 p-6", className)}>
+      <Lock className="mt-px size-3.5 shrink-0 opacity-60" aria-hidden="true" />
+      <div className="flex flex-col gap-3">
+        <p className="label text-muted-foreground">{i18n.t("lock.title")}</p>
+        <p className="font-serif text-sm leading-[1.2]">{message}</p>
       </div>
     </div>
   );
