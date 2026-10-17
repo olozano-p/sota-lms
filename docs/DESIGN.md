@@ -102,7 +102,9 @@ slide on press or open; dialogs fade. `prefers-reduced-motion` keeps opacity and
   with the mark when there is none; stacked on phones), title, subtitle, a «Chapter 2 of 9» tag, a
   status dot with its word, and an underlined label link at the bottom. Finished cards fade the cover to 50 % and set their text in `muted-foreground`.
 - **Course frame** (`courses/$courseSlug` layout): the syllabus panel on the left (20 rem, sticky,
-  a «← My courses» tag above it; on phones a «Syllabus» disclosure above the content) and the
+  starting 16 rem below the top of the frame, beside the lesson's opening media rather than its
+  title; a «← My courses» tag above it; on phones a «Syllabus» disclosure above the content), 1.5 rem
+  from the content, 4.5 rem from `xl` up, and the
   course page, a lesson or the course forum on the right. The panel: the course page («Overview»; «Presentació», «Presentación»),
   chapters as collapsible serif rows with a caret and, when closed to the reader, faded with the
   date they open; lessons indented, the current one on paper, done ones with a small check; «Forum»
