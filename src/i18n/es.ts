@@ -12,6 +12,7 @@ export const es: Record<MessageKey, string> = {
   "nav.logout": "Salir",
   "nav.account": "Cuenta",
 
+  "nav.breadcrumb": "Ruta",
   "locale.label": "Idioma",
   "theme.toggle": "Cambiar el modo oscuro",
 
@@ -125,10 +126,6 @@ export const es: Record<MessageKey, string> = {
   "admin.audit.system": "Sistema",
 
   "courses.title": "Mis cursos",
-  "courses.lead": "Los cursos a los que tienes acceso. El progreso se guarda lección a lección.",
-  "courses.resume.eyebrow": "Continúa donde lo dejaste",
-  "courses.resume.cta": "Continuar",
-  "courses.open": "Abrir el curso",
   "courses.start": "Empezar",
   "courses.progress": "{completed} de {total} lecciones",
   "courses.progress.label": "Progreso del curso",
@@ -139,6 +136,15 @@ export const es: Record<MessageKey, string> = {
   "courses.teaching": "Eres docente de este curso",
   "courses.language": "Idioma del curso",
 
+  "courses.section.active": "En curso",
+  "courses.section.finished": "Finalizados",
+  "courses.goTo": "Ir a mi curso",
+  "courses.watchAgain": "Volver a ver",
+  "courses.chapterOf": "Capítulo {index} de {total}",
+  "courses.state.in_progress": "En curso",
+  "courses.state.not_started": "Por empezar",
+  "courses.state.finished": "Finalizado",
+  "courses.state.locked": "Aún no disponible",
   "syllabus.title": "Temario",
   "syllabus.continue": "Continuar",
   "syllabus.start": "Empezar el curso",

@@ -52,7 +52,9 @@ test("student reads a lesson, marks it done and sees progress; drip lock is expl
   await expect(page.locator("iframe")).toHaveCount(0);
 });
 
-test("the catalogue offers a single continue target after activity", async ({ page }) => {
+test("the course list files a started course under «In progress»", async ({ page }) => {
   await loginAs(page, "mock-student");
-  await expect(page.getByRole("link", { name: /^Continua$|^Continue$/ })).toHaveCount(1);
+  const active = page.getByRole("region", { name: /^En curs$|^In progress$/ });
+  await expect(active.getByRole("listitem")).toHaveCount(1);
+  await expect(active.getByRole("link", { name: /Ves al curs|Go to my course/ })).toBeVisible();
 });

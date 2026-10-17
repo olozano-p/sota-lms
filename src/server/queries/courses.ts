@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "~/db";
 import { chapter, cohort, cohortMember, course, lesson, lessonProgress } from "~/db/schema";
 import { renderMarkdown } from "~/lib/markdown";
-import { continueTarget, courseProgress } from "~/lib/progress";
+import { chapterPosition, continueTarget, courseProgress, courseState } from "~/lib/progress";
 import { requireUser } from "~/server/auth/authz";
 import {
   decideCourse,
@@ -14,6 +14,7 @@ import {
   loadPersonFacts,
 } from "~/server/access/require";
 import type { Decision } from "~/server/access/rules";
+import { coverUrls } from "./covers";
 
 async function lessonsOf(courseIds: string[]) {
   if (!courseIds.length) return [];
@@ -38,7 +39,7 @@ async function lessonsOf(courseIds: string[]) {
     .orderBy(asc(chapter.sort), asc(lesson.sort));
 }
 
-/** My courses: enrolled (or taught) courses with computed progress and a single resume target. */
+/** My courses: enrolled (or taught) courses with cover, computed progress and where each one stands. */
 export const listMyCourses = createServerFn({ method: "GET" }).handler(async () => {
   const user = await requireUser();
   const facts = await loadPersonFacts(user);
@@ -71,6 +72,7 @@ export const listMyCourses = createServerFn({ method: "GET" }).handler(async () 
         )
     : [];
   const progressByLesson = new Map(progressRows.map((p) => [p.lessonId, p]));
+  const covers = await coverUrls(visible.map((c) => c.coverImageKey));
 
   const courses = visible.map((c) => {
     const mine = lessons.filter((l) => l.courseId === c.id);
@@ -86,16 +88,27 @@ export const listMyCourses = createServerFn({ method: "GET" }).handler(async () 
         .map((l) => progressByLesson.get(l.id)?.updatedAt ?? null)
         .filter((d): d is Date => d !== null)
         .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+    const decision = decideCourse(facts, c);
+    const progress = courseProgress(rows);
+    const published = rows.filter((l) => l.status === "published");
     return {
       id: c.id,
       slug: c.slug,
       title: c.title,
       subtitle: c.subtitle,
+      coverUrl: c.coverImageKey ? (covers.get(c.coverImageKey) ?? null) : null,
       language: c.language,
       status: c.status,
       privileged: isPrivileged(facts, c.id),
-      decision: decideCourse(facts, c),
-      progress: courseProgress(rows),
+      decision,
+      progress,
+      state: courseState(progress, decision, lastActivity !== null),
+      position: next
+        ? chapterPosition(
+            published.map((l) => l.chapterId),
+            next.chapterId,
+          )
+        : null,
       continueLesson: next
         ? { slug: next.slug, title: next.title, chapterTitle: next.chapterTitle }
         : null,
@@ -103,18 +116,9 @@ export const listMyCourses = createServerFn({ method: "GET" }).handler(async () 
     };
   });
 
-  const touched = courses
-    .filter((c) => c.lastActivityAt && c.continueLesson)
-    .sort((a, b) => b.lastActivityAt!.getTime() - a.lastActivityAt!.getTime())[0];
-  const resume = touched
-    ? {
-        courseSlug: touched.slug,
-        courseTitle: touched.title,
-        lessonSlug: touched.continueLesson!.slug,
-        lessonTitle: touched.continueLesson!.title,
-      }
-    : null;
-  return { courses, resume };
+  // Most recently touched first, so the course in hand is the first card.
+  courses.sort((a, b) => (b.lastActivityAt?.getTime() ?? 0) - (a.lastActivityAt?.getTime() ?? 0));
+  return { courses };
 });
 
 export type SyllabusLesson = {

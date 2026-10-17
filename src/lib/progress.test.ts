@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { continueTarget, courseProgress } from "./progress";
+import { chapterPosition, continueTarget, courseProgress, courseState } from "./progress";
 
 const L = (
   id: string,
@@ -42,5 +42,28 @@ describe("continueTarget", () => {
   });
   it("returns null when nothing is open", () => {
     expect(continueTarget([L("a", { accessible: false }), L("b", { status: "draft" })])).toBeNull();
+  });
+});
+
+describe("courseState", () => {
+  const p = (completed: number, total: number) => ({ completed, total, ratio: 0 });
+  it("is finished when every lesson is done or access has expired", () => {
+    expect(courseState(p(3, 3), { ok: true }, true)).toBe("finished");
+    expect(courseState(p(1, 3), { ok: false, reason: "expired" }, true)).toBe("finished");
+  });
+  it("is locked when the course does not open, unless it is complete", () => {
+    expect(courseState(p(0, 3), { ok: false, reason: "not_yet_released" }, false)).toBe("locked");
+  });
+  it("is in progress once anything was started, else not started", () => {
+    expect(courseState(p(0, 3), { ok: true }, true)).toBe("in_progress");
+    expect(courseState(p(0, 3), { ok: true }, false)).toBe("not_started");
+    expect(courseState(p(0, 0), { ok: true }, false)).toBe("not_started");
+  });
+});
+
+describe("chapterPosition", () => {
+  it("counts distinct chapters in order", () => {
+    expect(chapterPosition(["a", "a", "b", "c", "c"], "b")).toEqual({ index: 2, total: 3 });
+    expect(chapterPosition(["a"], "z")).toBeNull();
   });
 });

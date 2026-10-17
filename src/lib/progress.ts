@@ -30,3 +30,31 @@ export function continueTarget<T extends LessonForProgress>(lessonsInOrder: T[])
   const candidates = lessonsInOrder.filter((l) => l.status === "published" && l.accessible);
   return candidates.find((l) => !l.completed) ?? candidates.at(-1) ?? null;
 }
+
+export type CourseState = "not_started" | "in_progress" | "finished" | "locked";
+
+/**
+ * Where a course stands for one person, for the «In progress» / «Finished» split of the course
+ * list: every published lesson done, or access that has run out, is finished; a course that does
+ * not open (yet) is locked; otherwise any progress at all makes it in progress.
+ */
+export function courseState(
+  progress: CourseProgress,
+  access: { ok: boolean; reason?: string },
+  started: boolean,
+): CourseState {
+  if (!access.ok && access.reason === "expired") return "finished";
+  if (progress.total > 0 && progress.completed === progress.total) return "finished";
+  if (!access.ok) return "locked";
+  return started ? "in_progress" : "not_started";
+}
+
+/** 1-based position of a chapter among the chapters that hold lessons, in course order. */
+export function chapterPosition(
+  chapterIdsInOrder: string[],
+  chapterId: string,
+): { index: number; total: number } | null {
+  const distinct = [...new Set(chapterIdsInOrder)];
+  const i = distinct.indexOf(chapterId);
+  return i < 0 ? null : { index: i + 1, total: distinct.length };
+}

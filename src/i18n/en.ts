@@ -12,6 +12,7 @@ export const en: Record<MessageKey, string> = {
   "nav.logout": "Sign out",
   "nav.account": "Account",
 
+  "nav.breadcrumb": "Breadcrumb",
   "locale.label": "Language",
   "theme.toggle": "Toggle dark mode",
 
@@ -125,10 +126,6 @@ export const en: Record<MessageKey, string> = {
   "admin.audit.system": "System",
 
   "courses.title": "My courses",
-  "courses.lead": "The courses you have access to. Progress is saved lesson by lesson.",
-  "courses.resume.eyebrow": "Continue where you left off",
-  "courses.resume.cta": "Continue",
-  "courses.open": "Open course",
   "courses.start": "Start",
   "courses.progress": "{completed} of {total} lessons",
   "courses.progress.label": "Course progress",
@@ -139,6 +136,15 @@ export const en: Record<MessageKey, string> = {
   "courses.teaching": "You teach this course",
   "courses.language": "Course language",
 
+  "courses.section.active": "In progress",
+  "courses.section.finished": "Finished",
+  "courses.goTo": "Go to my course",
+  "courses.watchAgain": "Watch again",
+  "courses.chapterOf": "Chapter {index} of {total}",
+  "courses.state.in_progress": "In progress",
+  "courses.state.not_started": "Not started",
+  "courses.state.finished": "Finished",
+  "courses.state.locked": "Not available yet",
   "syllabus.title": "Syllabus",
   "syllabus.continue": "Continue",
   "syllabus.start": "Start the course",

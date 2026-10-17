@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { Loader2 } from "lucide-react";
 import { cn } from "~/lib/cn";
 
-export const buttonVariants = cva(
+const buttonStyles = cva(
   [
     // Labels are the uppercase, tracked sans of the tags (docs/DESIGN.md); `xs` stays sentence case.
     "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded font-sans text-xs leading-[1.2] font-semibold tracking-[0.1em] uppercase",
@@ -24,7 +24,7 @@ export const buttonVariants = cva(
         ghost: "text-foreground hover:bg-tint/40",
         destructive: "bg-destructive text-background hover:bg-destructive/90",
         // The text link of the panels: an underlined label.
-        link: "h-auto px-0 text-foreground underline underline-offset-[3px] hover:text-muted-foreground hover:no-underline",
+        link: "text-foreground underline underline-offset-[3px] hover:text-muted-foreground hover:no-underline",
       },
       size: {
         // Quiet secondary actions (forum posts and threads): 11 px regular label, 12 px icon.
@@ -36,12 +36,17 @@ export const buttonVariants = cva(
         "icon-sm": "size-8",
       },
     },
+    // After the size, so the merge in `buttonVariants` drops the size's height and padding.
+    compoundVariants: [{ variant: "link", class: "h-auto px-0" }],
     defaultVariants: { variant: "default", size: "default" },
   },
 );
 
+/** Merged, so a variant's padding or height wins over the size's (the `link` variant has none). */
+export const buttonVariants = (p?: VariantProps<typeof buttonStyles>) => cn(buttonStyles(p));
+
 export interface ButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
+  extends ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonStyles> {
   loading?: boolean;
 }
 

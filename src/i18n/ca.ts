@@ -14,6 +14,7 @@ export const ca = {
   "nav.logout": "Surt",
   "nav.account": "Compte",
 
+  "nav.breadcrumb": "Ruta",
   "locale.label": "Idioma",
   "theme.toggle": "Canvia el mode fosc",
 
@@ -127,10 +128,6 @@ export const ca = {
   "admin.audit.system": "Sistema",
 
   "courses.title": "Els meus cursos",
-  "courses.lead": "Els cursos als quals tens accés. El progrés es desa lliçó a lliçó.",
-  "courses.resume.eyebrow": "Continua on ho vas deixar",
-  "courses.resume.cta": "Continua",
-  "courses.open": "Obre el curs",
   "courses.start": "Comença",
   "courses.progress": "{completed} de {total} lliçons",
   "courses.progress.label": "Progrés del curs",
@@ -141,6 +138,15 @@ export const ca = {
   "courses.teaching": "Ets docent d'aquest curs",
   "courses.language": "Idioma del curs",
 
+  "courses.section.active": "En curs",
+  "courses.section.finished": "Finalitzats",
+  "courses.goTo": "Ves al curs",
+  "courses.watchAgain": "Torna-hi",
+  "courses.chapterOf": "Capítol {index} de {total}",
+  "courses.state.in_progress": "En curs",
+  "courses.state.not_started": "Per començar",
+  "courses.state.finished": "Finalitzat",
+  "courses.state.locked": "Encara no disponible",
   "syllabus.title": "Temari",
   "syllabus.continue": "Continua",
   "syllabus.start": "Comença el curs",

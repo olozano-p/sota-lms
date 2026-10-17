@@ -53,7 +53,13 @@ export interface CourseCardProps {
     slug: string;
     title: string;
     subtitle: string | null;
+    /** The course cover (`/api/files/…`), or null when the course has none. */
+    coverUrl: string | null;
     status: "draft" | "published" | "archived";
+    /** Where the viewer stands: «In progress» and «Finished» are separate lists on the page. */
+    state: "not_started" | "in_progress" | "finished" | "locked";
+    /** Chapter of the next lesson among the course's chapters, e.g. 2 of 9; null when none. */
+    position: { index: number; total: number } | null;
     /** The viewer teaches or administers this course. */
     privileged: boolean;
     /** Why the course is not open yet ("Available from 12 March"), already translated; else null. */
