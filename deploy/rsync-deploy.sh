@@ -13,7 +13,12 @@ pnpm install --frozen-lockfile
 pnpm build
 
 ssh "$HOST" "mkdir -p $RELEASE $ROOT/shared/uploads"
-rsync -az --delete dist drizzle scripts src/db src/config src/lib src/server/services src/i18n lms.config.ts package.json pnpm-lock.yaml pnpm-workspace.yaml "$HOST:$RELEASE/"
+# The files the Docker image carries (Dockerfile): what scripts/serve.mjs, `sota` and the sign-in
+# hooks load under plain Node. -R keeps the src/... paths.
+rsync -azR --delete dist drizzle scripts src/db src/config src/lib src/i18n src/theme \
+  src/server/services src/server/auth src/server/access src/server/audit.ts src/server/client-ip.ts \
+  src/server/mutations/content-import-core.ts src/server/queries/content-export-core.ts \
+  lms.config.ts package.json pnpm-lock.yaml pnpm-workspace.yaml "$HOST:$RELEASE/"
 
 ssh "$HOST" sh -s <<REMOTE
 set -eu
