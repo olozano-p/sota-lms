@@ -36,6 +36,16 @@ export interface PersonAccessFacts {
 
 export async function loadPersonFacts(user: SessionUser): Promise<PersonAccessFacts> {
   await ensureFreshEnrollments(user.id);
+  return readPersonFacts(user);
+}
+
+/**
+ * The facts as stored, without refreshing them from the enrollment source: for the service API,
+ * whose reads answer from the enrollments SOTA holds and must not trigger a sync and its writes.
+ */
+export async function readPersonFacts(
+  user: Pick<SessionUser, "id" | "roles">,
+): Promise<PersonAccessFacts> {
   const [enrolled, memberships, teaching] = await Promise.all([
     db
       .select({

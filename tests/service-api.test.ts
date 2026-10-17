@@ -532,10 +532,22 @@ describe("GET /users/{sub}/progress", () => {
       {
         slug: "intro",
         external_ref: "crs-100",
+        url: `${ORIGIN}/courses/intro`,
         lessons_total: 2,
         lessons_completed: 1,
         ratio: 0.5,
         completed_at: null,
+        next_lesson: {
+          slug: "l2",
+          position: 2,
+          title: "L2",
+          section_title: "Ch",
+          duration_seconds: null,
+          kind: "text",
+          thumbnail_url: null,
+          url: `${ORIGIN}/courses/intro/l2`,
+          started: false,
+        },
       },
     ]);
     await db.insert(lessonProgress).values({
@@ -548,8 +560,120 @@ describe("GET /users/{sub}/progress", () => {
     expect(full.json.courses[0]).toMatchObject({
       ratio: 1,
       completed_at: "2026-10-01T09:00:00.000Z",
+      next_lesson: null,
     });
     expect((await api("GET", "/users/nobody/progress")).status).toBe(404);
+  });
+
+  it("points to the next lesson open now: media, start, and the cohort's drip", async () => {
+    const { chapter, lesson, lessonBlock, cohortRelease } = schema;
+    const [c] = await db
+      .insert(course)
+      .values({ slug: "drip", title: "Drip", language: "en", status: "published" })
+      .returning({ id: course.id });
+    const [g] = await db
+      .insert(cohort)
+      .values({ courseId: c!.id, slug: "drip-c", title: "Drip cohort" })
+      .returning({ id: cohort.id });
+    const [a, b] = await db
+      .insert(chapter)
+      .values([
+        { courseId: c!.id, slug: "a", title: "Bloque 1", sort: 1 },
+        { courseId: c!.id, slug: "b", title: "Bloque 2", sort: 2 },
+      ])
+      .returning({ id: chapter.id });
+    const [a1, a2] = await db
+      .insert(lesson)
+      .values([
+        { chapterId: a!.id, slug: "a1", title: "A1", status: "published", sort: 1 },
+        {
+          chapterId: a!.id,
+          slug: "a2",
+          title: "A2",
+          status: "published",
+          sort: 2,
+          estimatedMinutes: 5,
+        },
+        { chapterId: b!.id, slug: "b1", title: "B1", status: "published", sort: 1 },
+      ])
+      .returning({ id: lesson.id });
+    await db.insert(lessonBlock).values([
+      { lessonId: a1!.id, sort: 1, type: "text", payload: { md: "Hola" } },
+      {
+        lessonId: a1!.id,
+        sort: 2,
+        type: "video",
+        payload: {
+          provider: "vimeo",
+          external_id: "1",
+          title: "V",
+          duration_s: 600.4,
+          thumbnail_url: "https://i.vimeocdn.com/video/1.jpg",
+        },
+      },
+      {
+        lessonId: a2!.id,
+        sort: 1,
+        type: "audio",
+        payload: { file_key: "k", title: "Au", duration_s: 900 },
+      },
+    ]);
+    await db
+      .insert(cohortRelease)
+      .values({ cohortId: g!.id, chapterId: b!.id, releaseAt: new Date(Date.now() + 86_400_000) });
+    await put("drip-1", { user: { sub: "sub-drip" }, course: "drip", cohort: "drip-c" });
+    const [p] = await db.select().from(person).where(eq(person.externalSub, "sub-drip"));
+    const next = async () =>
+      (await api("GET", "/users/sub-drip/progress")).json.courses.find(
+        (x: { slug: string }) => x.slug === "drip",
+      );
+
+    expect((await next()).next_lesson).toEqual({
+      slug: "a1",
+      position: 1,
+      title: "A1",
+      section_title: "Bloque 1",
+      duration_seconds: 600,
+      kind: "video",
+      thumbnail_url: "https://i.vimeocdn.com/video/1.jpg",
+      url: `${ORIGIN}/courses/drip/a1`,
+      started: false,
+    });
+    await db.insert(lessonProgress).values({ personId: p!.id, lessonId: a1!.id });
+    expect((await next()).next_lesson).toMatchObject({ slug: "a1", started: true });
+
+    await db
+      .update(lessonProgress)
+      .set({ status: "completed", completedAt: new Date() })
+      .where(eq(lessonProgress.lessonId, a1!.id));
+    // The teacher's estimate wins over the audio's length.
+    expect((await next()).next_lesson).toMatchObject({
+      slug: "a2",
+      position: 2,
+      duration_seconds: 300,
+      kind: "audio",
+      started: false,
+    });
+    // An estimate of 0 is none, as in the app: the audio's length answers.
+    await db.update(lesson).set({ estimatedMinutes: 0 }).where(eq(lesson.id, a2!.id));
+    expect((await next()).next_lesson).toMatchObject({ slug: "a2", duration_seconds: 900 });
+
+    // A revoked enrollment keeps the course listed, with nothing open in it.
+    await del("drip-1");
+    expect(await next()).toMatchObject({ lessons_completed: 1, next_lesson: null });
+    await put("drip-1", { user: { sub: "sub-drip" }, course: "drip", cohort: "drip-c" });
+    expect((await next()).next_lesson).toMatchObject({ slug: "a2" });
+
+    await db
+      .insert(lessonProgress)
+      .values({ personId: p!.id, lessonId: a2!.id, status: "completed", completedAt: new Date() });
+    // Bloque 2 is not released yet: nothing is open, and the course is not finished.
+    expect(await next()).toMatchObject({
+      lessons_completed: 2,
+      lessons_total: 3,
+      completed_at: null,
+      next_lesson: null,
+    });
   });
 });
 

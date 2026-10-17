@@ -50,7 +50,7 @@ limited to 300 a minute per client address (`429` with `Retry-After`).
 | ------------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `PUT /api/v1/enrollments/{external_id}`    | service | Create or update an enrollment (idempotent upsert).                                                                           |
 | `DELETE /api/v1/enrollments/{external_id}` | service | Revoke it (idempotent).                                                                                                       |
-| `GET /api/v1/users/{sub}/progress`         | service | Lessons completed per course.                                                                                                 |
+| `GET /api/v1/users/{sub}/progress`         | service | Lessons completed per course, the course link and the next lesson.                                                            |
 | `GET /api/v1/courses`                      | service | `slug`, `external_ref`, `title`, `status` of every course.                                                                    |
 | `GET /api/v1/health`                       | none    | `{"status":"ok","version":"…","db":"ok","dbLatencyMs":3}`, or `503` with `"status":"degraded"`. Also served at `/api/health`. |
 | `GET /api/v1/openapi.json`                 | none    | This contract.                                                                                                                |
@@ -189,11 +189,23 @@ revoked id answers `200` with `"changed": false` (and `"found": false` when ther
       "slug": "intro-1",
       "external_ref": "crs-100",
       "title": "Introduction",
+      "url": "https://learn.example.org/courses/intro-1",
       "lessons_total": 12,
       "lessons_completed": 5,
       "ratio": 0.4167,
       "last_activity_at": "2026-10-01T09:00:00.000Z",
-      "completed_at": null
+      "completed_at": null,
+      "next_lesson": {
+        "slug": "breathing",
+        "position": 6,
+        "title": "Breathing",
+        "section_title": "Week 2",
+        "duration_seconds": 900,
+        "kind": "video",
+        "thumbnail_url": "https://i.vimeocdn.com/video/123_640.jpg",
+        "url": "https://learn.example.org/courses/intro-1/breathing",
+        "started": false
+      }
     }
   ]
 }
@@ -202,6 +214,18 @@ revoked id answers `200` with `"changed": false` (and `"found": false` when ther
 Courses the person holds an enrollment in (any source or status) or has progress in; lessons are the
 _published_ ones; `completed_at` is when the last published lesson was completed, `null` until all are.
 `404` `user_not_found` when no person has that `sub`.
+
+`url` is the course home and `next_lesson.url` the lesson; both are absolute, and a visitor without a
+session is sent through sign-in and back to them. `next_lesson` is the first published lesson, in
+course order, that is open to the person now (enrollment and cohort drip, as `canSeeLesson` decides)
+and not completed: the lesson the course's own _Continue_ opens. It is `null` when none is: every
+lesson is done, the rest is not released yet, or the course is not open to the person (enrollment
+ended, revoked or not started yet; course in draft). The course is still listed with its counts. `position` is 1-based among the
+published lessons; `section_title` is the chapter's title; `duration_seconds` is the teacher's
+estimate, else the length of the lesson's video and audio when all of it is known, else `null`; `kind` is `video` if the
+lesson has a video, else `audio`, `quiz` or `text`; `thumbnail_url` is the video provider's thumbnail;
+`started` means opened and not completed. The answer uses the enrollments SOTA holds and does not
+call the enrollment source back.
 
 ### Idempotency and semantics
 

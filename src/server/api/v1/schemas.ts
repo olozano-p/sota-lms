@@ -111,6 +111,31 @@ export const courseList = z.object({
 
 export const subParams = z.object({ sub: z.string().min(1).describe("The user's OIDC subject.") });
 
+const nextLesson = z
+  .object({
+    slug: z.string(),
+    position: z.number().int().describe("1-based, among the course's published lessons."),
+    title: z.string(),
+    section_title: z.string().describe("Title of the chapter the lesson belongs to."),
+    duration_seconds: z
+      .number()
+      .int()
+      .nullable()
+      .describe(
+        "The teacher's estimate, else the length of its video and audio; null if neither is known.",
+      ),
+    kind: z
+      .enum(["video", "audio", "quiz", "text"])
+      .describe("What the lesson holds: a video, else audio, else a quiz, else text."),
+    thumbnail_url: z
+      .string()
+      .nullable()
+      .describe("The video provider's thumbnail of its first video."),
+    url: z.url().describe("The lesson. A signed-out visitor is sent through sign-in and back."),
+    started: z.boolean().describe("The user has opened it and not completed it."),
+  })
+  .meta({ id: "NextLesson" });
+
 export const progressResponse = z.object({
   user: z.object({ sub: z.string(), email: z.string(), name: z.string() }),
   courses: z.array(
@@ -118,6 +143,9 @@ export const progressResponse = z.object({
       slug: z.string(),
       external_ref: z.string().nullable(),
       title: z.string(),
+      url: z
+        .url()
+        .describe("The course home. A signed-out visitor is sent through sign-in and back."),
       lessons_total: z.number().int(),
       lessons_completed: z.number().int(),
       ratio: z.number().describe("Completed over published lessons, 0 to 1."),
@@ -125,6 +153,11 @@ export const progressResponse = z.object({
       completed_at: instant
         .nullable()
         .describe("When the last published lesson was completed; null until all are."),
+      next_lesson: nextLesson
+        .nullable()
+        .describe(
+          "The first published lesson, in course order, that is open to the user now and not completed; null when none is: all done, the rest not released yet, or the course not open to them (enrollment ended, revoked or not started, course in draft).",
+        ),
     }),
   ),
 });

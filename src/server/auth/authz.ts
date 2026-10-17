@@ -59,7 +59,7 @@ export async function requireUser(): Promise<SessionUser> {
   return user;
 }
 
-export function hasRole(user: SessionUser, ...roles: Role[]): boolean {
+export function hasRole(user: Pick<SessionUser, "roles">, ...roles: Role[]): boolean {
   return roles.some((r) => user.roles.includes(r));
 }
 

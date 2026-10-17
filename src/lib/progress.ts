@@ -25,10 +25,17 @@ export function courseProgress(lessons: LessonForProgress[]): CourseProgress {
   };
 }
 
-/** The "Continue" target: first published, accessible, not-yet-completed lesson in order; else the last accessible one. */
+/** The next lesson to do: first published, accessible, not-yet-completed lesson in order; null when none is left. */
+export function nextLesson<T extends LessonForProgress>(lessonsInOrder: T[]): T | null {
+  return (
+    lessonsInOrder.find((l) => l.status === "published" && l.accessible && !l.completed) ?? null
+  );
+}
+
+/** The "Continue" target: the next lesson; else the last accessible one. */
 export function continueTarget<T extends LessonForProgress>(lessonsInOrder: T[]): T | null {
   const candidates = lessonsInOrder.filter((l) => l.status === "published" && l.accessible);
-  return candidates.find((l) => !l.completed) ?? candidates.at(-1) ?? null;
+  return nextLesson(candidates) ?? candidates.at(-1) ?? null;
 }
 
 export type CourseState = "not_started" | "in_progress" | "finished" | "locked";
