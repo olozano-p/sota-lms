@@ -107,9 +107,13 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
   const replies = posts.filter((p) => !p.isOpening);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
+    <div className="flex w-full max-w-3xl flex-col gap-8">
       <header className="flex flex-col gap-3">
-        <ForumLink courseSlug={courseSlug} dest={{ kind: "index" }} className="text-sm">
+        <ForumLink
+          courseSlug={courseSlug}
+          dest={{ kind: "index" }}
+          className="label inline-flex h-8 items-center self-start rounded-sm bg-tint px-2 text-muted-foreground no-underline hover:text-foreground hover:no-underline"
+        >
           ← {t("forum.title")}
         </ForumLink>
         <div className="flex flex-wrap items-center gap-2">
@@ -153,7 +157,7 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
             </Button>
           </form>
         ) : (
-          <h1 className="text-3xl leading-tight sm:text-4xl">{thread.title}</h1>
+          <h1>{thread.title}</h1>
         )}
         <p className="text-sm text-muted-foreground">
           {t("forum.started", { name: thread.author.name || t("forum.unknownAuthor") })}{" "}
@@ -202,12 +206,12 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
       ) : null}
 
       <section className="flex flex-col">
-        <Eyebrow className="border-b pb-2">
+        <Eyebrow className="pb-2">
           {replies.length === 1
             ? t("forum.replies.one")
             : t("forum.replies", { n: replies.length })}
         </Eyebrow>
-        <div className="divide-y">
+        <div className="divide-y divide-tint">
           {replies.map((p) => (
             <PostCard key={p.id} post={p} onCite={canReply ? cite : undefined} upload={upload} />
           ))}
@@ -215,8 +219,11 @@ export function ThreadView({ data, courseSlug }: { data: ThreadData; courseSlug:
       </section>
 
       {canReply ? (
-        <section className="flex flex-col gap-3 border-t pt-6" aria-labelledby="reply-heading">
-          <h2 id="reply-heading" className="text-lg">
+        <section
+          className="flex flex-col gap-3 rounded-lg bg-card p-6"
+          aria-labelledby="reply-heading"
+        >
+          <h2 id="reply-heading" className="label text-muted-foreground">
             {t("forum.reply.title")}
           </h2>
           {replyTo ? (

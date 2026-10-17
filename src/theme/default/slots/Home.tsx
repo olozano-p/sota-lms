@@ -7,11 +7,11 @@ import type { HomeProps } from "~/theme/slots";
 export default function Home({ brand, loginFailed, loginHref }: HomeProps) {
   const { t } = useI18n();
   return (
-    <div className="mx-auto flex max-w-xl flex-col items-start gap-6 py-16">
+    <div className="mx-auto flex max-w-xl flex-col items-start gap-6 py-16 sm:py-24">
       {loginFailed ? <Alert variant="destructive" title={t("auth.error.login")} /> : null}
-      <h1 className="text-4xl leading-tight">{t("home.title")}</h1>
-      {brand.tagline ? <p className="text-xl">{brand.tagline}</p> : null}
-      <p className="text-lg text-muted-foreground">{t("home.lead")}</p>
+      <h1 className="text-4xl">{t("home.title")}</h1>
+      {brand.tagline ? <p className="font-serif text-xl">{brand.tagline}</p> : null}
+      <p className="font-serif text-lg text-muted-foreground">{t("home.lead")}</p>
       <a
         href={loginHref}
         className={buttonVariants({ size: "lg" }) + " no-underline hover:no-underline"}

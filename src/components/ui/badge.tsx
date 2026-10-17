@@ -7,8 +7,10 @@ import { cn } from "~/lib/cn";
  * metadata, optionally with a 14 px icon; the state variants are a dot plus the word, so status is
  * never colour alone.
  */
-// The status dot sits where the 14 px icon would: a 6 px disc with 4 px either side.
-const DOT = "before:mx-1 before:size-1.5 before:shrink-0 before:rounded-full";
+// The status dot sits where the 14 px icon would: a 6 px disc with 4 px either side. A badge that
+// brings its own icon shows the icon instead.
+const DOT =
+  "before:mx-1 before:size-1.5 before:shrink-0 before:rounded-full has-[>svg]:before:hidden";
 
 export const badgeVariants = cva(
   "label inline-flex items-center gap-1 whitespace-nowrap rounded-sm text-muted-foreground [&>svg]:size-3.5",

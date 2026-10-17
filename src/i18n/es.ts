@@ -337,7 +337,6 @@ export const es: Record<MessageKey, string> = {
   "assignment.noResubmit": "Esta tarea no admite una segunda entrega.",
   "assignment.empty": "Escribe un texto o sube un archivo para entregar.",
   "assignment.done": "Entrega enviada. Recibirás un correo cuando haya comentarios.",
-  "assignment.backToLesson": "Volver a la lección",
   "assignment.teacherView": "Vista de docente: las entregas se revisan desde «Enseñar».",
 
   "quiz.title": "Cuestionario",

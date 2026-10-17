@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useI18n } from "~/i18n";
 import { getCohort } from "~/server/queries/cohorts";
 import { Badge } from "~/components/ui/badge";
+import { PageHeader } from "~/components/ui/page-header";
 import { Eyebrow } from "~/components/ui/eyebrow";
 import { buttonVariants } from "~/components/ui/button";
 import { cn } from "~/lib/cn";
@@ -20,25 +21,36 @@ function CohortPage() {
   const { cohort, course, memberCount, teachers, releases } = Route.useLoaderData();
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-      <header className="flex flex-col gap-3">
-        <Link to="/courses/$courseSlug" params={{ courseSlug: course.slug }} className="text-sm">
-          ← {course.title}
-        </Link>
-        <div className="flex items-center gap-2">
-          <Eyebrow>{t("cohort.title")}</Eyebrow>
-          <Badge variant={cohort.status === "active" ? "success" : "outline"}>
-            {t(`cohort.status.${cohort.status}`)}
-          </Badge>
-        </div>
-        <h1 className="text-4xl leading-tight">{cohort.title}</h1>
-        <p className="text-muted-foreground">
-          {cohort.startsAt && cohort.endsAt
-            ? t("cohort.dates", { start: fmtDate(cohort.startsAt), end: fmtDate(cohort.endsAt) })
-            : cohort.startsAt
-              ? t("cohort.from", { start: fmtDate(cohort.startsAt) })
-              : null}
-        </p>
-        <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
+      <header className="flex flex-col gap-6">
+        <PageHeader
+          crumbs={[
+            { label: t("nav.courses"), link: { to: "/courses" } },
+            {
+              label: course.title,
+              link: { to: "/courses/$courseSlug", params: { courseSlug: course.slug } },
+            },
+            { label: t("cohort.title") },
+          ]}
+          title={cohort.title}
+          meta={
+            <>
+              <Badge variant={cohort.status === "active" ? "success" : "outline"}>
+                {t(`cohort.status.${cohort.status}`)}
+              </Badge>
+              <Badge>
+                {cohort.startsAt && cohort.endsAt
+                  ? t("cohort.dates", {
+                      start: fmtDate(cohort.startsAt),
+                      end: fmtDate(cohort.endsAt),
+                    })
+                  : cohort.startsAt
+                    ? t("cohort.from", { start: fmtDate(cohort.startsAt) })
+                    : null}
+              </Badge>
+            </>
+          }
+        />
+        <dl className="grid gap-x-8 gap-y-3 rounded-lg bg-card p-6 font-serif text-sm sm:grid-cols-3">
           <div>
             <Eyebrow>{t("cohort.course")}</Eyebrow>
             <dd className="mt-1">
@@ -60,10 +72,12 @@ function CohortPage() {
 
       <section className="flex flex-col gap-3">
         <div>
-          <h2 className="text-lg">{t("cohort.schedule")}</h2>
-          <p className="text-sm text-muted-foreground">{t("cohort.schedule.lead")}</p>
+          <h2 className="label text-muted-foreground">{t("cohort.schedule")}</h2>
+          <p className="mt-2 font-serif text-sm text-muted-foreground">
+            {t("cohort.schedule.lead")}
+          </p>
         </div>
-        <ol className="relative ml-2 flex flex-col border-l">
+        <ol className="relative ml-2 flex flex-col border-l border-tint">
           {releases.map((r) => (
             <li key={r.id} className="relative flex items-start gap-4 py-2 pl-5">
               <span

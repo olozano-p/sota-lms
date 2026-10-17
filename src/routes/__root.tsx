@@ -135,14 +135,11 @@ function NotFound() {
   const { t } = useI18n();
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-4 py-16">
-      <h1 className="text-3xl">{t("error.notFound.title")}</h1>
-      <p className="text-muted-foreground">{t("error.notFound.lead")}</p>
+      <h1>{t("error.notFound.title")}</h1>
+      <p className="font-serif text-muted-foreground">{t("error.notFound.lead")}</p>
       <Link
         to="/courses"
-        className={cn(
-          buttonVariants({ variant: "outline" }),
-          "self-start text-foreground no-underline hover:no-underline",
-        )}
+        className={cn(buttonVariants(), "self-start no-underline hover:no-underline")}
       >
         {t("error.goHome")}
       </Link>
@@ -155,8 +152,8 @@ function RootError(props: ErrorComponentProps) {
   if (import.meta.env.DEV) return <ErrorComponent {...props} />;
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-4 py-16">
-      <h1 className="text-3xl">Error</h1>
-      <p className="text-muted-foreground">{(props.error as Error).message}</p>
+      <h1>Error</h1>
+      <p className="font-serif text-muted-foreground">{(props.error as Error).message}</p>
     </div>
   );
 }

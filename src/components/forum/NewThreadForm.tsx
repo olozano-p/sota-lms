@@ -37,12 +37,16 @@ export function NewThreadForm({ courseSlug }: { courseSlug: string | null }) {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <div className="flex w-full max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-3">
-        <ForumLink courseSlug={courseSlug} dest={{ kind: "index" }} className="text-sm">
+        <ForumLink
+          courseSlug={courseSlug}
+          dest={{ kind: "index" }}
+          className="label inline-flex h-8 items-center self-start rounded-sm bg-tint px-2 text-muted-foreground no-underline hover:text-foreground hover:no-underline"
+        >
           ← {t("forum.title")}
         </ForumLink>
-        <h1 className="text-3xl">{t("forum.newThread")}</h1>
+        <h1>{t("forum.newThread")}</h1>
       </div>
       <form
         className="flex flex-col gap-5"

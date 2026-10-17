@@ -335,7 +335,6 @@ export const en: Record<MessageKey, string> = {
   "assignment.noResubmit": "This assignment does not accept a second submission.",
   "assignment.empty": "Write some text or upload a file to submit.",
   "assignment.done": "Submission sent. You will get an email when there is feedback.",
-  "assignment.backToLesson": "Back to the lesson",
   "assignment.teacherView": "Teacher view: submissions are reviewed under “Teach”.",
 
   "quiz.title": "Quiz",

@@ -77,14 +77,14 @@ export function PostCard({ post, onCite, upload }: Props) {
     <article
       id={`post-${post.id}`}
       className={cn(
-        "flex flex-col gap-3 scroll-mt-24 target:bg-accent target:transition-colors",
+        "flex flex-col gap-3 scroll-mt-24 target:bg-tint/40 target:transition-colors",
         !post.isOpening && "py-5",
       )}
       aria-label={post.isOpening ? t("forum.opening") : undefined}
     >
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <Avatar name={name} size={post.isOpening ? "md" : "sm"} />
-        <span className="font-medium">{name}</span>
+        <span className="font-serif font-medium">{name}</span>
         {post.author.role ? (
           <Badge variant="info">{t(`forum.role.${post.author.role}`)}</Badge>
         ) : null}

@@ -90,8 +90,8 @@ export function MagicLinkForm({ returnTo }: { returnTo: string }) {
   };
 
   return (
-    <section aria-labelledby="magic-title" className="flex flex-col gap-3 border-t pt-6">
-      <h2 id="magic-title" className="text-base">
+    <section aria-labelledby="magic-title" className="flex flex-col gap-3 pt-4">
+      <h2 id="magic-title" className="label text-muted-foreground">
         {t("auth.magic.title")}
       </h2>
       {sent ? (

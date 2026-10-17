@@ -336,7 +336,6 @@ export const ca = {
   "assignment.noResubmit": "Aquesta tasca no admet una segona entrega.",
   "assignment.empty": "Escriu un text o puja un fitxer per entregar.",
   "assignment.done": "Entrega enviada. Rebràs un correu quan hi hagi comentaris.",
-  "assignment.backToLesson": "Torna a la lliçó",
   "assignment.teacherView": "Vista de docent: les entregues es revisen des de «Ensenyar».",
 
   "quiz.title": "Qüestionari",

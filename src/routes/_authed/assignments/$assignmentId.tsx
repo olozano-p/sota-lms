@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
+import { createFileRoute, notFound, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Download } from "lucide-react";
 import { useI18n } from "~/i18n";
@@ -15,6 +15,7 @@ import { UploadField, type UploadedFile } from "~/components/editor/UploadField"
 import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { PageHeader } from "~/components/ui/page-header";
 import { Eyebrow } from "~/components/ui/eyebrow";
 import { Field } from "~/components/ui/field";
 import { Textarea } from "~/components/ui/input";
@@ -92,35 +93,40 @@ function AssignmentView({
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-      <header className="flex flex-col gap-3">
-        {lesson ? (
-          <Link
-            to="/courses/$courseSlug/$lessonSlug"
-            params={{ courseSlug: course.slug, lessonSlug: lesson.slug }}
-            className="text-sm"
-          >
-            ← {t("assignment.backToLesson")} · {lesson.title}
-          </Link>
-        ) : (
-          <Link to="/courses/$courseSlug" params={{ courseSlug: course.slug }} className="text-sm">
-            ← {course.title}
-          </Link>
-        )}
-        <Eyebrow>{t("assignment.title")}</Eyebrow>
-        <h1 className="text-4xl leading-tight">{assignment.title}</h1>
-      </header>
+      <PageHeader
+        crumbs={[
+          { label: t("nav.courses"), link: { to: "/courses" } },
+          {
+            label: course.title,
+            link: { to: "/courses/$courseSlug", params: { courseSlug: course.slug } },
+          },
+          ...(lesson
+            ? [
+                {
+                  label: lesson.title,
+                  link: {
+                    to: "/courses/$courseSlug/$lessonSlug" as const,
+                    params: { courseSlug: course.slug, lessonSlug: lesson.slug },
+                  },
+                },
+              ]
+            : []),
+          { label: t("assignment.title") },
+        ]}
+        title={assignment.title}
+      />
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg">{t("assignment.instructions")}</h2>
+        <h2 className="label text-muted-foreground">{t("assignment.instructions")}</h2>
         <Markdown html={assignment.instructionsHtml} />
       </section>
 
       {privileged ? <Alert>{t("assignment.teacherView")}</Alert> : null}
 
       {current ? (
-        <section className="flex flex-col gap-4 rounded-lg border bg-card p-5">
+        <section className="flex flex-col gap-4 rounded-lg bg-card p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg">{t("assignment.yourSubmission")}</h2>
+            <h2 className="label text-muted-foreground">{t("assignment.yourSubmission")}</h2>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>{t("assignment.submitted", { date: fmtDateTime(current.submittedAt) })}</span>
               <Badge
@@ -146,7 +152,7 @@ function AssignmentView({
             </a>
           ) : null}
           {current.teacherCommentHtml ? (
-            <div className="flex flex-col gap-2 border-t pt-4">
+            <div className="flex flex-col gap-2 pt-2">
               <Eyebrow>{t("assignment.feedback")}</Eyebrow>
               <Markdown html={current.teacherCommentHtml} className="prose text-[0.95rem]" />
             </div>
@@ -157,8 +163,8 @@ function AssignmentView({
       {done ? <Alert variant="success">{t("assignment.done")}</Alert> : null}
 
       {canSubmit ? (
-        <section className="flex flex-col gap-4 rounded-lg border bg-card p-5">
-          <h2 className="text-lg">
+        <section className="flex flex-col gap-4 rounded-lg bg-card p-6">
+          <h2 className="label text-muted-foreground">
             {current ? t("assignment.resubmit") : t("assignment.yourSubmission")}
           </h2>
           {wantsText ? (
@@ -196,12 +202,12 @@ function AssignmentView({
 
       {history.length ? (
         <section className="flex flex-col gap-3">
-          <h2 className="text-base">{t("assignment.history")}</h2>
+          <h2 className="label text-muted-foreground">{t("assignment.history")}</h2>
           <ul className="flex flex-col gap-2 text-sm">
             {history.map((s) => (
               <li
                 key={s.id}
-                className="flex flex-wrap items-center gap-2 rounded border px-3 py-2 text-muted-foreground"
+                className="flex flex-wrap items-center gap-2 rounded bg-card px-3 py-2 text-muted-foreground"
               >
                 <span>{fmtDateTime(s.submittedAt)}</span>
                 <Badge>{t(`assignment.status.${s.status}`)}</Badge>

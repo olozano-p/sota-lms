@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
+import { createFileRoute, notFound, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Check, X } from "lucide-react";
 import { useI18n } from "~/i18n";
@@ -10,7 +10,7 @@ import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Checkbox, Radio } from "~/components/ui/checkbox";
-import { Eyebrow } from "~/components/ui/eyebrow";
+import { PageHeader } from "~/components/ui/page-header";
 import { Input, Textarea } from "~/components/ui/input";
 import { cn } from "~/lib/cn";
 
@@ -79,27 +79,32 @@ function QuizView({ data }: { data: NonNullable<Awaited<ReturnType<typeof getQui
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-      <header className="flex flex-col gap-3">
-        {lesson ? (
-          <Link
-            to="/courses/$courseSlug/$lessonSlug"
-            params={{ courseSlug: course.slug, lessonSlug: lesson.slug }}
-            className="text-sm"
-          >
-            ← {lesson.title}
-          </Link>
-        ) : (
-          <Link to="/courses/$courseSlug" params={{ courseSlug: course.slug }} className="text-sm">
-            ← {course.title}
-          </Link>
-        )}
-        <Eyebrow>{quiz.kind === "form" ? t("quiz.form") : t("quiz.title")}</Eyebrow>
-        <h1 className="text-4xl leading-tight">{quiz.title}</h1>
-        {quiz.introHtml ? <Markdown html={quiz.introHtml} className="prose text-[1rem]" /> : null}
-      </header>
+      <PageHeader
+        crumbs={[
+          { label: t("nav.courses"), link: { to: "/courses" } },
+          {
+            label: course.title,
+            link: { to: "/courses/$courseSlug", params: { courseSlug: course.slug } },
+          },
+          ...(lesson
+            ? [
+                {
+                  label: lesson.title,
+                  link: {
+                    to: "/courses/$courseSlug/$lessonSlug" as const,
+                    params: { courseSlug: course.slug, lessonSlug: lesson.slug },
+                  },
+                },
+              ]
+            : []),
+          { label: quiz.kind === "form" ? t("quiz.form") : t("quiz.title") },
+        ]}
+        title={quiz.title}
+      />
+      {quiz.introHtml ? <Markdown html={quiz.introHtml} /> : null}
 
       {showResult && latestAttempt ? (
-        <section className="flex flex-col gap-3 rounded-lg border bg-card p-5">
+        <section className="flex flex-col gap-3 rounded-lg bg-card p-6">
           <div className="flex flex-wrap items-center gap-3">
             {latestAttempt.score !== null ? (
               <span className="font-serif text-2xl tabular-nums">
@@ -143,8 +148,8 @@ function QuizView({ data }: { data: NonNullable<Awaited<ReturnType<typeof getQui
             <li
               key={q.id}
               className={cn(
-                "flex flex-col gap-3 rounded-lg border bg-card p-5",
-                isMissing && "border-destructive",
+                "flex flex-col gap-3 rounded-lg bg-card p-6",
+                isMissing && "outline-2 outline-destructive",
               )}
             >
               <div className="flex items-start justify-between gap-3">
@@ -152,7 +157,7 @@ function QuizView({ data }: { data: NonNullable<Awaited<ReturnType<typeof getQui
                   <span className="font-serif text-lg text-muted-foreground tabular-nums">
                     {i + 1}
                   </span>
-                  <Markdown html={q.promptHtml} className="prose text-[1rem]" />
+                  <Markdown html={q.promptHtml} className="prose" />
                 </div>
                 {correct === true ? (
                   <Badge variant="success">

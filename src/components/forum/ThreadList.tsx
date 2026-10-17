@@ -45,9 +45,9 @@ export function ThreadList({
 function Rows({ threads, courseSlug }: { threads: Thread[]; courseSlug: string | null }) {
   const { t } = useI18n();
   return (
-    <ul className="flex flex-col divide-y rounded-lg border bg-card">
+    <ul className="flex flex-col gap-1 rounded-lg bg-card p-2">
       {threads.map((th) => (
-        <li key={th.id} className="flex gap-4 px-4 py-3.5 sm:px-5">
+        <li key={th.id} className="flex gap-4 rounded px-3 py-3.5 sm:px-4">
           <Avatar name={th.author.name || t("forum.unknownAuthor")} className="mt-0.5" />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -60,13 +60,13 @@ function Rows({ threads, courseSlug }: { threads: Thread[]; courseSlug: string |
               <ForumLink
                 courseSlug={courseSlug}
                 dest={{ kind: "thread", threadId: th.id }}
-                className="font-medium text-foreground no-underline hover:underline"
+                className="font-serif text-base leading-[1.2] font-medium text-foreground no-underline hover:underline"
               >
                 {th.title}
               </ForumLink>
             </div>
             {th.excerpt ? (
-              <p className="line-clamp-2 text-sm text-muted-foreground">{th.excerpt}</p>
+              <p className="line-clamp-2 font-serif text-sm text-muted-foreground">{th.excerpt}</p>
             ) : null}
             <p className="text-xs text-muted-foreground">
               {t("forum.started", { name: th.author.name || t("forum.unknownAuthor") })}{" "}
