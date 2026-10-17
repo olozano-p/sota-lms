@@ -66,7 +66,7 @@ export const COLOR_VARS = {
 } as const;
 export type ColorKey = keyof typeof COLOR_VARS;
 /** Keys a theme must supply (via the shipped default) because nothing can derive them. */
-const BASE_COLOR_KEYS = [
+export const BASE_COLOR_KEYS = [
   "ink",
   "paper",
   "primary",

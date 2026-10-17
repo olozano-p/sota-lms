@@ -15,6 +15,7 @@ import { es } from "../i18n/es.ts";
 import { LOCALE_CODES, type LocaleCode } from "../config/schema.ts";
 import { EMAIL_VARS, placeholdersOf } from "./email.ts";
 import {
+  BASE_COLOR_KEYS,
   COLOR_VARS,
   EMAIL_TEMPLATE_NAMES,
   SLOT_NAMES,
@@ -81,6 +82,26 @@ const isObject = (v: unknown): v is Json =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
 /** Objects merge key by key; arrays and scalars from `over` replace those of `base`. */
+/**
+ * The shipped default sets some derived colours (`card`, `tint`) for its own ink and paper. A theme
+ * that brings its own ink or paper for a mode must derive those from its palette, not inherit
+ * the default's, so they are dropped from the base for that mode unless the theme sets them.
+ */
+export function withoutForeignDerived(base: unknown, over: unknown): unknown {
+  if (!isObject(base) || !isObject(over) || !isObject(base.colors) || !isObject(over.colors))
+    return base;
+  const colors: Json = { ...base.colors };
+  for (const mode of ["light", "dark"] as const) {
+    const b = colors[mode];
+    const o = over.colors[mode];
+    if (!isObject(b) || !isObject(o) || !("ink" in o || "paper" in o)) continue;
+    colors[mode] = Object.fromEntries(
+      Object.entries(b).filter(([k]) => (BASE_COLOR_KEYS as readonly string[]).includes(k)),
+    );
+  }
+  return { ...base, colors };
+}
+
 export function deepMerge<T>(base: T, over: unknown): T {
   if (!isObject(base) || !isObject(over)) return (over === undefined ? base : over) as T;
   const out: Json = { ...base };
@@ -216,7 +237,7 @@ export function loadTheme(dir: string, opts: LoadOptions = {}): LoadedTheme {
       if (!r.success) problems.push(...formatIssues(r.error, "theme.json: "));
     }
   }
-  const merged = deepMerge(base, override ?? {});
+  const merged = deepMerge(withoutForeignDerived(base, override), override ?? {});
   const parsed = themeSchema.safeParse(merged);
   if (!parsed.success && !problems.length)
     problems.push(...formatIssues(parsed.error, "theme.json: "));

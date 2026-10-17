@@ -55,6 +55,27 @@ describe("loadTheme: defaults and partial themes", () => {
     expect(t.config.radius.control).toBe("0.5rem");
   });
 
+  it("a theme with its own ink or paper derives card and tint instead of inheriting the default's", () => {
+    const t = loadTheme(
+      theme({
+        "theme.json": JSON.stringify({ colors: { light: { ink: "#c8f7d4", paper: "#07110c" } } }),
+      }),
+    );
+    expect(t.config.colors.light.card).toBeUndefined();
+    expect(t.config.colors.light.tint).toBeUndefined();
+    expect(t.css).not.toContain("--tint:#e4e2dc");
+    // The other mode keeps the default palette, derived colours included.
+    expect(t.config.colors.dark.card).toBe("#1f1f1d");
+    const own = loadTheme(
+      theme({
+        "theme.json": JSON.stringify({
+          colors: { light: { paper: "#f6f5f0", tint: "#e9e6d9" }, dark: { tint: "#2a2924" } },
+        }),
+      }),
+    );
+    expect(own.config.colors.light.tint).toBe("#e9e6d9");
+  });
+
   it("a directory with only custom.css is a valid theme and the CSS comes last", () => {
     const t = loadTheme(theme({ "custom.css": "body{outline:1px solid red}" }));
     expect(t.css.endsWith("body{outline:1px solid red}\n")).toBe(true);
