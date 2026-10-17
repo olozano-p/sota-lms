@@ -241,7 +241,7 @@ call the enrollment source back.
   the `sub` (shown in the admin with a made-up `…@placeholder.invalid` address that never gets mail)
   and merged into the person who signs in with that `sub`, whatever address the IdP releases. Either
   way the enrollment is waiting for them at first sign-in.
-- **Sign-in merge.** A `sub`-only placeholder is merged at first sign-in: its enrollments (of every source) move to the person, and where both hold a row for the same course, cohort and source the better one (active, then the later end) is kept.
+- **Sign-in merge.** A `sub`-only placeholder is merged at first sign-in: its enrollments (of every source) move to the person, and where both hold a row for the same course, cohort and source the better one (active, then the later end) is kept. Its lesson progress (from `sota import-progress`, `docs/progress-import.md`) moves too: of two rows for one lesson the completed one, then the earlier completion, is kept.
 - **Other sources.** `manual` (admins) and `claims` (ID token) enrollments are never read, changed or
   deleted by the API. Revoking an API enrollment does not close a course the person also holds a
   `manual` or `claims` enrollment for.

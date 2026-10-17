@@ -174,6 +174,42 @@ describe("enrollment pushed before the first sign-in", () => {
     expect(await canOpen("second@example.invalid")).toBe(false);
   });
 
+  it("progress imported before the first sign-in follows the sub to the signed-in person", async () => {
+    const { importProgress } = await import("../src/server/mutations/progress-import-core.ts");
+    const { cliActor } = await import("../src/server/mutations/content-import-core.ts");
+    const { parseProgressFile } = await import("../src/lib/progress-file.ts");
+    const line = JSON.stringify({
+      format: "sota-progress",
+      version: 1,
+      sub: "idp-user-5",
+      email: "old-lms@example.invalid",
+      course: "crs-journey",
+      lessons: [{ chapter: "ch", lesson: "l", completed_at: "2024-05-01T00:00:00Z" }],
+    });
+    const report = await importProgress(m.db, cliActor(), parseProgressFile(line), {
+      dryRun: false,
+      authMode: "oidc",
+      issuer: fake.issuer,
+    });
+    expect(report.people.created).toBe(1);
+
+    // The IdP releases another address than the old LMS had: the merge goes by sub.
+    await signIn({ sub: "idp-user-5", email: "fifth@example.invalid", name: "Fifth" });
+    const people = await m.db
+      .select()
+      .from(m.schema.person)
+      .where(eq(m.schema.person.externalSub, "idp-user-5"));
+    expect(people).toHaveLength(1);
+    expect(people[0]).toMatchObject({ email: "fifth@example.invalid", externalIss: fake.issuer });
+    const rows = await m.db
+      .select()
+      .from(m.schema.lessonProgress)
+      .where(eq(m.schema.lessonProgress.personId, people[0]!.id));
+    expect(rows).toMatchObject([
+      { lessonId, status: "completed", completedAt: new Date("2024-05-01T00:00:00Z") },
+    ]);
+  });
+
   it("an enrollment that expired on the service side does not open the course", async () => {
     await call("PUT", "/enrollments/ord-3-line-1", {
       user: { sub: "idp-user-3", email: "third@example.invalid" },

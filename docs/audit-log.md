@@ -15,7 +15,7 @@ for the sync paths, a label in `diff.actor`.
 | Enroll a whole cohort in a course                  | `enrollment.cohort`                                   | the teacher or admin | cohort     | changes list                                                 |
 | Cohort placement / removal                         | `cohort.member.add`, `cohort.member.remove`           | the teacher or admin | cohort     | the enrollment's change (`add`), the revoked rows (`remove`) |
 | Cohort deletion (cascades to its enrollments)      | `cohort.delete`                                       | the teacher or admin | cohort     | the deleted rows                                             |
-| A sub-keyed placeholder merged at sign-in          | `person.adopt_placeholder`                            | `oidc-login`         | person     | moved and dropped rows                                       |
+| A sub-keyed placeholder merged at sign-in          | `person.adopt_placeholder`                            | `oidc-login`         | person     | moved and dropped rows, `progressMoved`, `progressDropped`   |
 | Demo seed                                          | `enrollment.seed`                                     | `seed`               | person     | replaced and created rows                                    |
 
 A **change** is `{ enrollmentId, op, before, after, note? }`: `op` is `created`, `updated`, `revoked`,
@@ -33,3 +33,12 @@ A sync that changes nothing writes nothing: the same pull or webhook every 15 mi
 `cli:import` in `diff.actor`). `after` holds the counts per kind (`created`, `updated`, `unchanged`), the
 media stored or reused, and a capped list of changes `{ entity, ref, op }` with `total` and `truncated`
 like the enrollment rows. A dry run and an import that changes nothing write no row.
+
+## Progress import
+
+`pnpm sota import-progress` (`docs/progress-import.md`) appends one `progress.import` row per line of the
+file that wrote something (entity `person`, actor `cli:import` in `diff.actor`). `after` holds the line
+number, the course reference, the counts (`created`, `completed`, `unchanged`), `person.placeholderCreated`
+or `person.adoptedSub` when the line created the person or gave them its `sub`, and a capped list of the
+lessons written `{ lessonId, op, completedAt }` with `total` and `truncated`. A dry run and a line that
+changes nothing write no row.

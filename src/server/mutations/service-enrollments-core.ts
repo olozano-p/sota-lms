@@ -6,7 +6,6 @@
  * and ends with an `audit_log` row whose actor is `service:api`. Not a server function: nothing
  * here is reachable from the client bundle.
  */
-import { createHash } from "node:crypto";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { db, type DbOrTx } from "~/db";
 import {
@@ -20,11 +19,10 @@ import {
 import { env } from "~/config/env";
 import { loadRefs } from "~/server/access/refs";
 import { audit, enrollmentSnapshot } from "~/server/audit";
+import { insertPlaceholderPerson, placeholderEmail } from "~/server/auth/identity";
 import type { ServiceActor } from "~/server/auth/service";
 
 export const SERVICE_ACTOR_LABEL = "service:api";
-/** Reserved TLD: a placeholder keyed only by `sub` has no address until the person signs in. */
-const PLACEHOLDER_DOMAIN = "placeholder.invalid";
 
 export class ServiceApiError extends Error {
   constructor(
@@ -66,9 +64,6 @@ export interface PutEnrollmentResult {
   changed: boolean;
 }
 
-const placeholderEmail = (sub: string) =>
-  `u-${createHash("sha256").update(sub).digest("hex").slice(0, 24)}@${PLACEHOLDER_DOMAIN}`;
-
 type PersonRow = typeof person.$inferSelect;
 
 /**
@@ -105,21 +100,10 @@ async function resolvePerson(
   if (env.authMode !== "oidc")
     throw new ServiceApiError(404, "user_not_found", "no such person (AUTH_MODE is not oidc)");
 
-  const address = email ?? placeholderEmail(user.sub!);
-  const inserted = await tx
-    .insert(person)
-    .values({
-      email: address,
-      name: user.name ?? email ?? user.sub!,
-      roles: ["student"],
-      externalSub: user.sub ?? null,
-      // A made-up address must never receive mail.
-      emailOptOut: !email,
-    })
-    .onConflictDoNothing()
-    .returning();
-  if (inserted[0]) return { row: inserted[0], createdPerson: true };
+  const inserted = await insertPlaceholderPerson(tx, { sub: user.sub, email, name: user.name });
+  if (inserted) return { row: inserted, createdPerson: true };
   // A concurrent request created the same placeholder first.
+  const address = email ?? placeholderEmail(user.sub!);
   const [row] = await tx.select().from(person).where(eq(person.email, address)).limit(1);
   if (!row) throw new ServiceApiError(409, "identity_conflict", "that sub is already in use");
   return { row, createdPerson: false };

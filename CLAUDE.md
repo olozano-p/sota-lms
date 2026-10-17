@@ -24,7 +24,8 @@ The invariants below describe the code as it is.
   playback). Loaders, queries and components never write. The non-session writers have their own
   actor and audit with it: the sync paths (`diff.actor = "sync:webhook|pull|claims"`), the service API
   (`service:api`) and `pnpm sota import` (`mutations/content-import-core.ts`, actor from `cliActor()`:
-  the operator's shell and `DATABASE_URL` are the credential, `cli:import`, ADR-021). **Every enrollment
+  the operator's shell and `DATABASE_URL` are the credential, `cli:import`, ADR-021), as does
+  `pnpm sota import-progress` (`mutations/progress-import-core.ts`, `progress.import`, ADR-023). **Every enrollment
   write appends an `audit_log` row** with per-row before/after (capped for bulk): helpers in
   `src/server/audit.ts`, the paths in `docs/audit-log.md`.
 - **Identity has few writers.** `person` is also the better-auth user (ADR-016); `person.roles` is
@@ -33,7 +34,9 @@ The invariants below describe the code as it is.
   role mutations (`mutations/people.ts`), manual enrollment by email (`mutations/enrollments.ts`: in `oidc`
   mode a placeholder student with null `external_sub`, adopted by email at first sign-in), `pnpm
 create-admin`, `applyEnrollmentPayload` (pull and webhook) and the service API's placeholder people
-  (`mutations/service-enrollments-core.ts`, merged into the real person by `adoptSubPlaceholder` at sign-in, which moves the placeholder's rows of every source, `manual` included). In `oidc` mode people and roles are the IdP's and are overwritten at every sign-in; no local
+  (`mutations/service-enrollments-core.ts`) and `pnpm sota import-progress`, both through `insertPlaceholderPerson`
+  (`identity.ts`), merged into the real person by `adoptSubPlaceholder` at sign-in, which moves the placeholder's
+  enrollments of every source (`manual` included) and its lesson progress. In `oidc` mode people and roles are the IdP's and are overwritten at every sign-in; no local
   login, signup, magic link or invitation exists except the optional break-glass admin. In `local` mode
   signup follows `ALLOW_SIGNUP` and the first admin comes from `pnpm create-admin` (ADR-017). Sessions are
   better-auth's (`getAuth()` in `src/server/auth/auth.ts`); guards in `authz.ts` stay the only entry for
@@ -103,8 +106,9 @@ No telemetry. No org-specific code.
 docker compose -f compose.dev.yml up -d postgres mock-idp   # dev services (5433, 3013); files go to data/uploads
                                   # compose.yml (root) is the production stack from the published image (docs/deploying.md)
 pnpm db:migrate && pnpm db:seed   # migrations + demo course, cohort, three mock users
-pnpm sota <migrate|seed|create-admin|validate-config|validate-theme|export|import>   # operator CLI (scripts/sota.ts); the image runs it
+pnpm sota <migrate|seed|create-admin|validate-config|validate-theme|export|import|import-progress>   # operator CLI (scripts/sota.ts); the image runs it
 pnpm sota export ./out --course <slug> [--cohorts]   # content as JSON + media; `import ./out [--dry-run]` is idempotent (docs/content-export-import.md)
+pnpm sota import-progress ./progress.jsonl [--dry-run]   # lesson completions from another LMS (sota-progress/v1, docs/progress-import.md)
 pnpm create-admin                 # first admin (local mode) or the break-glass account (oidc mode)
 AUTH_MODE=oidc pnpm dev           # sign in through the mock IdP (default AUTH_MODE is local)
 pnpm dev                          # http://localhost:3003
@@ -133,7 +137,7 @@ dev/mock-idp/          oidc-provider + mock enrollment source     drizzle/  test
 - API routes: `createFileRoute("/api/x")({ server: { handlers: { GET, POST } } })`. better-auth is mounted at `/api/auth/*` (callback `/api/auth/callback/oidc`). Server functions
   use `.validator(zodSchema)`; read the request with `getRequest()` from `@tanstack/react-start/server`.
   The root `beforeLoad` also runs on the client, so it calls the `getSession` server fn.
-- `src/db/*`, `src/config/*`, `src/theme/*.ts` (not the `.tsx` slots), `src/lib/*.ts` (no alias imports), `src/server/{audit.ts,version.ts,auth/{auth,accounts,flows,identity,invitations,invite-plugin,roles}.ts,access/{claims,enrollments,refs}.ts,mutations/content-import-core.ts,queries/content-export-core.ts}`,
+- `src/db/*`, `src/config/*`, `src/theme/*.ts` (not the `.tsx` slots), `src/lib/*.ts` (no alias imports), `src/server/{audit.ts,version.ts,auth/{auth,accounts,flows,identity,invitations,invite-plugin,roles}.ts,access/{claims,enrollments,refs}.ts,mutations/{content,progress}-import-core.ts,queries/content-export-core.ts}`,
   `src/server/services/{notifications,email,storage,content-bundle-dir.ts}` and `scripts/*` run under Node's native TypeScript (the create-admin script and the sign-in hooks import them): relative imports
   with `.ts` extensions, no `~/` alias, no `enum`, no parameter properties.
 - `DATABASE_URL=pglite://memory` opens an in-memory PGlite (tests); anything else is `pg`.

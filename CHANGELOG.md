@@ -6,6 +6,18 @@ All notable changes to SOTA are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **`pnpm sota import-progress <file.jsonl> [--dry-run]`** (ADR-023, `docs/progress-import.md`): lesson
+  completions from another LMS in the `sota-progress/v1` JSON Lines format; learners found by `sub` or
+  email, or created as the placeholders the service API creates (oidc mode); never downgrades a
+  completion, skips unknown references, one transaction, audited as `progress.import`.
+
+### Changed
+
+- The placeholder merge at first sign-in (`adoptSubPlaceholder`) also moves lesson progress, keeping the
+  completed row, then the earlier completion, when both people hold one.
+
 ## [1.0.0] - 2026-10-01
 
 First release. SOTA is a self-hostable course platform with two ways to sign in (a local account

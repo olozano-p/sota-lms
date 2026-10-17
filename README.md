@@ -43,7 +43,8 @@ Agent rules: `CLAUDE.md` · History: `CHANGELOG.md`.
 - **Notifications** by email: feedback at once, the rest in a daily digest.
 - **Three locales** shipped (ca, es, en); dark theme; keyboard navigation in the player.
 - **Content that moves**: `pnpm sota export` / `import` copy courses with their media between
-  instances, idempotently.
+  instances, idempotently; `pnpm sota import-progress` brings learners' lesson completions from
+  another LMS.
 
 | Lesson player                                 | Editor                                        |
 | --------------------------------------------- | --------------------------------------------- |
@@ -108,7 +109,8 @@ before and after (`docs/audit-log.md`).
 ## Operating it
 
 JSON logs and a health endpoint (`docs/observability.md`), built-in rate limits
-(`docs/configuration.md`), content export and import (`docs/content-export-import.md`), backups
+(`docs/configuration.md`), content export and import (`docs/content-export-import.md`), progress
+import from another LMS (`docs/progress-import.md`), backups
 (`docs/backup-restore.md`).
 
 ## Develop
@@ -125,15 +127,15 @@ pnpm dev                                                    # http://localhost:3
 Sign in through the mock identity provider on port 3013 (student, delayed-access student, teacher,
 admin) or run the whole stack with `docker compose -f compose.dev.yml up`.
 
-| Command                                                   | What                                                                                       |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `pnpm dev` / `pnpm build` / `pnpm start`                  | dev server · production build · serve `dist/`                                              |
-| `pnpm typecheck` · `pnpm lint` · `pnpm fmt` · `pnpm test` | the gates the pre-commit hook mirrors                                                      |
-| `pnpm e2e`                                                | Playwright suites against the compose stack                                                |
-| `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:seed`   | new migration from the schema · apply · demo data                                          |
-| `pnpm sota <command>`                                     | `migrate`, `seed`, `create-admin`, `validate-config`, `validate-theme`, `export`, `import` |
-| `pnpm notify`                                             | one notification tick (mail and digest)                                                    |
-| `pnpm mock-idp`                                           | run the development IdP + enrollment source alone                                          |
+| Command                                                   | What                                                                                                          |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev` / `pnpm build` / `pnpm start`                  | dev server · production build · serve `dist/`                                                                 |
+| `pnpm typecheck` · `pnpm lint` · `pnpm fmt` · `pnpm test` | the gates the pre-commit hook mirrors                                                                         |
+| `pnpm e2e`                                                | Playwright suites against the compose stack                                                                   |
+| `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:seed`   | new migration from the schema · apply · demo data                                                             |
+| `pnpm sota <command>`                                     | `migrate`, `seed`, `create-admin`, `validate-config`, `validate-theme`, `export`, `import`, `import-progress` |
+| `pnpm notify`                                             | one notification tick (mail and digest)                                                                       |
+| `pnpm mock-idp`                                           | run the development IdP + enrollment source alone                                                             |
 
 Releases: bump `package.json` and `CHANGELOG.md` on main, tag `vX.Y.Z` and push the tag;
 `.github/workflows/release.yml` runs CI and publishes the image.

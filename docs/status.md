@@ -1,5 +1,19 @@
 # Status
 
+## 2026-10-17 · Progress import from another LMS (ADR-023)
+
+- **`pnpm sota import-progress <file.jsonl> [--dry-run]`** (`scripts/progress.ts`, `docs/progress-import.md`):
+  `sota-progress/v1` JSON Lines (`src/lib/progress-file.ts`, zod strict, every line validated first), one learner
+  and course per line. `mutations/progress-import-core.ts`: learner by `sub` under `OIDC_ISSUER`, else the sub
+  placeholder, else by email (taking the `sub`), else a new placeholder in `oidc` mode through
+  `insertPlaceholderPerson` (now shared with the service API); completions inserted or upgraded from started,
+  a completed row never rewritten (conditional upsert); unknown course/chapter/lesson skipped and listed; no
+  enrollments; one transaction, `--dry-run` rolls back; `progress.import` audit rows, actor `cli:import`.
+- `adoptSubPlaceholder` moves `lesson_progress` too (completed, then the earlier completion, wins).
+- `tests/progress-import.test.ts`: strict parsing with line numbers, placeholder creation and idempotent re-run,
+  no downgrade or re-dating, upgrade of a started row, skips, dry run, email match and conflict, local mode,
+  progress moved by the merge.
+
 ## 2026-10-17 · Panel design for the student interface (ADR-022)
 
 - **Look** (`src/theme/default/theme.json`, `src/styles.css`, `docs/DESIGN.md`): off-white paper, white panels, a

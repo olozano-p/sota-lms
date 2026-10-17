@@ -3,7 +3,8 @@
 Courses travel as a directory of plain JSON and media files (ADR-021). Use it to copy a course from a
 staging instance to production, to share one between deployments, or to keep a course in git. It is
 **not a backup**: people, enrollments, cohort members, submissions, quiz attempts and progress are never
-exported (see `docs/backup-restore.md`).
+exported (see `docs/backup-restore.md`). Learners' lesson completions from another LMS have an import of
+their own: `pnpm sota import-progress` (`docs/progress-import.md`).
 
 ```bash
 # in the container: docker compose exec app node scripts/sota.ts export /tmp/export --course intro

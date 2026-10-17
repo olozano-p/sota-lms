@@ -16,11 +16,14 @@ describe("plain-Node modules", () => {
   const modules = [
     "src/lib/log.ts",
     "src/lib/content-bundle.ts",
+    "src/lib/progress-file.ts",
     "src/server/audit.ts",
     "src/server/services/content-bundle-dir.ts",
     "src/server/queries/content-export-core.ts",
     "src/server/mutations/content-import-core.ts",
+    "src/server/mutations/progress-import-core.ts",
     "scripts/content.ts",
+    "scripts/progress.ts",
   ];
   it("load under node without a bundler", () => {
     const root = new URL("..", import.meta.url).pathname;

@@ -3,9 +3,17 @@
  * first user, what an OIDC profile writes onto `person`, and what happens after an OIDC sign-in.
  * Plain-Node safe (relative imports with .ts extensions).
  */
+import { createHash } from "node:crypto";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { db, type DbOrTx } from "../../db/index.ts";
-import { authAccount, cohortMember, enrollment, person, type Role } from "../../db/schema.ts";
+import {
+  authAccount,
+  cohortMember,
+  enrollment,
+  lessonProgress,
+  person,
+  type Role,
+} from "../../db/schema.ts";
 import { env } from "../../config/env.ts";
 import { isLocale } from "../../i18n/locale.ts";
 import { syncClaimEnrollments } from "../access/claims.ts";
@@ -121,13 +129,61 @@ export async function applyOidcIdentity(
     .where(eq(person.id, personId));
 }
 
+// ---------- Placeholder people (oidc mode) ----------
+
+/** Reserved TLD: a placeholder keyed only by `sub` has no address until the person signs in. */
+const PLACEHOLDER_DOMAIN = "placeholder.invalid";
+
+export const placeholderEmail = (sub: string) =>
+  `u-${createHash("sha256").update(sub).digest("hex").slice(0, 24)}@${PLACEHOLDER_DOMAIN}`;
+
 /**
- * The service API may hold enrollments for a `sub` that never signed in, on a placeholder person
- * (`external_sub` set, no `external_iss`, no account). When that sub signs in under a different
- * email than the placeholder's, better-auth creates a second person; this moves the placeholder's
- * enrollments and cohort places to the signed-in person and deletes the placeholder. Rows of every
- * source move; of two rows in the same course, cohort and source the better one (active, then the
- * later end) is kept and the other is deleted.
+ * Creates a placeholder student for someone who has not signed in yet (oidc mode): no account, no
+ * `external_iss`. With a `sub`, `adoptSubPlaceholder` merges it into whoever signs in with that sub;
+ * with an email, better-auth's account linking adopts it at the first sign-in with that address.
+ * Without an email the address is made up from the sub and never receives mail. Returns null when
+ * the address is already taken (a concurrent writer created the same placeholder first).
+ */
+export async function insertPlaceholderPerson(
+  tx: DbOrTx,
+  user: { sub?: string | null; email?: string | null; name?: string | null },
+): Promise<typeof person.$inferSelect | null> {
+  const email = user.email?.toLowerCase() || null;
+  if (!email && !user.sub) throw new Error("a placeholder needs a sub or an email");
+  const [row] = await tx
+    .insert(person)
+    .values({
+      email: email ?? placeholderEmail(user.sub!),
+      name: user.name || email || user.sub!,
+      roles: ["student"],
+      externalSub: user.sub || null,
+      emailOptOut: !email,
+    })
+    .onConflictDoNothing()
+    .returning();
+  return row ?? null;
+}
+
+type ProgressRow = typeof lessonProgress.$inferSelect;
+
+/** Of two progress rows for one lesson, whether `a` should survive: completed first, then the earlier completion. */
+function progressBetter(a: ProgressRow, b: ProgressRow): boolean {
+  if ((a.status === "completed") !== (b.status === "completed")) return a.status === "completed";
+  return (
+    a.status === "completed" &&
+    (a.completedAt?.getTime() ?? Infinity) < (b.completedAt?.getTime() ?? Infinity)
+  );
+}
+
+/**
+ * The service API, the enrollment pull and `sota import-progress` may hold rows for a `sub` that
+ * never signed in, on a placeholder person (`external_sub` set, no `external_iss`, no account).
+ * When that sub signs in under a different email than the placeholder's, better-auth creates a
+ * second person; this moves the placeholder's enrollments, cohort places and lesson progress to the
+ * signed-in person and deletes the placeholder. Enrollments of every source move; of two rows in the
+ * same course, cohort and source the better one (active, then the later end) is kept and the other
+ * is deleted. Of two progress rows for one lesson the completed one survives, and of two completed
+ * ones the earlier completion; otherwise the signed-in person's row stays.
  */
 export async function adoptSubPlaceholder(
   personId: string,
@@ -182,6 +238,34 @@ export async function adoptSubPlaceholder(
           .insert(cohortMember)
           .values(places.map((m) => ({ cohortId: m.cohortId, personId, role: m.role })))
           .onConflictDoNothing();
+      const progress = { moved: 0, dropped: 0 };
+      const held = new Map(
+        (await t.select().from(lessonProgress).where(eq(lessonProgress.personId, personId))).map(
+          (r) => [r.lessonId, r],
+        ),
+      );
+      for (const r of await t
+        .select()
+        .from(lessonProgress)
+        .where(eq(lessonProgress.personId, id))) {
+        const mine = held.get(r.lessonId);
+        // The worse row goes with the placeholder (the foreign key cascades).
+        if (mine && !progressBetter(r, mine)) {
+          progress.dropped++;
+          continue;
+        }
+        if (mine)
+          await t
+            .delete(lessonProgress)
+            .where(
+              and(eq(lessonProgress.personId, personId), eq(lessonProgress.lessonId, r.lessonId)),
+            );
+        await t
+          .update(lessonProgress)
+          .set({ personId, updatedAt: r.updatedAt })
+          .where(and(eq(lessonProgress.personId, id), eq(lessonProgress.lessonId, r.lessonId)));
+        progress.moved++;
+      }
       await t.delete(person).where(eq(person.id, id));
       await audit(t, {
         actorId: null,
@@ -193,6 +277,8 @@ export async function adoptSubPlaceholder(
           placeholderId: id,
           sub,
           enrollmentsMoved: changes.filter((c) => c.op === "moved").length,
+          progressMoved: progress.moved,
+          progressDropped: progress.dropped,
         }),
       });
     }

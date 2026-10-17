@@ -11,6 +11,8 @@
  *                                     courses, lessons, blocks, quizzes and media to a directory
  *   pnpm sota import <dir> [--dry-run] [--draft]
  *                                     the same, idempotent by slug, in one transaction
+ *   pnpm sota import-progress <file.jsonl> [--dry-run]
+ *                                     learners' lesson completions from another LMS (sota-progress/v1)
  *
  * In the container: `docker compose exec app node scripts/sota.ts <command>`.
  * Plain Node: relative imports with .ts extensions, no alias.
@@ -25,6 +27,7 @@ const COMMANDS = [
   "validate-theme",
   "export",
   "import",
+  "import-progress",
 ] as const;
 type Command = (typeof COMMANDS)[number];
 
@@ -58,6 +61,11 @@ switch (command) {
   case "import": {
     const { runContent } = await import("./content.ts");
     await runContent(command, process.argv.slice(2));
+    break;
+  }
+  case "import-progress": {
+    const { runProgressImport } = await import("./progress.ts");
+    await runProgressImport(process.argv.slice(2));
     break;
   }
   case "validate-config": {
