@@ -43,7 +43,7 @@ person's `claims` enrollments with it:
 { "enrollments": [{ "course": "intro-1", "cohort": "autumn-26", "until": "2027-06-30T22:00:00Z" }] }
 ```
 
-`course` and `cohort` are the slug or the `external_ref` an admin set on the course or cohort
+`course` and `cohort` are the slug or the `external_ref` (set through `sota import`) of the course or cohort
 (a cohort must belong to its course). Unknown references are logged and ignored; rows the claim
 no longer lists become `expired`; a malformed claim changes nothing; a token without the claim
 changes nothing. `manual` and `webhook` enrollments are never touched. If you also configure the

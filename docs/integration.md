@@ -142,7 +142,7 @@ await sota("PUT", "/api/v1/enrollments/ord-1042-line-1", {
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `external_id` | Your id for this enrollment (order line, subscription…), in the path. The idempotency key; unique among `webhook` rows. At most 200 characters.        |
 | `user`        | `sub` and/or `email` (at least one). `name` is used only to label a new placeholder.                                                                   |
-| `course`      | Course slug **or** `external_ref` (set by an admin on the course). Slug wins when both match.                                                          |
+| `course`      | Course slug **or** `external_ref` (set through `sota import`, `docs/content-export-import.md`). Slug wins when both match.                             |
 | `cohort`      | Optional cohort slug or `external_ref`, which must belong to the course. A cohort-scoped enrollment also places the person in the cohort as a student. |
 | `valid_from`  | ISO 8601 instant with offset. Default: now on creation; later calls without it keep the stored value.                                                  |
 | `valid_until` | ISO 8601 instant with offset, **exclusive**. Absent or `null`: open-ended.                                                                             |
