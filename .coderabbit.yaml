@@ -1,0 +1,103 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# AI review on pull requests (CodeRabbit, free for public repositories: install the GitHub App, no
+# token or secret in this repository). It reviews against CLAUDE.md and docs/DESIGN.md, the same
+# checklist a human reviewer uses; CI stays the authority on what merges.
+language: en-US
+tone_instructions: "Direct and brief. Name the file, the line and the broken rule; skip praise."
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  in_progress_fortune: false
+  sequence_diagrams: false
+  suggested_reviewers: false
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    ignore_title_keywords: ["wip"]
+  path_filters:
+    - "!pnpm-lock.yaml"
+    - "!drizzle/meta/**"
+    - "!docs/screenshots/**"
+    - "!**/*.svg"
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: "A gitmoji, a space, then a capitalised English subject in the imperative, e.g. '✨ Add drip release to cohorts'."
+    description:
+      mode: off
+    docstrings:
+      mode: off
+  path_instructions:
+    - path: "src/server/mutations/**"
+      instructions: |
+        Every exported server function starts with requireUser(), requireRole() or requireCourseTeacher()
+        from src/server/auth/authz.ts and appends an audit_log row (the only exception is a person's own
+        lesson_progress). Enrollment writes record per-row before/after through src/server/audit.ts.
+        A file with server functions exports nothing else that touches the database, better-auth or
+        Node APIs: that code belongs in a *-core.ts sibling that takes the actor and transaction.
+        Mail is enqueue()d, never sent inline.
+    - path: "src/server/access/**"
+      instructions: |
+        canSeeLesson() in rules.ts is a pure function of its arguments (enrollments, course/lesson state,
+        cohort releases, now) and is the only place that decides visibility. Flag any I/O, Date.now() or
+        stored "unlocked" flag. Rows with source 'claims' or 'webhook' are written only by the sync paths;
+        no sync may create, change or delete a 'manual' enrollment.
+    - path: "src/server/{queries,api}/**"
+      instructions: |
+        Loaders and queries never write. Content loaders call requireLessonAccess(); assignments and
+        quizzes are reached only through requireContainerAccess(). Service API routes are declared once
+        in src/server/api/v1/routes.ts; the OpenAPI document is derived, never hand-written.
+    - path: "src/{components,routes}/**/*.tsx"
+      instructions: |
+        No hex colours and no raw Tailwind palette utilities (bg-blue-500, text-gray-700…): only the token
+        utilities from src/styles.css (docs/DESIGN.md). No component library imports (shadcn, Radix).
+        User-facing strings go through the i18n catalogues, never literals. Server-only modules
+        (authz.ts, auth.ts, src/db, services) are never imported from a component.
+    - path: "src/i18n/**"
+      instructions: "ca.ts is the source catalogue; es.ts and en.ts must carry every key. Check spelling and grammar of Catalan and Spanish copy carefully."
+    - path: "src/**/*.ts"
+      instructions: |
+        Server code logs through logger from src/lib/log.ts, never console.*, and never puts an address,
+        token, cookie, signature or request body in a log field. A new environment variable must be in
+        src/config/env.ts, .env.example and docs/configuration.md. Nothing organisation-specific (names,
+        domains, tiers, brand) may appear in src/. Comments describe behaviour or constraints, not history.
+    - path: "drizzle/**"
+      instructions: "A migration that is already on main must never be edited; schema changes come from src/db/schema.ts through pnpm db:generate. Flag locking or destructive statements."
+    - path: "tests/**"
+      instructions: "Tests run against in-memory PGlite (DATABASE_URL=pglite://memory). Prefer exercising the *-core.ts functions and canSeeLesson() directly over mocking them."
+    - path: ".github/workflows/**"
+      instructions: "Least-privilege permissions per job; never interpolate untrusted ${{ github.event.* }} text into run: scripts; no pull_request_target with a checkout of the PR head."
+  tools:
+    oxc:
+      enabled: true
+    squawk:
+      enabled: true
+    actionlint:
+      enabled: true
+    hadolint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    markdownlint:
+      enabled: false
+    languagetool:
+      enabled: false
+    biome:
+      enabled: false
+    eslint:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CLAUDE.md"
+      - "CONTRIBUTING.md"
+      - "docs/DESIGN.md"
