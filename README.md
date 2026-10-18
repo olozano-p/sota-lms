@@ -62,7 +62,7 @@ cat > .env <<EOF
 APP_URL=http://localhost:3003
 SESSION_SECRET=$(openssl rand -base64 32)
 POSTGRES_PASSWORD=$(openssl rand -hex 16)
-SOTA_IMAGE=ghcr.io/<owner>/sota:1.0.0
+SOTA_IMAGE=ghcr.io/<owner>/sota:1.1.0
 EOF
 docker compose up -d
 docker compose exec app node scripts/sota.ts create-admin --email you@example.org --name "You"

@@ -1,6 +1,6 @@
 {
   "name": "sota",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "SOTA — a lean, self-hostable LMS that relies on your identity provider",
   "license": "MIT",

@@ -88,7 +88,7 @@ export function buildOpenApi(routes: RouteDef[]): Json {
     openapi: "3.1.0",
     info: {
       title: "SOTA service API",
-      version: "1.0.0",
+      version: "1.1.0",
       description:
         "Server-to-server API of an external enrollment source. Bearer API_SERVICE_TOKEN; when the server has WEBHOOK_HMAC_SECRET every authenticated call must also be signed (see docs/integration.md).",
     },

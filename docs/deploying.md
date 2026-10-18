@@ -19,7 +19,7 @@ the walkthrough. It was followed end to end against an empty database before it 
   does not exist: put the real name in `.env`, preferably pinned to a version:
 
   ```bash
-  SOTA_IMAGE=ghcr.io/<owner>/sota:1.0.0
+  SOTA_IMAGE=ghcr.io/<owner>/sota:1.1.0
   ```
 
   A package published for the first time is private; make it public under the repository's _Packages_

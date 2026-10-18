@@ -6,17 +6,49 @@ All notable changes to SOTA are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-18
+
 ### Added
 
 - **`pnpm sota import-progress <file.jsonl> [--dry-run]`** (ADR-023, `docs/progress-import.md`): lesson
   completions from another LMS in the `sota-progress/v1` JSON Lines format; learners found by `sub` or
   email, or created as the placeholders the service API creates (oidc mode); never downgrades a
   completion, skips unknown references, one transaction, audited as `progress.import`.
+- **Course covers**: set from course settings, shown on the _My courses_ cards and the course page.
+- **PDF preview**: a PDF file block shows the document inline below its download link.
+- The service API's progress responses carry the course link and the next open lesson.
+- **`HOST`**: the address the production server binds to; `127.0.0.1` when a proxy on the same host
+  is the only way in (the rsync/pm2 deploy). Empty keeps every interface, as a container needs.
 
 ### Changed
 
 - The placeholder merge at first sign-in (`adoptSubPlaceholder`) also moves lesson progress, keeping the
   completed row, then the earlier completion, when both people hold one.
+- The default theme is rebuilt on paper, tint and the label style; the lesson sits inside the course
+  frame with a collapsible syllabus; _My courses_ is a grid of cover cards; forum, assignment, quiz,
+  cohort and sign-in screens follow the same look.
+- Images are served as resized WebP copies (quality 90) that the browser keeps and revalidates, so
+  every view still passes the access check but an unchanged image costs a 304.
+- English and `Europe/Paris` are the shipped defaults (the default theme's `defaultLocale`, the
+  `timeZone` in `lms.config.ts`). **Upgrading:** a deployment on the default theme that relied on
+  Catalan sets `DEFAULT_LOCALE=ca`, and one that relied on `Europe/Madrid` sets its own `timeZone`.
+
+### Fixed
+
+- A theme with its own ink or paper derives card and tint from its palette instead of inheriting the
+  default's.
+- Concurrent OIDC sign-ins of the same subject are serialised.
+- A repeated `error` parameter no longer crashes the landing page.
+- The rsync deploy ships every file `scripts/serve.mjs` and the `sota` CLI load.
+- The mock IdP container reaches the host dev server for webhook pushes.
+
+### Security
+
+- At OIDC sign-in an email adopts only a placeholder person, and only when the IdP marks it verified;
+  before, whoever could set an address at the IdP became the person holding it.
+- Course covers are served by the same filter that lists the course and accept only course images.
+- Image copies are bounded: source size, pixel count, decoded format, one encode per copy.
+- Dependencies past published advisories: nodemailer 10, TanStack Start and source-map-js.
 
 ## [1.0.0] - 2026-10-01
 
