@@ -44,9 +44,9 @@ Reusing the placeholder machinery means the learner's first sign-in needs nothin
 
 ## Consequences
 
-- The producer must send the `sub` the IdP will put in the ID token (in a better-auth-backed IdP,
-  the user id). A wrong `sub` with a right email still lands on the person once they sign in with that
-  email; a wrong `sub` without an email leaves an orphan placeholder.
+- The producer must send the `sub` the IdP will put in the ID token. A wrong `sub` with a right
+  email still lands on the person once they sign in with that email, verified by the IdP; a wrong
+  `sub` without an email leaves an orphan placeholder.
 - An imported completion can never be corrected downwards by a re-import; the learner unmarks it in
   the lesson.
 - The file format is public: changing its meaning needs `version: 2` and a reader for 1.

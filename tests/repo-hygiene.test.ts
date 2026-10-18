@@ -83,7 +83,7 @@ describe("docs/configuration.md", () => {
 describe("no deployment-specific names", () => {
   // Words that would tie the repository to one organisation, person or site. Generic fixtures use
   // example.invalid; the project's own name is not in this list.
-  const forbidden = ["virupa", "contemplativ", "artscontem"];
+  const forbidden = ["virupa", "contemplativ", "artscontem", "bizum", "nodal"];
   function walk(dir: string, out: string[] = []): string[] {
     for (const name of readdirSync(join(root, dir))) {
       if (

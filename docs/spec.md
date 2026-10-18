@@ -12,7 +12,7 @@ Name: **SOTA** (after Pali _sotāpanna_, "the one who has entered the stream"; r
 
 **First production deployment and reference implementation: a small foundation's members' school**, with the foundation's own members' site as the IdP. Every feature in this spec is driven by that deployment's needs, but nothing in the codebase may be specific to it — all of its particulars live in configuration and in Appendix A.
 
-This document is written to be handed to a coding agent. Sections marked **DECISION** are settled. Sections marked **OPEN** need Oscar's answer before implementation.
+This document is written to be handed to a coding agent. Sections marked **DECISION** are settled. Sections marked **OPEN** need the maintainer's answer before implementation.
 
 ---
 
@@ -20,7 +20,7 @@ This document is written to be handed to a coding agent. Sections marked **DECIS
 
 These are constraints on _how_ the project is built, not features:
 
-1. **Public repo from day one.** Public GitHub repository under the Foundation's (or Nodal's — OPEN) organisation. No private history to scrub later; secrets never committed, even in the first commit.
+1. **Public repo from day one.** Public GitHub repository under the maintainer's organisation. No private history to scrub later; secrets never committed, even in the first commit.
 2. **Generic core, configured edge.** Anything that names an organisation, domain, membership tier, brand, or IdP belongs in `.env`, `lms.config.ts`, or the database — never in source. Rule of thumb for the agent: _if a second organisation forked this tomorrow, would they have to edit a `.ts` file to run it? If yes, it's misplaced._
 3. **Standards over integrations.** SSO is plain OIDC (any compliant IdP works; better-auth is just the reference). Enrollments are a documented, versioned JSON contract over HTTPS, not a call into the members' site's internals. Storage is a directory or any S3-compatible API behind one interface. Email is SMTP. Video is behind a provider interface (Vimeo is the first implementation).
 4. **One-command local setup.** `docker compose -f compose.dev.yml up` gives Postgres + a mock OIDC provider + the app with seed data. A contributor must be able to run the full lesson flow locally without any credentials from the reference deployment.
@@ -362,9 +362,9 @@ Security checklist, Playwright suite, `docs/deploy.md` verified on a clean VPS b
 
 ---
 
-## 11. Open questions for Oscar
+## 11. Open questions for the maintainer
 
-1. Project name (and GitHub org: Foundation vs. Nodal Studio).
+1. Project name and GitHub organisation.
 2. License: AGPL-3.0 or MIT.
 3. Rich text: Markdown or JSON doc (Tiptap).
 4. Is write-back of manual enrollments to the enrollment source needed at launch (v1) or later (v1.1)?
@@ -392,7 +392,7 @@ and hosts are placeholders). None of it appears in core source.
 - **Locales:** ca (default), es, en; same resolution order as the main site.
 - **Brand:** the organisation's logo, colours and fonts in `theme/theme.json` (ADR-019).
 - **Deploy:** a VPS shared with the main site; nginx reverse proxy; either the official Docker image or the rsync + `deploy.sh` pattern already used for the main site (documented as an alternative in `docs/deploy.md`).
-- **Trust boundary reminder:** the main site handles payments (Stripe/Bizum), the Fase 2 accounting sync, and the ledger. The LMS receives only `sub`, profile fields, roles and enrollments — no payment data ever crosses.
+- **Trust boundary reminder:** the main site handles payments, accounting and the ledger. The LMS receives only `sub`, profile fields, roles and enrollments — no payment data ever crosses.
 
 ## Appendix B — Frappe LMS concept mapping
 
