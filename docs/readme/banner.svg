@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" width="1280" height="400" role="img" aria-labelledby="t d">
+  <title id="t">SOTA</title>
+  <desc id="d">A lean, self-hosted course platform. Ripples spread across still water at dusk.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#121122"/>
+      <stop offset="0.55" stop-color="#2b2660"/>
+      <stop offset="0.82" stop-color="#4b41a3"/>
+      <stop offset="1" stop-color="#9a6f9e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.78" cy="0.98" r="0.55">
+      <stop offset="0" stop-color="#f2a07b" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#f2a07b" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="frame"><rect width="1280" height="400" rx="28"/></clipPath>
+    <style>
+      .serif { font-family: Fraunces, Georgia, "Iowan Old Style", "Times New Roman", serif; }
+      .sans { font-family: Figtree, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .star { fill: #e7e4f3; animation: twinkle 4s ease-in-out infinite; }
+      .star:nth-child(3n) { animation-delay: -1.3s; }
+      .star:nth-child(3n+1) { animation-delay: -2.6s; }
+      @keyframes twinkle { 0%, 100% { opacity: .15 } 50% { opacity: .85 } }
+      .shimmer { animation: drift 7s ease-in-out infinite alternate; }
+      .shimmer.b { animation-duration: 9s; animation-delay: -3s; }
+      @keyframes drift { from { transform: translateX(-18px) } to { transform: translateX(18px) } }
+      .breathe { transform-origin: 1000px 300px; animation: breathe 8s ease-in-out infinite; }
+      @keyframes breathe { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.08) } }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important } }
+    </style>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect width="1280" height="400" fill="url(#sky)"/>
+    <rect width="1280" height="400" fill="url(#glow)"/>
+    <g>
+      <circle class="star" cx="90" cy="48" r="1.6"/><circle class="star" cx="210" cy="96" r="1.1"/>
+      <circle class="star" cx="330" cy="36" r="1.4"/><circle class="star" cx="470" cy="80" r="1"/>
+      <circle class="star" cx="610" cy="30" r="1.6"/><circle class="star" cx="720" cy="72" r="1.1"/>
+      <circle class="star" cx="860" cy="44" r="1.3"/><circle class="star" cx="980" cy="90" r="1"/>
+      <circle class="star" cx="1100" cy="40" r="1.5"/><circle class="star" cx="1210" cy="84" r="1.2"/>
+      <circle class="star" cx="1160" cy="150" r="1"/><circle class="star" cx="760" cy="140" r="1.2"/>
+    </g>
+
+    <!-- A stone dropped in still water: rings open outward and fade. -->
+    <g fill="none" stroke="#f6e7da" stroke-width="2">
+      <ellipse cx="1000" cy="300" rx="20" ry="6" opacity="0">
+        <animate attributeName="rx" values="20;300" dur="6s" repeatCount="indefinite"/>
+        <animate attributeName="ry" values="6;80" dur="6s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;.75;0" keyTimes="0;.12;1" dur="6s" repeatCount="indefinite"/>
+      </ellipse>
+      <ellipse cx="1000" cy="300" rx="20" ry="6" opacity="0">
+        <animate attributeName="rx" values="20;300" dur="6s" begin="2s" repeatCount="indefinite"/>
+        <animate attributeName="ry" values="6;80" dur="6s" begin="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;.75;0" keyTimes="0;.12;1" dur="6s" begin="2s" repeatCount="indefinite"/>
+      </ellipse>
+      <ellipse cx="1000" cy="300" rx="20" ry="6" opacity="0">
+        <animate attributeName="rx" values="20;300" dur="6s" begin="4s" repeatCount="indefinite"/>
+        <animate attributeName="ry" values="6;80" dur="6s" begin="4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;.75;0" keyTimes="0;.12;1" dur="6s" begin="4s" repeatCount="indefinite"/>
+      </ellipse>
+    </g>
+    <g class="breathe">
+      <circle cx="1000" cy="300" r="9" fill="#f2a07b"/>
+      <circle cx="1000" cy="300" r="22" fill="none" stroke="#aca1f2" stroke-width="2" opacity=".7"/>
+    </g>
+
+    <g stroke-linecap="round">
+      <g class="shimmer" stroke="#aca1f2" opacity=".35" stroke-width="2">
+        <line x1="60" y1="352" x2="420" y2="352"/><line x1="520" y1="366" x2="760" y2="366"/>
+        <line x1="140" y1="380" x2="300" y2="380"/><line x1="860" y1="382" x2="1220" y2="382"/>
+      </g>
+      <g class="shimmer b" stroke="#f6c3a8" opacity=".45" stroke-width="2">
+        <line x1="900" y1="346" x2="1100" y2="346"/><line x1="930" y1="360" x2="1070" y2="360"/>
+        <line x1="440" y1="390" x2="600" y2="390"/>
+      </g>
+    </g>
+
+    <text x="72" y="196" class="serif" font-size="112" font-weight="500" fill="#f6f4f0" letter-spacing="10">SOTA</text>
+    <text x="78" y="246" class="sans" font-size="26" fill="#e7e4f3">A lean, self-hosted course platform.</text>
+    <text x="78" y="282" class="sans" font-size="19" fill="#aca1f2">Lessons, cohorts and progress. Your identity provider, your enrollments, your look.</text>
+    <text x="78" y="330" class="mono" font-size="14" fill="#f2a07b" letter-spacing="1.5">sotāpanna · the one who has entered the stream</text>
+  </g>
+</svg>

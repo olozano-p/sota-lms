@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 372" width="1000" height="372" role="img" aria-labelledby="t d">
+  <title id="t">Quickstart</title>
+  <desc id="d">docker compose up -d starts Postgres and the app; docker compose exec app node scripts/sota.ts create-admin creates the first administrator; then open http://localhost:3003 and sign in.</desc>
+  <defs>
+    <linearGradient id="bar" x1="0" x2="1"><stop offset="0" stop-color="#2b2660"/><stop offset="1" stop-color="#4b41a3"/></linearGradient>
+    <style>
+      text { white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 14px; }
+      .cmd { fill: #f6f4f0; } .prompt { fill: #f2a07b; } .ok { fill: #86c0a8; } .out { fill: #aca1f2; } .note { fill: #77738f; font-style: italic; }
+      .title { fill: #c9c3e9; font-family: Figtree, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 13px; }
+      .cursor { animation: blink 1s steps(1) infinite; }
+      @keyframes blink { 50% { opacity: 0 } }
+      @media (prefers-reduced-motion: reduce) { .cursor { animation: none } }
+    </style>
+    <clipPath id="c0"><rect x="32" y="74" height="26" width="196"><animate attributeName="width" values="196;196;0;0;196;196" keyTimes="0;0.1333;0.1500;0.2000;0.2667;1" dur="18s" repeatCount="indefinite"/></rect></clipPath><clipPath id="c1"><rect x="32" y="104" height="26" width="314"><animate attributeName="width" values="314;314;0;0;314;314" keyTimes="0;0.1333;0.1500;0.2944;0.2972;1" dur="18s" repeatCount="indefinite"/></rect></clipPath><clipPath id="c2"><rect x="32" y="134" height="26" width="314"><animate attributeName="width" values="314;314;0;0;314;314" keyTimes="0;0.1333;0.1500;0.3222;0.3250;1" dur="18s" repeatCount="indefinite"/></rect></clipPath><clipPath id="c3"><rect x="32" y="164" height="26" width="821"><animate attributeName="width" values="821;821;0;0;821;821" keyTimes="0;0.1333;0.1500;0.3667;0.5111;1" dur="18s" repeatCount="indefinite"/></rect></clipPath><clipPath id="c4"><rect x="32" y="194" height="26" width="196"><animate attributeName="width" values="196;196;0;0;196;196" keyTimes="0;0.1333;0.1500;0.5444;0.5472;1" dur="18s" repeatCount="indefinite"/></rect></clipPath><clipPath id="c5"><rect x="32" y="224" height="26" width="323"><animate attributeName="width" values="323;323;0;0;323;323" keyTimes="0;0.1333;0.1500;0.5889;0.5917;1" dur="18s" repeatCount="indefinite"/></rect></clipPath><clipPath id="c6"><rect x="32" y="254" height="26" width="247"><animate attributeName="width" values="247;247;0;0;247;247" keyTimes="0;0.1333;0.1500;0.6444;0.7167;1" dur="18s" repeatCount="indefinite"/></rect></clipPath><clipPath id="c7"><rect x="32" y="284" height="26" width="466"><animate attributeName="width" values="466;466;0;0;466;466" keyTimes="0;0.1333;0.1500;0.7444;0.7472;1" dur="18s" repeatCount="indefinite"/></rect></clipPath>
+  </defs>
+  <rect width="1000" height="372" rx="18" fill="#121122"/>
+  <path d="M0 18 a18 18 0 0 1 18 -18 h964 a18 18 0 0 1 18 18 v24 h-1000z" fill="url(#bar)"/>
+  <circle cx="26" cy="21" r="6" fill="#e38a96"/><circle cx="46" cy="21" r="6" fill="#f2a07b"/><circle cx="66" cy="21" r="6" fill="#86c0a8"/>
+  <text x="500" y="26" text-anchor="middle" class="title">~/sota — one machine, Docker, a compose.yml and a .env</text>
+  <text x="36" y="92" clip-path="url(#c0)" class="cmd"><tspan class="prompt">$ </tspan>docker compose up -d</text><text x="36" y="122" clip-path="url(#c1)" class="ok">✔ Container sota-postgres-1  Healthy</text><text x="36" y="152" clip-path="url(#c2)" class="ok">✔ Container sota-app-1       Started</text><text x="36" y="182" clip-path="url(#c3)" class="cmd"><tspan class="prompt">$ </tspan>docker compose exec app node scripts/sota.ts create-admin --email you@example.org --name &quot;You&quot;</text><text x="36" y="212" clip-path="url(#c4)" class="out">Password: ••••••••••••</text><text x="36" y="242" clip-path="url(#c5)" class="out">Created administrator you@example.org</text><text x="36" y="272" clip-path="url(#c6)" class="cmd"><tspan class="prompt">$ </tspan>open http://localhost:3003</text><text x="36" y="302" clip-path="url(#c7)" class="note"># sign in, create a course, invite your first learners</text>
+  <rect class="cursor" x="36" y="317" width="9" height="18" fill="#f2a07b"/>
+</svg>

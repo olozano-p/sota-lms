@@ -6,6 +6,17 @@ All notable changes to SOTA are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **`examples/themes/twilight`**: a third example theme with tokens only (indigo and apricot palette,
+  self-hosted Fraunces and Figtree, a wordmark logo, a few lines of CSS) and no slot.
+
+### Changed
+
+- The README shows English screenshots of a demo meditation school in the Twilight theme, the same
+  lesson under all four themes, an access diagram, the stack, deployment in one block and measured
+  build, size and start-up numbers.
+
 ## [1.1.0] - 2026-10-18
 
 ### Added

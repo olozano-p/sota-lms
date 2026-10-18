@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 460" width="1200" height="460" role="img" aria-labelledby="t d">
+  <title id="t">How SOTA decides access</title>
+  <desc id="d">Enrollments come from an administrator, from your system (webhook, pull at sign-in, service API) or from an ID-token claim. Together with the publish state, the cohort release dates and the current time they feed one pure function, canSeeLesson, which opens the lesson or explains why and until when it is locked.</desc>
+  <defs>
+    <style>
+      .bg { fill: #fbfaf7; stroke: #e4e0ee; }
+      .card { fill: #ffffff; stroke: #dcd7ea; }
+      .core { fill: #4b41a3; }
+      .ink { fill: #1d1b30; }
+      .muted { fill: #6b6782; }
+      .on-core { fill: #fbfaff; }
+      .wire { stroke: #c9c3e3; }
+      .chip-ok { fill: #e3f1ea; } .ok { fill: #2d5e4c; }
+      .chip-lock { fill: #fbe9df; } .lock { fill: #8f4520; }
+      .dot { fill: #f2a07b; }
+      .sans { font-family: Figtree, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+      .serif { font-family: Fraunces, Georgia, "Times New Roman", serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .label { font-size: 12px; letter-spacing: 1.6px; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #121122; stroke: #29263f; }
+        .card { fill: #1b1a2f; stroke: #34304f; }
+        .core { fill: #aca1f2; }
+        .ink { fill: #e7e4f3; }
+        .muted { fill: #9d98b8; }
+        .on-core { fill: #121122; }
+        .wire { stroke: #3d3960; }
+        .chip-ok { fill: #1f3a30; } .ok { fill: #a3d3bf; }
+        .chip-lock { fill: #3d2a24; } .lock { fill: #f6bb9e; }
+      }
+    </style>
+  </defs>
+  <rect class="bg" x="1" y="1" width="1198" height="458" rx="24" stroke-width="2"/>
+
+  <text x="40" y="52" class="sans label muted">WHERE ENROLLMENTS COME FROM</text>
+  <text x="482" y="52" class="sans label muted">ONE PURE FUNCTION</text>
+  <text x="900" y="52" class="sans label muted">WHAT THE LEARNER SEES</text>
+
+  <!-- Sources -->
+  <g class="sans">
+    <rect class="card" x="40" y="76" width="320" height="92" rx="16" stroke-width="1.5"/>
+    <text x="62" y="110" class="ink" font-size="18" font-weight="600">An administrator</text>
+    <text x="62" y="136" class="muted" font-size="14">one person, a pasted list of emails,</text>
+    <text x="62" y="155" class="muted" font-size="14">or a whole cohort</text>
+
+    <rect class="card" x="40" y="184" width="320" height="110" rx="16" stroke-width="1.5"/>
+    <text x="62" y="218" class="ink" font-size="18" font-weight="600">Your system</text>
+    <text x="62" y="244" class="muted" font-size="14">signed webhook with the complete set,</text>
+    <text x="62" y="263" class="muted" font-size="14">pull at sign-in, or the service API</text>
+    <text x="62" y="282" class="mono muted" font-size="12.5">PUT /api/v1/enrollments/{id}</text>
+
+    <rect class="card" x="40" y="310" width="320" height="92" rx="16" stroke-width="1.5"/>
+    <text x="62" y="344" class="ink" font-size="18" font-weight="600">Your identity provider</text>
+    <text x="62" y="370" class="muted" font-size="14">a claim in the ID token lists the</text>
+    <text x="62" y="389" class="muted" font-size="14">courses and cohorts</text>
+  </g>
+
+  <!-- Wires -->
+  <g fill="none" stroke-width="2" class="wire">
+    <path id="w1" d="M360 122 C 420 122, 420 230, 482 230"/>
+    <path id="w2" d="M360 239 L 482 239"/>
+    <path id="w3" d="M360 356 C 420 356, 420 248, 482 248"/>
+    <path id="w4" d="M808 239 C 850 239, 850 150, 900 150"/>
+    <path id="w5" d="M808 239 C 850 239, 850 318, 900 318"/>
+  </g>
+  <g class="dot">
+    <circle r="5"><animateMotion dur="3s" repeatCount="indefinite"><mpath href="#w1"/></animateMotion></circle>
+    <circle r="5"><animateMotion dur="3s" begin="1s" repeatCount="indefinite"><mpath href="#w2"/></animateMotion></circle>
+    <circle r="5"><animateMotion dur="3s" begin="2s" repeatCount="indefinite"><mpath href="#w3"/></animateMotion></circle>
+    <circle r="5"><animateMotion dur="2s" begin=".5s" repeatCount="indefinite"><mpath href="#w4"/></animateMotion></circle>
+    <circle r="5"><animateMotion dur="2s" begin="1.5s" repeatCount="indefinite"><mpath href="#w5"/></animateMotion></circle>
+  </g>
+
+  <!-- The function -->
+  <rect class="core" x="482" y="150" width="326" height="178" rx="22">
+    <animate attributeName="opacity" values="1;.88;1" dur="4s" repeatCount="indefinite"/>
+  </rect>
+  <text x="506" y="190" class="mono on-core" font-size="22" font-weight="700">canSeeLesson()</text>
+  <g class="sans on-core" font-size="14.5" opacity=".92">
+    <text x="506" y="224">· enrollment rows (any origin)</text>
+    <text x="506" y="248">· course and lesson publish state</text>
+    <text x="506" y="272">· the cohort's release dates</text>
+    <text x="506" y="296">· now</text>
+  </g>
+  <text x="506" y="364" class="sans muted" font-size="13.5">No stored "unlocked" flags: visibility is computed,</text>
+  <text x="506" y="383" class="sans muted" font-size="13.5">every time, from data. Every enrollment change</text>
+  <text x="506" y="402" class="sans muted" font-size="13.5">lands in the audit log with before and after.</text>
+
+  <!-- Outcomes -->
+  <g class="sans">
+    <rect class="card" x="900" y="96" width="260" height="108" rx="16" stroke-width="1.5"/>
+    <rect class="chip-ok" x="920" y="116" width="74" height="26" rx="13"/>
+    <text x="936" y="134" class="ok" font-size="13" font-weight="600">OPEN</text>
+    <text x="920" y="170" class="serif ink" font-size="17">The breath as an anchor</text>
+    <text x="920" y="192" class="muted" font-size="13.5">resumes where you left off</text>
+
+    <rect class="card" x="900" y="264" width="260" height="108" rx="16" stroke-width="1.5"/>
+    <rect class="chip-lock" x="920" y="284" width="84" height="26" rx="13"/>
+    <text x="935" y="302" class="lock" font-size="13" font-weight="600">LOCKED</text>
+    <text x="920" y="338" class="serif ink" font-size="17">Everyday practice</text>
+    <text x="920" y="360" class="muted" font-size="13.5">opens on 24 October, says why</text>
+  </g>
+</svg>

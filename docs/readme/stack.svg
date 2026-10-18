@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 470" width="1200" height="470" role="img" aria-labelledby="t d">
+  <title id="t">The SOTA stack</title>
+  <desc id="d">Browser: React 19 with TanStack Router, Query and Form, Tailwind v4 on theme tokens. Server: TanStack Start on Vite and Node 24, server functions and the service API. Identity: better-auth with local accounts or a generic OIDC client. Data: PostgreSQL 16 through Drizzle. Edges: files on disk or any S3 API, SMTP, Vimeo. Alongside: JSON logs, a health endpoint, rate limits, CSP with nonces, vitest and Playwright.</desc>
+  <defs>
+    <style>
+      .bg { fill: #fbfaf7; stroke: #e4e0ee; }
+      .ink { fill: #1d1b30; } .muted { fill: #6b6782; }
+      .l1 { fill: #ece9f8; } .l2 { fill: #e1dcf5; } .l3 { fill: #d4cdf0; } .l4 { fill: #4b41a3; } .l5 { fill: #2b2660; }
+      .on-dark { fill: #f6f4f0; } .on-dark-muted { fill: #c9c3e9; }
+      .side { fill: #ffffff; stroke: #dcd7ea; }
+      .tag { fill: #f2a07b; }
+      .sans { font-family: Figtree, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .label { font-size: 12px; letter-spacing: 1.6px; }
+      .rise { animation: rise .7s ease-out backwards; }
+      .rise.d1 { animation-delay: .1s } .rise.d2 { animation-delay: .25s } .rise.d3 { animation-delay: .4s }
+      .rise.d4 { animation-delay: .55s } .rise.d5 { animation-delay: .7s } .rise.d6 { animation-delay: .9s }
+      @keyframes rise { from { transform: translateY(10px) } to { transform: none } }
+      @media (prefers-reduced-motion: reduce) { .rise { animation: none } }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #121122; stroke: #29263f; }
+        .ink { fill: #e7e4f3; } .muted { fill: #9d98b8; }
+        .l1 { fill: #1f1d36; } .l2 { fill: #262344; } .l3 { fill: #2e2a53; } .l4 { fill: #4b41a3; } .l5 { fill: #6c62c9; }
+        .side { fill: #1b1a2f; stroke: #34304f; }
+      }
+    </style>
+  </defs>
+  <rect class="bg" x="1" y="1" width="1198" height="468" rx="24" stroke-width="2"/>
+
+  <g class="sans">
+    <g class="rise d1">
+      <rect class="l1" x="40" y="40" width="760" height="70" rx="16"/>
+      <text x="64" y="70" class="label muted">BROWSER</text>
+      <text x="64" y="96" class="ink" font-size="17">React 19 · TanStack Router, Query, Form · Tailwind v4 on theme tokens · Tiptap</text>
+    </g>
+    <g class="rise d2">
+      <rect class="l2" x="40" y="122" width="760" height="70" rx="16"/>
+      <text x="64" y="152" class="label muted">SERVER</text>
+      <text x="64" y="178" class="ink" font-size="17">TanStack Start on Vite · Node 24 · SSR, server functions, service API /api/v1</text>
+    </g>
+    <g class="rise d3">
+      <rect class="l3" x="40" y="204" width="760" height="70" rx="16"/>
+      <text x="64" y="234" class="label muted">IDENTITY</text>
+      <text x="64" y="260" class="ink" font-size="17">better-auth · local accounts, magic links, invitations · or any OIDC provider</text>
+    </g>
+    <g class="rise d4">
+      <rect class="l4" x="40" y="286" width="760" height="70" rx="16"/>
+      <text x="64" y="316" class="label on-dark-muted">DATA</text>
+      <text x="64" y="342" class="on-dark" font-size="17">PostgreSQL 16 · Drizzle ORM · plain SQL migrations · PGlite in tests</text>
+    </g>
+    <g class="rise d5">
+      <rect class="l5" x="40" y="368" width="760" height="70" rx="16"/>
+      <text x="64" y="398" class="label on-dark-muted">EDGES</text>
+      <text x="64" y="424" class="on-dark" font-size="17">files on disk or any S3 API · SMTP mail queue · Vimeo behind an interface</text>
+    </g>
+  </g>
+
+  <!-- A request travelling down the stack and back. -->
+  <circle class="tag" cx="776" cy="75" r="7">
+    <animate attributeName="cy" values="75;403;75" dur="5s" repeatCount="indefinite" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1"/>
+  </circle>
+
+  <g class="sans rise d6">
+    <rect class="side" x="830" y="40" width="330" height="398" rx="18" stroke-width="1.5"/>
+    <text x="856" y="76" class="label muted">ALONGSIDE</text>
+    <g class="ink" font-size="16">
+      <text x="856" y="116">JSON logs, scrubbed</text>
+      <text x="856" y="150">/api/health</text>
+      <text x="856" y="184">rate limits · CSP nonces</text>
+      <text x="856" y="218">audit log on every write</text>
+      <text x="856" y="252">ca · es · en, typed catalogue</text>
+      <text x="856" y="286">vitest · Playwright</text>
+      <text x="856" y="320">oxlint · oxfmt · tsc</text>
+    </g>
+    <text x="856" y="370" class="muted" font-size="14">Hand-written UI primitives,</text>
+    <text x="856" y="392" class="muted" font-size="14">no telemetry. MIT licence.</text>
+  </g>
+</svg>
