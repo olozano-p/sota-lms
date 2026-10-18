@@ -1,0 +1,27 @@
+name: Links
+
+# External links in the Markdown files. Relative links and paths are checked offline by
+# tests/repo-hygiene.test.ts on every run; the web changes on its own schedule, so this runs weekly
+# and when Markdown changes on main, and never blocks a pull request.
+
+on:
+  push:
+    branches: [main]
+    paths: ["**/*.md", "lychee.toml", ".github/workflows/links.yml"]
+  schedule:
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config lychee.toml --no-progress './**/*.md'
+          fail: true

@@ -1,0 +1,20 @@
+# External link check for the Markdown files (.github/workflows/links.yml).
+
+# Relative links are tests/repo-hygiene.test.ts's job.
+scheme = ["https", "http"]
+exclude_path = ["node_modules", "CHANGELOG.md", "docs/decisions"]
+accept = ["200..=299", "429"]
+max_retries = 3
+timeout = 20
+
+# Placeholders and examples in the docs, and APIs that answer only with credentials.
+exclude = [
+  '^https?://localhost',
+  '^https?://127\.0\.0\.1',
+  '^https?://[^/]*example\.(org|com|invalid)',
+  '^https://…',
+  '^https://api\.vimeo\.com',
+  '^https://player\.vimeo\.com',
+  '^https://i\.vimeocdn\.com',
+  '^https://vimeo\.com/[0-9]',
+]
