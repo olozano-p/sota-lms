@@ -59,7 +59,8 @@ create-admin`, `applyEnrollmentPayload` (pull and webhook) and the service API's
   slots) live in the theme directory (`THEME_DIR`, `docs/theming.md`, ADR-019). Test: would a second organisation have to edit a `.ts`
   file to run their fork? Then it is misplaced. Lock reasons are i18n'd from the rule _type_.
 - **Files are private.** Only `/api/files/$fileId` hands out signed GET URLs (≤ 5 min) after an
-  access check. Storage sits behind `StorageProvider` (`src/server/services/storage`): `local`
+  access check; with `?w=` it serves an image's WebP display copy itself (ETag, `no-cache`, so every
+  view is re-checked; `storage/variants.ts`, ADR-024). Storage sits behind `StorageProvider` (`src/server/services/storage`): `local`
   (default, a directory served through `/api/storage/$token`, which only honours tokens) or `s3`.
 - **Assignments and quizzes are reached through the lesson block that embeds them**:
   `requireContainerAccess()` in `src/server/access/container.ts` is the only gate.

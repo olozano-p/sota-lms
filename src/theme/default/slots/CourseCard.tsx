@@ -36,6 +36,7 @@ export default function CourseCard({ course: c }: CourseCardProps) {
           src={c.coverUrl}
           alt=""
           loading="lazy"
+          decoding="async"
           className={cn(
             "aspect-square w-full shrink-0 rounded object-cover sm:aspect-auto sm:w-75",
             finished && "opacity-50",

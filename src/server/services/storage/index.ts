@@ -6,8 +6,10 @@
 import { env } from "../../../config/env.ts";
 import { createLocalStorage, type LocalStorage } from "./local.ts";
 import type { StorageProvider } from "./types.ts";
+import { imageVariant } from "./variants.ts";
 
 export { SIGNED_URL_TTL_S, type StorageProvider } from "./types.ts";
+export { isResizable, VARIANT_VERSION, variantWidth } from "./variants.ts";
 
 let local: LocalStorage | null = null;
 let s3: Promise<StorageProvider> | null = null;
@@ -36,6 +38,10 @@ export const getObject: StorageProvider["getObject"] = async (...args) =>
   (await storage()).getObject(...args);
 export const putObject: StorageProvider["putObject"] = async (...args) =>
   (await storage()).putObject(...args);
+
+/** The WebP display copy of a stored image (see `variants.ts`). */
+export const storedImageVariant = async (key: string, width: number) =>
+  imageVariant(await storage(), key, width);
 
 /** `/api/storage/$token`: only the local driver answers here; with S3 the browser never comes. */
 export async function storageRequest(request: Request, token: string): Promise<Response> {

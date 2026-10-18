@@ -72,6 +72,17 @@ function placeEmbeds(html: string, embeds: VideoLink[]): string {
 }
 
 /**
+ * A stored image (`/api/files/<id>`, with or without a query) is asked for at 1200 px, which the
+ * route serves as a WebP copy, and loads lazily. Runs on sanitised output, so `src` is quoted.
+ */
+function sizeStoredImages(html: string): string {
+  return html.replace(
+    /<img\b([^>]*?) src="\/api\/files\/([A-Za-z0-9-]+)(?:\?[^"]*)?"/g,
+    '<img loading="lazy" decoding="async"$1 src="/api/files/$2?w=1200"',
+  );
+}
+
+/**
  * Markdown → sanitised HTML. Raw HTML in the source is dropped by the sanitiser; `h1` is demoted
  * to `h2` so a lesson never carries two page titles. Links open in the same tab (the reader is in
  * a lesson; the browser's back button is the way home).
@@ -85,7 +96,7 @@ export function renderMarkdown(md: string): string {
     ALLOW_DATA_ATTR: false,
     ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|\/(?!\/))/i,
   });
-  return placeEmbeds(clean, lifted.embeds);
+  return placeEmbeds(sizeStoredImages(clean), lifted.embeds);
 }
 
 /** First paragraph, plain text, for previews and email. */

@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
     ],
     ssr: {
       // Native or Node-only modules: required at runtime, never bundled.
-      external: ["pg", "isomorphic-dompurify", "nodemailer"],
+      external: ["pg", "isomorphic-dompurify", "nodemailer", "sharp"],
     },
   };
 });

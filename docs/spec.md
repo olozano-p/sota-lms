@@ -266,7 +266,7 @@ Contributors may add `YouTubeProvider`, `MuxProvider`, `SelfHostedProvider` behi
 
 /api/webhooks/entitlements          → POST (HMAC)
 /api/v1/*                           → service API (bearer, optional HMAC), /api/v1/openapi.json
-/api/files/$fileId                  → GET signed redirect (access-checked)
+/api/files/$fileId                  → GET signed redirect (access-checked); `?w=` on an image: its WebP copy, ETag + no-cache (ADR-024)
 /api/health                         → GET: database round trip and version, 503 when the database is down (docs/observability.md)
 ```
 
@@ -294,7 +294,7 @@ Every loader calls `requireSession()`; content loaders call `requireLessonAccess
 - Session: 12 h absolute, 2 h sliding idle, rotate on privilege change.
 - Webhooks: HMAC-SHA256, |now − ts| ≤ 5 min, store-then-process, idempotent.
 - Secrets only via env; `.env.example` complete; `SECURITY.md` with disclosure address.
-- Private bucket; signed URLs ≤ 5 min.
+- Private bucket; signed URLs ≤ 5 min; resized image copies served by `/api/files` itself, revalidated on every view (ADR-024).
 - Rate limiting on `/auth/*`, `/api/*` and server functions documented for the reverse proxy; app-level fallback limiter with strict buckets for credential, magic-link, recovery and invitation endpoints, and a per-address throttle on account mail (`docs/configuration.md`).
 - Structured JSON logs without secrets, tokens or addresses (`docs/observability.md`); every enrollment write audited (`docs/audit-log.md`); backup and restore drill (`docs/backup-restore.md`).
 - CSP with nonces; `frame-src` built from enabled providers + embed allowlist.

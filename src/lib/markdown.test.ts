@@ -13,6 +13,15 @@ describe("renderMarkdown", () => {
   it("drops javascript: links", () => {
     expect(renderMarkdown("[x](javascript:alert(1))")).not.toContain("javascript:");
   });
+  it("asks for stored images at display width and loads them lazily", () => {
+    const out = renderMarkdown(
+      "![a](/api/files/0199aa00-1111-7000-8000-000000000001?inline=1)\n\n![b](https://example.org/b.png)",
+    );
+    expect(out).toContain(
+      '<img loading="lazy" decoding="async" src="/api/files/0199aa00-1111-7000-8000-000000000001?w=1200" alt="a">',
+    );
+    expect(out).toContain('<img src="https://example.org/b.png" alt="b">');
+  });
   it("demotes h1 to h2", () => {
     expect(renderMarkdown("# Title")).toContain("<h2>Title</h2>");
   });

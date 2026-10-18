@@ -12,11 +12,54 @@ import {
 } from "~/server/access/require";
 import { requireForumFileAccess } from "~/server/access/forum";
 import { forumScopeFromFileKey } from "~/lib/forum";
-import { signedGetUrl } from "~/server/services/storage";
+import {
+  isResizable,
+  signedGetUrl,
+  storedImageVariant,
+  VARIANT_VERSION,
+  variantWidth,
+} from "~/server/services/storage";
+import { errorFields, logger } from "~/lib/log";
+
+/**
+ * A JPEG, PNG or WebP asked for with `?w=`: its WebP display copy, served here rather than through a
+ * signed URL so the address is stable and the browser can keep it. `no-cache` plus the ETag means
+ * every view still passes the access check above, but an unchanged image costs a 304, not its bytes.
+ * Null (the caller falls back to the redirect) when the original is missing or cannot be decoded.
+ */
+async function serveVariant(
+  request: Request,
+  f: { id: string; key: string; size: number; filename: string },
+  width: number,
+): Promise<Response | null> {
+  const etag = `"${f.id}-${f.size}-w${width}-v${VARIANT_VERSION}"`;
+  const headers = new Headers({
+    etag,
+    "cache-control": "private, no-cache",
+    "content-type": "image/webp",
+    "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(f.filename.replace(/\.[^.]*$/, "") + ".webp")}`,
+    "x-content-type-options": "nosniff",
+    "content-security-policy": "default-src 'none'; sandbox",
+  });
+  const sent = request.headers.get("if-none-match");
+  if (sent && sent.split(",").some((t) => t.trim().replace(/^W\//, "") === etag))
+    return new Response(null, { status: 304, headers });
+  let body: Uint8Array | null;
+  try {
+    body = await storedImageVariant(f.key, width);
+  } catch (e) {
+    logger.warn("image variant failed", { fileId: f.id, width, ...errorFields(e) });
+    return null;
+  }
+  if (!body) return null;
+  headers.set("content-length", String(body.byteLength));
+  return new Response(body as BodyInit, { status: 200, headers });
+}
 
 /**
  * The only way to a stored object: find who references the file, check that the caller may see
- * that thing, then 302 to a ≤ 5-minute signed URL. `?inline=1` streams (audio, PDFs in the browser).
+ * that thing, then 302 to a ≤ 5-minute signed URL. `?inline=1` streams (audio, PDFs in the browser);
+ * `?w=<px>` on an image serves its resized WebP copy directly (`serveVariant`).
  */
 export const Route = createFileRoute("/api/files/$fileId")({
   server: {
@@ -94,7 +137,14 @@ export const Route = createFileRoute("/api/files/$fileId")({
         }
         if (!allowed) return new Response("forbidden", { status: 403 });
 
-        const inline = new URL(request.url).searchParams.get("inline") === "1";
+        const search = new URL(request.url).searchParams;
+        const width = variantWidth(search.get("w"));
+        if (width && isResizable(f.mime)) {
+          const served = await serveVariant(request, f, width);
+          if (served) return served;
+        }
+
+        const inline = search.get("inline") === "1";
         const url = await signedGetUrl(f.key, f.filename, f.mime, inline);
         return new Response(null, {
           status: 302,
