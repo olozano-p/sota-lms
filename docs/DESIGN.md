@@ -97,7 +97,7 @@ slide on press or open; dialogs fade. `prefers-reduced-motion` keeps opacity and
   on the right, the current section in a sand box) over a `max-w-content` column; a label footer.
   The bar, the footer, the landing, the sign-in frame, the course card, the lesson frame and the
   empty state are theme slots (`src/theme/default/slots`).
-- **My courses** (`/courses`): a centred `max-w-2xl` column. «In progress» and «Finished» as serif
+- **My courses** (`/courses`): a centred 52 rem column (between `max-w-3xl` and `max-w-4xl`). «In progress» and «Finished» as serif
   section heads, each a list of course cards: sand at 40 %, the cover on the left (a sand block
   with the mark when there is none; stacked on phones), title, subtitle, a «Chapter 2 of 9» tag, a
   status dot with its word, and an underlined label link at the bottom. Finished cards fade the cover to 50 % and set their text in `muted-foreground`.

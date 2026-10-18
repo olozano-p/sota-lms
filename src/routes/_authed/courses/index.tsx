@@ -29,7 +29,7 @@ function CoursesPage() {
   ].filter((s) => s.rows.length);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-16">
+    <div className="mx-auto flex w-full max-w-[52rem] flex-col gap-16">
       <PageHeader title={t("courses.title")} />
       {courses.length === 0 ? (
         <Empty title={t("courses.empty.title")}>{t("courses.empty.lead")}</Empty>
