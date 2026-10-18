@@ -161,6 +161,10 @@ export function createLocalStorage(opts: LocalStorageOptions): LocalStorage {
     } catch {
       return text(404, "not found");
     }
+    // An inline PDF is previewed in a lesson: our pages may frame it, and it skips `sandbox`
+    // because browsers refuse to render a PDF in a sandboxed document. Under nosniff it can only
+    // ever be read as a PDF.
+    const pdfPreview = t.inline && t.mime === "application/pdf";
     const headers = new Headers({
       "content-type": t.mime,
       "content-disposition": `${t.inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(t.filename)}`,
@@ -168,7 +172,10 @@ export function createLocalStorage(opts: LocalStorageOptions): LocalStorage {
       "cache-control": "private, no-store",
       "x-content-type-options": "nosniff",
       // Uploaded SVG or HTML must never run on our origin.
-      "content-security-policy": "default-src 'none'; sandbox",
+      "content-security-policy": pdfPreview
+        ? "default-src 'none'; frame-ancestors 'self'"
+        : "default-src 'none'; sandbox",
+      ...(pdfPreview ? { "x-frame-options": "SAMEORIGIN" } : {}),
     });
     const range = parseRange(request.headers.get("range"), size);
     if (range === "unsatisfiable") {

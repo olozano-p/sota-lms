@@ -187,6 +187,7 @@ export const en: Record<MessageKey, string> = {
   "lesson.preview": "Teacher preview: students cannot see this lesson.",
   "lesson.video.title": "Video: {title}",
   "lesson.audio.title": "Audio: {title}",
+  "lesson.file.preview": "Preview: {title}",
   "lesson.size": "{n} MB",
 
   "lock.title": "Not available yet",

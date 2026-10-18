@@ -188,6 +188,7 @@ export const es: Record<MessageKey, string> = {
   "lesson.preview": "Vista previa de docente: esta lección no es visible para el alumnado.",
   "lesson.video.title": "Vídeo: {title}",
   "lesson.audio.title": "Audio: {title}",
+  "lesson.file.preview": "Vista previa: {title}",
   "lesson.size": "{n} MB",
 
   "lock.title": "Aún no disponible",

@@ -61,13 +61,29 @@ const fileIcon = (mime: string): LucideIcon =>
           ? Film
           : File;
 
-/** Icon plus an underlined label: a material, an assignment or a quiz. */
-function Resource({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
-  return (
-    <li className="flex items-center gap-2">
+/** Icon plus an underlined label: a material, an assignment or a quiz; `preview` goes below it. */
+function Resource({
+  icon: Icon,
+  children,
+  preview,
+}: {
+  icon: LucideIcon;
+  children: ReactNode;
+  preview?: ReactNode;
+}) {
+  const row = (
+    <>
       <Icon className="size-3.5 shrink-0" aria-hidden="true" />
       {children}
+    </>
+  );
+  return preview ? (
+    <li className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">{row}</div>
+      {preview}
     </li>
+  ) : (
+    <li className="flex items-center gap-2">{row}</li>
   );
 }
 
@@ -112,7 +128,20 @@ export function Blocks({
         );
       case "file":
         return (
-          <Resource key={b.id} icon={fileIcon(b.mime)}>
+          <Resource
+            key={b.id}
+            icon={fileIcon(b.mime)}
+            preview={
+              b.url && b.mime === "application/pdf" ? (
+                <iframe
+                  src={`${b.url}?inline=1`}
+                  title={t("lesson.file.preview", { title: b.title })}
+                  className="aspect-[3/4] max-h-[80vh] w-full max-w-3xl rounded-lg bg-card"
+                  loading="lazy"
+                />
+              ) : null
+            }
+          >
             {b.url ? (
               <a href={b.url} className={link}>
                 <span className="sr-only">{t("lesson.download")}: </span>

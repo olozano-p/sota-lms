@@ -189,6 +189,7 @@ export const ca = {
   "lesson.preview": "Vista prèvia de docent: aquesta lliçó no és visible per a l'alumnat.",
   "lesson.video.title": "Vídeo: {title}",
   "lesson.audio.title": "Àudio: {title}",
+  "lesson.file.preview": "Vista prèvia: {title}",
   "lesson.size": "{n} MB",
 
   "lock.title": "Encara no disponible",

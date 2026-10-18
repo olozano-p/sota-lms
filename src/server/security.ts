@@ -29,8 +29,8 @@ function origin(url: string | null | undefined): string | null {
 
 /**
  * `frame-src` is built from the enabled video providers and the embed allowlist; with the S3
- * driver its origins are allowed for images, media playback and uploads (`/api/files` redirects
- * there; the local driver is `'self'`). Styles stay `'unsafe-inline'` (utility classes set inline
+ * driver its origins are allowed for images, media playback, PDF previews and uploads
+ * (`/api/files` redirects there; the local driver is `'self'`). Styles stay `'unsafe-inline'` (utility classes set inline
  * style attributes); scripts require the nonce.
  */
 export function contentSecurityPolicy(nonce: string): string {
@@ -38,6 +38,7 @@ export function contentSecurityPolicy(nonce: string): string {
   for (const p of enabledVideoProviders()) frames.add(`https://${p.embed("0").frameHost}`);
   for (const host of lmsConfig.embedAllowlist) frames.add(`https://${host}`);
   const storage = storageOrigins();
+  for (const o of storage) frames.add(o);
   const idp = env.authMode === "oidc" ? origin(env.oidc.issuer) : null;
   return [
     "default-src 'self'",

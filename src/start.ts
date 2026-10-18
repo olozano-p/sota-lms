@@ -6,7 +6,8 @@ import { allowRequest, newNonce, nonceStore, securityHeaders } from "~/server/se
 /**
  * Every request: id and log line (method, path without query, status, duration; no addresses,
  * headers or bodies), rate limit, then the handler with a fresh CSP nonce, then hardened headers.
- * A CSP the handler already set wins (stored files carry a stricter one).
+ * A CSP or frame policy the handler already set wins (stored files carry their own: stricter, or
+ * framable by our pages for a PDF preview).
  */
 const security = createMiddleware({ type: "request" }).server(
   async ({ next, request, pathname }) => {
@@ -23,7 +24,10 @@ const security = createMiddleware({ type: "request" }).server(
     try {
       const result = await nonceStore.run(nonce, () => next());
       for (const [k, v] of Object.entries(securityHeaders(nonce, env.isProduction)))
-        if (k !== "content-security-policy" || !result.response.headers.has(k))
+        if (
+          (k !== "content-security-policy" && k !== "x-frame-options") ||
+          !result.response.headers.has(k)
+        )
           result.response.headers.set(k, v);
       result.response.headers.set("x-request-id", rlog.id);
       rlog.done(result.response.status);

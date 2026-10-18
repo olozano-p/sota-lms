@@ -146,6 +146,20 @@ describe("GET", () => {
   it("serves inline when asked", async () => {
     const r = await get(await store.signedGetUrl(key, "hello.txt", "text/plain", true));
     expect(r.headers.get("content-disposition")).toBe("inline; filename*=UTF-8''hello.txt");
+    expect(r.headers.get("content-security-policy")).toContain("sandbox");
+    expect(r.headers.get("x-frame-options")).toBeNull();
+  });
+  it("lets our pages frame an inline PDF, and only that", async () => {
+    const pdf = "courses/0190/notes.pdf";
+    await store.putObject(pdf, "%PDF-1.4", "application/pdf");
+    const inline = await get(await store.signedGetUrl(pdf, "notes.pdf", "application/pdf", true));
+    expect(inline.headers.get("content-security-policy")).toBe(
+      "default-src 'none'; frame-ancestors 'self'",
+    );
+    expect(inline.headers.get("x-frame-options")).toBe("SAMEORIGIN");
+    const download = await get(await store.signedGetUrl(pdf, "notes.pdf", "application/pdf"));
+    expect(download.headers.get("content-security-policy")).toContain("sandbox");
+    expect(download.headers.get("x-frame-options")).toBeNull();
   });
   it("honours a byte range", async () => {
     const url = await store.signedGetUrl(key, "hello.txt", "text/plain");
