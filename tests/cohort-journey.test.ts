@@ -192,7 +192,7 @@ describe("a cohort through a dripped course", () => {
   });
 
   it("opens one chapter a week, for members only", async () => {
-    // The drip opens at local midnight of the deployment zone (Europe/Madrid, UTC+2 in September).
+    // The drip opens at local midnight of the deployment zone (Europe/Paris, UTC+2 in September).
     for (const l of learners)
       expect(await open(l, `${START}T08:00:00Z`)).toEqual([true, false, false]);
     expect(await open(learners[0]!, "2026-09-07T21:00:00Z")).toEqual([true, false, false]);

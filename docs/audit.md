@@ -90,8 +90,8 @@ source)` with access rules in `lms.config.ts`. Resolved by ADR-014: `enrollment`
 
 A search for the reference organisation's name, domain and acronyms across the tree (excluding
 `node_modules`, `.git`, `data`) finds none; `tests/repo-hygiene.test.ts` now fails if one appears. The only
-defaults worth reviewing are `timeZone: "Europe/Madrid"` in `lms.config.ts` and the default locale in the
-theme, which are configuration, not code.
+defaults worth reviewing were `timeZone` in `lms.config.ts` and the default locale in the
+theme, which are configuration, not code; they ship as `Europe/Paris` and `en`.
 
 ## Delete list
 

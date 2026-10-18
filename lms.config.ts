@@ -7,10 +7,10 @@ import { defineConfig } from "./src/config/schema.ts";
 
 export default defineConfig({
   locales: {
-    enabled: ["ca", "es", "en"],
+    enabled: ["en", "ca", "es"],
     cookieName: "sota_locale",
   },
-  timeZone: "Europe/Madrid",
+  timeZone: "Europe/Paris",
   embedAllowlist: ["player.vimeo.com", "www.youtube-nocookie.com", "docs.google.com"],
   uploads: {
     maxBytes: 200 * 1024 * 1024,
