@@ -40,10 +40,13 @@ describe("request log", () => {
     process.env.LOG_LEVEL = "info";
     const lines: string[] = [];
     setLogSink((_l, line) => lines.push(line));
-    const req = new Request("http://x.test/api/storage/secrettoken?token=abc&email=a@b.example", {
-      method: "PUT",
-      headers: { authorization: "Bearer topsecret", cookie: "sota.session=zzz" },
-    });
+    const req = new Request(
+      "http://x.test/api/storage/secrettoken?token=qwerty&email=a@b.example",
+      {
+        method: "PUT",
+        headers: { authorization: "Bearer topsecret", cookie: "sota.session=zzz" },
+      },
+    );
     const rlog = startRequestLog(req, "/api/storage/secrettoken");
     rlog.done(204);
     const row = JSON.parse(lines[0]!);
@@ -55,7 +58,7 @@ describe("request log", () => {
     });
     expect(row.requestId).toBe(rlog.id);
     expect(typeof row.durationMs).toBe("number");
-    for (const secret of ["secrettoken", "abc", "a@b.example", "topsecret", "zzz"])
+    for (const secret of ["secrettoken", "qwerty", "a@b.example", "topsecret", "zzz"])
       expect(lines[0]).not.toContain(secret);
   });
   it("keeps health probes out of the info log and reuses a sane upstream request id", () => {
