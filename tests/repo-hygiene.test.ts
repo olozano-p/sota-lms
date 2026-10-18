@@ -141,3 +141,69 @@ describe("release workflow", () => {
     expect(read("compose.yml")).toContain("ghcr.io/OWNER/sota:latest");
   });
 });
+
+describe("Markdown references", () => {
+  // Decision records, the closed audit and the changelog describe the repository as it was.
+  const historical = new Set(["CHANGELOG.md", "docs/audit.md"]);
+  const docs = execFileSync("git", ["ls-files", "*.md"], { cwd: root, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => f && !f.startsWith("docs/decisions/") && !historical.has(f));
+  const exists = (path: string) => {
+    try {
+      statSync(join(root, path));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const anchor = (heading: string) =>
+    heading
+      .trim()
+      .toLowerCase()
+      .replace(/<[^>]+>|`/g, "")
+      .replace(/[^\p{L}\p{N} _-]/gu, "")
+      .replace(/ /g, "-");
+
+  it("finds the documents", () => {
+    expect(docs.length).toBeGreaterThan(20);
+  });
+
+  it("relative links and images point at files and headings that exist", () => {
+    const broken: string[] = [];
+    for (const f of docs) {
+      const text = read(f)
+        .replace(/```[\s\S]*?```/g, "")
+        .replace(/`[^`\n]*`/g, "");
+      const links = text.matchAll(/\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\)|(?:src|href)="([^"]+)"/g);
+      for (const m of links) {
+        const url = (m[1] ?? m[2])!;
+        if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(url)) continue;
+        const [path, hash] = url.split("#");
+        const target = path ? join(f, "..", decodeURI(path)) : f;
+        if (!exists(target)) broken.push(`${f} → ${url}`);
+        else if (hash && target.endsWith(".md")) {
+          const headings = [...read(target).matchAll(/^#{1,6}\s+(.*)$/gm)].map((h) =>
+            anchor(h[1]!),
+          );
+          if (!headings.includes(hash)) broken.push(`${f} → ${url} (no such heading)`);
+        }
+      }
+    }
+    expect(broken).toEqual([]);
+  });
+
+  it("repository paths quoted in backticks exist", () => {
+    // `src/server/access/rules.ts` in prose is a promise that the file is there. Globs and
+    // placeholders (`<dir>`, `*`, `{a,b}`) are patterns, not paths.
+    const missing: string[] = [];
+    const quoted =
+      /`((?:src|scripts|tests|docs|dev|drizzle|examples|deploy|public|\.github|\.githooks)\/[\w.$/[\]-]+)`/g;
+    for (const f of docs) {
+      for (const m of read(f).matchAll(quoted)) {
+        const path = m[1]!.replace(/\/$/, "");
+        if (!exists(path)) missing.push(`${f}: ${path}`);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+});

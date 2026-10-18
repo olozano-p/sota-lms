@@ -24,7 +24,7 @@ These are constraints on _how_ the project is built, not features:
 2. **Generic core, configured edge.** Anything that names an organisation, domain, membership tier, brand, or IdP belongs in `.env`, `lms.config.ts`, or the database — never in source. Rule of thumb for the agent: _if a second organisation forked this tomorrow, would they have to edit a `.ts` file to run it? If yes, it's misplaced._
 3. **Standards over integrations.** SSO is plain OIDC (any compliant IdP works; better-auth is just the reference). Enrollments are a documented, versioned JSON contract over HTTPS, not a call into the members' site's internals. Storage is a directory or any S3-compatible API behind one interface. Email is SMTP. Video is behind a provider interface (Vimeo is the first implementation).
 4. **One-command local setup.** `docker compose -f compose.dev.yml up` gives Postgres + a mock OIDC provider + the app with seed data. A contributor must be able to run the full lesson flow locally without any credentials from the reference deployment.
-5. **Documented as a product, not a project.** `README.md` (what it is, screenshots, quickstart), `docs/deploy.md`, `docs/deploying.md`, `docs/idp-integration.md` (how to wire your own IdP and enrollment source), `docs/adr/`. `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` (responsible disclosure), `CHANGELOG.md` (Keep a Changelog), semver tags.
+5. **Documented as a product, not a project.** `README.md` (what it is, screenshots, quickstart), `docs/deploy.md`, `docs/deploying.md`, `docs/idp-integration.md` (how to wire your own IdP and enrollment source), `docs/decisions/`. `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` (responsible disclosure), `CHANGELOG.md` (Keep a Changelog), semver tags.
 6. **License:** AGPL-3.0 (recommended — same as Frappe LMS, keeps hosted forks open) or MIT (maximally permissive). **OPEN.**
 7. **English-first codebase and docs**; UI is i18n'd with ca/es/en shipped as the first three catalogs. Identifiers, comments, commits, ADRs in English.
 8. **CI on every PR:** typecheck, lint, unit tests, migration dry-run, Playwright smoke. Dependabot/Renovate on.
@@ -79,7 +79,7 @@ These are constraints on _how_ the project is built, not features:
 | Rich text        | Markdown storage (ADR-007), edited in place with Tiptap (ADR-010)                                                         | Bare YouTube/Vimeo links become players; images via `/api/files`                                           |
 | i18n             | JSON message catalogs, locale resolution order: `?lang` → cookie → IdP `locale` claim → `Accept-Language` → default       | Cookie domain configurable so a parent site can set it                                                     |
 | Runtime / deploy | Node 22. Official: Docker image + `compose.yml` behind a reverse proxy                                                    | The reference deployment's rsync/nginx deploy is a documented _alternative_ in Appendix A, not the default |
-| Repo conventions | AI-first: lean `CLAUDE.md`, ADRs under `docs/adr/`, no decorative comments, no over-engineering                           |                                                                                                            |
+| Repo conventions | AI-first: lean `CLAUDE.md`, ADRs under `docs/decisions/`, no decorative comments, no over-engineering                     |                                                                                                            |
 
 Configuration surface (all of it, nothing else):
 
