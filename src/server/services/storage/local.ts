@@ -223,8 +223,11 @@ export function createLocalStorage(opts: LocalStorageOptions): LocalStorage {
     async putObject(key, body, mime) {
       const p = pathFor("objects", key);
       await mkdir(dirname(p), { recursive: true });
-      await writeFile(p, body);
+      // Written aside and renamed, so a concurrent reader never gets half a file.
+      const tmp = `${p}.${randomUUID()}.part`;
+      await writeFile(tmp, body);
       await writeMeta(key, mime);
+      await rename(tmp, p);
     },
     async handle(request, token) {
       const t = verify(token);

@@ -8,6 +8,7 @@ import { createLocalStorage, type LocalStorage } from "../src/server/services/st
 import {
   imageVariant,
   isResizable,
+  MAX_SOURCE_BYTES,
   variantKey,
   variantWidth,
 } from "../src/server/services/storage/variants.ts";
@@ -41,11 +42,15 @@ describe("variantWidth", () => {
 
 describe("isResizable", () => {
   it("covers raster types only", () => {
-    expect(isResizable("image/png")).toBe(true);
-    expect(isResizable("image/jpeg")).toBe(true);
-    expect(isResizable("image/svg+xml")).toBe(false);
-    expect(isResizable("image/gif")).toBe(false);
-    expect(isResizable("application/pdf")).toBe(false);
+    expect(isResizable("image/png", 1000)).toBe(true);
+    expect(isResizable("image/jpeg", 1000)).toBe(true);
+    expect(isResizable("image/svg+xml", 1000)).toBe(false);
+    expect(isResizable("image/gif", 1000)).toBe(false);
+    expect(isResizable("application/pdf", 1000)).toBe(false);
+  });
+  it("leaves originals too large to read whole to their signed redirect", () => {
+    expect(isResizable("image/png", MAX_SOURCE_BYTES)).toBe(true);
+    expect(isResizable("image/png", MAX_SOURCE_BYTES + 1)).toBe(false);
   });
 });
 
@@ -78,5 +83,33 @@ describe("imageVariant", () => {
 
   it("is null when the original does not exist", async () => {
     expect(await imageVariant(store, "courses/c1/missing.png", 800)).toBeNull();
+  });
+
+  it("refuses what only claims to be a raster image, once", async () => {
+    const key = "forum/general/inline/claims-png.png";
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900"/>';
+    await store.putObject(key, new TextEncoder().encode(svg), "image/png");
+    await expect(imageVariant(store, key, 800)).rejects.toThrow(/raster/);
+    const get = vi.spyOn(store, "getObject");
+    await expect(imageVariant(store, key, 400)).rejects.toThrow();
+    // Only the stored-copy lookup: the original is not read and decoded again.
+    expect(get.mock.calls.map(([k]) => k)).toEqual([variantKey(key, 400)]);
+    get.mockRestore();
+  });
+
+  it("refuses a canvas beyond the pixel limit", async () => {
+    const key = "courses/c1/inline/huge.png";
+    await store.putObject(key, await png(8000, 8000), "image/png");
+    await expect(imageVariant(store, key, 400)).rejects.toThrow();
+  });
+
+  it("makes one copy for concurrent first views", async () => {
+    const key = "courses/c1/inline/busy.png";
+    await store.putObject(key, await png(1600, 800), "image/png");
+    const put = vi.spyOn(store, "putObject");
+    const views = await Promise.all([1, 2, 3].map(() => imageVariant(store, key, 400)));
+    expect(put).toHaveBeenCalledTimes(1);
+    expect(new Set(views.map((v) => Buffer.from(v!).toString("base64"))).size).toBe(1);
+    put.mockRestore();
   });
 });

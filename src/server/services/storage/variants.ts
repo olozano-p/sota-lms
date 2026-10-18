@@ -12,11 +12,23 @@ export const VARIANT_WIDTHS = [400, 800, 1200, 1600] as const;
 /** Raster types sharp re-encodes safely; SVG and GIF (often animated) keep their original. */
 const RESIZABLE = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+/** The declared type is the uploader's word, so the decoded format must be one of these too. */
+const DECODED = new Set(["jpeg", "png", "webp"]);
+
+/**
+ * Larger originals keep their signed redirect: a copy reads the whole original into memory, and
+ * one upload must not be able to exhaust it.
+ */
+export const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
+
+/** A small file can still declare a huge canvas; sharp refuses to decode beyond this. */
+const MAX_SOURCE_PIXELS = 50_000_000;
+
 /** Bumped when the encoding below changes: new copies are made and browsers drop the old ones. */
 export const VARIANT_VERSION = 2;
 
-export function isResizable(mime: string): boolean {
-  return RESIZABLE.has(mime);
+export function isResizable(mime: string, size: number): boolean {
+  return RESIZABLE.has(mime) && size <= MAX_SOURCE_BYTES;
 }
 
 /** The width to serve for a `w` query value, or null when there is none or it is not a number. */
@@ -31,9 +43,16 @@ export function variantKey(key: string, width: number): string {
   return `variants/${key}/v${VARIANT_VERSION}-w${width}.webp`;
 }
 
+/** Copies being made now: concurrent first views of one image share a single encode. */
+const making = new Map<string, Promise<Uint8Array | null>>();
+
+/** Originals that failed to decode in this process; they are not tried again on every view. */
+const unusable = new Set<string>();
+
 /**
  * The WebP copy of `key` at `width`: the stored one, else made now and stored. Never enlarges, and
- * applies the EXIF orientation before dropping metadata. Null when the original does not exist.
+ * applies the EXIF orientation before dropping metadata. Null when the original does not exist;
+ * throws when it is not an image sharp may decode (the caller then serves the original).
  */
 export async function imageVariant(
   storage: Pick<StorageProvider, "getObject" | "putObject">,
@@ -43,14 +62,39 @@ export async function imageVariant(
   const vkey = variantKey(key, width);
   const stored = await storage.getObject(vkey);
   if (stored) return stored.body;
+  if (unusable.has(key)) throw new Error("the original cannot be resized");
+  let job = making.get(vkey);
+  if (!job) {
+    job = makeVariant(storage, key, vkey, width).finally(() => making.delete(vkey));
+    making.set(vkey, job);
+  }
+  return job;
+}
+
+async function makeVariant(
+  storage: Pick<StorageProvider, "getObject" | "putObject">,
+  key: string,
+  vkey: string,
+  width: number,
+): Promise<Uint8Array | null> {
   const original = await storage.getObject(key);
   if (!original) return null;
   const { default: sharp } = await import("sharp");
-  const body = await sharp(original.body, { failOn: "none" })
-    .rotate()
-    .resize({ width, withoutEnlargement: true })
-    .webp({ quality: 90, smartSubsample: true, effort: 4 })
-    .toBuffer();
+  let body: Buffer;
+  try {
+    const image = sharp(original.body, { failOn: "error", limitInputPixels: MAX_SOURCE_PIXELS });
+    const { format } = await image.metadata();
+    if (!format || !DECODED.has(format)) throw new Error(`not a raster image: ${format}`);
+    body = await image
+      .rotate()
+      .resize({ width, withoutEnlargement: true })
+      .webp({ quality: 90, smartSubsample: true, effort: 4 })
+      .toBuffer();
+  } catch (e) {
+    if (unusable.size >= 10_000) unusable.clear();
+    unusable.add(key);
+    throw e;
+  }
   await storage.putObject(vkey, body, "image/webp");
   return body;
 }

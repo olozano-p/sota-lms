@@ -139,7 +139,7 @@ export const Route = createFileRoute("/api/files/$fileId")({
 
         const search = new URL(request.url).searchParams;
         const width = variantWidth(search.get("w"));
-        if (width && isResizable(f.mime)) {
+        if (width && isResizable(f.mime, f.size)) {
           const served = await serveVariant(request, f, width);
           if (served) return served;
         }
