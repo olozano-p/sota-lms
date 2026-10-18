@@ -35,9 +35,9 @@ function CourseFrame() {
   const [shown, setShown] = useState(false);
   return (
     <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:pt-4 xl:gap-x-18">
-      {/* Starts well below the page head, beside the lesson's opening media; the margin (not
-          padding) leaves it when the panel sticks. */}
-      <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:mt-64 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
+      {/* Starts so the panel sits level with the first line under the lesson title; the margin
+          (not padding) leaves it when the panel sticks. */}
+      <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:mt-13 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
         <Link
           to="/courses"
           className="label inline-flex h-8 items-center self-start rounded-sm bg-tint px-2 text-muted-foreground no-underline hover:text-foreground hover:no-underline"
