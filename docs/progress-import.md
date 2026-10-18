@@ -64,7 +64,7 @@ and the problems are listed together with their line numbers.
    accounts first, by invitation or sign-up).
 
 A placeholder is adopted at the learner's **first sign-in**: when the IdP releases the same email,
-better-auth links the sign-in to it; when it releases another one, `adoptSubPlaceholder` merges the
+marked `email_verified`, better-auth links the sign-in to it; when it releases another one, `adoptSubPlaceholder` merges the
 placeholder into the new person by `sub`, moving its enrollments and its progress. So the producer
 must send, as `sub`, exactly the subject the IdP will put in the ID token. A line whose lessons are
 all unknown creates nobody.

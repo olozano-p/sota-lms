@@ -71,6 +71,46 @@ export function takeOidcProfile(sub: string, now = Date.now()): OidcProfile | nu
   return entry && now - entry.at <= PENDING_TTL_MS ? entry.profile : null;
 }
 
+/** Whether an ID token's `email_verified` vouches for the address (some IdPs send the string). */
+export function emailVerifiedClaim(claims: Record<string, unknown>): boolean {
+  return claims.email_verified === true || claims.email_verified === "true";
+}
+
+/**
+ * Whether the IdP subject `sub` may sign in with `email`. better-auth links a new IdP account to the
+ * person who already holds the address; that is how placeholders (manual enrollment, the sync, the
+ * service API, an import) are adopted. Only a placeholder may be taken that way, and only when the
+ * IdP vouches for the address: a person with a sign-in of their own, or tied to another subject,
+ * would otherwise belong to whoever can set that address at the IdP.
+ */
+export async function mayClaimEmail(
+  sub: string,
+  email: string,
+  emailVerified: boolean,
+  tx: DbOrTx = db,
+): Promise<boolean> {
+  const [returning] = await tx
+    .select({ id: authAccount.id })
+    .from(authAccount)
+    .where(sql`${authAccount.providerId} = 'oidc' and ${authAccount.accountId} = ${sub}`)
+    .limit(1);
+  if (returning) return true;
+  const [holder] = await tx
+    .select({ id: person.id, externalIss: person.externalIss, externalSub: person.externalSub })
+    .from(person)
+    .where(eq(person.email, email.toLowerCase()))
+    .limit(1);
+  if (!holder) return true;
+  if (!emailVerified || holder.externalIss !== null) return false;
+  if (holder.externalSub !== null && holder.externalSub !== sub) return false;
+  const [account] = await tx
+    .select({ id: authAccount.id })
+    .from(authAccount)
+    .where(eq(authAccount.userId, holder.id))
+    .limit(1);
+  return !account;
+}
+
 const signingIn = new Map<string, Promise<void>>();
 
 /**

@@ -30,9 +30,12 @@ Set in `.env`: `AUTH_MODE=oidc`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_S
 
 A person is keyed by issuer + `sub` (`person.external_iss`, `person.external_sub`) and
 provisioned on first sign-in; name, email, locale and roles are refreshed on every sign-in. A
-person the webhook or pull sync created earlier is adopted by matching email. The IdP is trusted
-for the email address; an `email_verified: false` claim is recorded as unverified but does not
-block sign-in. Roles are read from `person` on every request, so a change applies at once.
+placeholder (created by the webhook, the pull sync, the service API, an admin or an import, never
+signed in) is adopted by matching email, but only when the ID token says `email_verified: true` and
+the placeholder is not waiting for another `sub`. A person who already signs in (under another
+subject, or with a password: the break-glass admin) is never taken by email: that sign-in is refused
+and logged (`oidc sign-in refused`). An unverified address otherwise does not block sign-in; it is
+recorded as unverified. Roles are read from `person` on every request, so a change applies at once.
 
 ## Enrollments from the ID token
 

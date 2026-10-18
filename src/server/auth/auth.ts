@@ -24,6 +24,8 @@ import type { AccountMailKind } from "../services/email/templates.ts";
 import {
   canSelfRegister,
   completeOidcLogin,
+  emailVerifiedClaim,
+  mayClaimEmail,
   noAdminYet,
   profileFromClaims,
   queueOidcSignIn,
@@ -142,13 +144,20 @@ function createAuth(discovery: Discovery | null) {
                 if (!profile) return null;
                 const slot = signInSlot.getStore();
                 if (slot && !slot.release) slot.release = await queueOidcSignIn(profile.sub);
+                const emailVerified = emailVerifiedClaim(claims);
+                if (!(await mayClaimEmail(profile.sub, profile.email, emailVerified))) {
+                  logger.warn("oidc sign-in refused: the address belongs to another person", {
+                    emailVerified,
+                  });
+                  return null;
+                }
                 stashOidcProfile(profile);
                 return {
                   id: profile.sub,
                   sub: profile.sub,
                   email: profile.email,
                   name: profile.name,
-                  emailVerified: claims.email_verified !== false,
+                  emailVerified,
                 };
               },
             },
@@ -215,8 +224,9 @@ function createAuth(discovery: Discovery | null) {
     account: {
       accountLinking: {
         enabled: true,
-        // The IdP is the authority on who owns an address; a person created earlier by the sync or
-        // the webhook (email not yet verified here) is adopted on first sign-in.
+        // The IdP is the authority on who owns an address; a placeholder created earlier by the sync,
+        // the webhook or an admin (email not yet verified here) is adopted on first sign-in.
+        // `mayClaimEmail` in `getUserInfo` limits that to placeholders and verified addresses.
         trustedProviders: [OIDC_PROVIDER_ID],
         requireLocalEmailVerified: false,
       },

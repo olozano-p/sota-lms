@@ -236,6 +236,65 @@ describe("placeholder people from manual enrollment", () => {
   });
 });
 
+describe("an address that already belongs to someone", () => {
+  const accountsOf = (personId: string) =>
+    m.db.select().from(m.schema.authAccount).where(eq(m.schema.authAccount.userId, personId));
+  const refused = (r: Awaited<ReturnType<typeof signIn>>) => {
+    expect(r.cookie).not.toContain("sota.session_token");
+    expect(r.res.headers.get("location")).toContain("error");
+  };
+
+  it("adopts a placeholder only when the IdP vouches for the address", async () => {
+    const [pre] = await m.db
+      .insert(person())
+      .values({ email: "unverified@example.invalid", name: "U", roles: ["student"] })
+      .returning({ id: person().id });
+    refused(
+      await signIn({ sub: "s-unv", email: "unverified@example.invalid", email_verified: false }),
+    );
+    refused(
+      await signIn({
+        sub: "s-unv",
+        email: "unverified@example.invalid",
+        email_verified: undefined,
+      }),
+    );
+    expect(await accountsOf(pre!.id)).toHaveLength(0);
+    const ok = await signIn({
+      sub: "s-unv",
+      email: "unverified@example.invalid",
+      email_verified: "true",
+    });
+    expect(ok.cookie).toContain("sota.session_token");
+    expect(await accountsOf(pre!.id)).toHaveLength(1);
+  });
+
+  it("never hands a person who signed in under another subject to a new one", async () => {
+    await signIn({ sub: "s-owner", email: "owner@example.invalid", name: "Owner" });
+    const [owner] = await m.db.select().from(person()).where(eq(person().externalSub, "s-owner"));
+    refused(await signIn({ sub: "s-intruder", email: "owner@example.invalid", roles: ["admin"] }));
+    const [after] = await m.db.select().from(person()).where(eq(person().id, owner!.id));
+    expect(after).toMatchObject({ externalSub: "s-owner", roles: owner!.roles });
+    expect(await accountsOf(owner!.id)).toHaveLength(1);
+  });
+
+  it("refuses a placeholder waiting for another subject and a person with a password", async () => {
+    await m.db
+      .insert(person())
+      .values({ email: "reserved@example.invalid", name: "R", externalSub: "s-expected" });
+    refused(await signIn({ sub: "s-other", email: "reserved@example.invalid" }));
+    const { upsertCredentialPerson } = await import("../src/server/auth/accounts.ts");
+    const { personId } = await upsertCredentialPerson({
+      email: "keyholder@example.invalid",
+      name: "K",
+      password: "long enough password",
+      roles: ["admin"],
+    });
+    refused(await signIn({ sub: "s-key", email: "keyholder@example.invalid", roles: ["student"] }));
+    expect((await accountsOf(personId)).map((a) => a.providerId)).toEqual(["credential"]);
+  });
+});
+
 describe("claim-driven enrollments", () => {
   it("reconciles claims rows and never touches manual or webhook rows", async () => {
     const { course, cohort, enrollment } = m.schema;
