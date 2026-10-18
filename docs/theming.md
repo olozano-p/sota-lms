@@ -25,8 +25,9 @@ theme/
 Check a theme with `pnpm sota validate-theme [dir] [--strict]` (in the container:
 `docker compose exec app node scripts/sota.ts validate-theme`). The server, `vite dev` and
 `vite build` refuse to start on an invalid theme and print every problem. `--strict` also fails on
-warnings. Two complete examples to copy live in `examples/themes/` (`ledger`, `terminal`);
-`THEME_DIR=examples/themes/ledger pnpm dev` shows one.
+warnings. Three complete examples to copy live in `examples/themes/`: `ledger` and `terminal` (each
+with a `Header` slot) and `twilight` (tokens, self-hosted fonts, a logo and a few lines of CSS, no slot;
+the look of the README screenshots). `THEME_DIR=examples/themes/ledger pnpm dev` shows one.
 
 ## theme.json
 
@@ -152,7 +153,7 @@ The examples in `examples/themes/*/slots/Header.tsx` are the smallest working sl
 
 ## Building a theme
 
-1. Copy `examples/themes/ledger` (or `terminal`) to `theme/` and change `theme.json`.
+1. Copy `examples/themes/ledger` (or `terminal`, or `twilight`) to `theme/` and change `theme.json`.
 2. `pnpm sota validate-theme`, then `pnpm dev` and reload: `theme.json`, `custom.css`, messages and
    mail layouts are re-read within a second in development.
 3. Add slots only where tokens are not enough, then restart `pnpm dev`.

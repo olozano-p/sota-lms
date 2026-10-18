@@ -1,0 +1,68 @@
+{
+  "name": "Stillpoint",
+  "tagline": {
+    "ca": "La pràctica, una respiració cada vegada",
+    "es": "La práctica, una respiración cada vez",
+    "en": "Practice, one breath at a time"
+  },
+  "logo": "logo.svg",
+  "favicon": "logo.svg",
+  "defaultLocale": "en",
+  "supportEmail": "hello@stillpoint.example.invalid",
+  "projectUrl": null,
+  "legalLinks": [
+    { "label": { "ca": "Privadesa", "es": "Privacidad", "en": "Privacy" }, "href": "/privacy" }
+  ],
+  "colors": {
+    "light": {
+      "ink": "#1d1b30",
+      "paper": "#f6f4f0",
+      "card": "#fffefb",
+      "tint": "#e8e5f1",
+      "primary": "#4b41a3",
+      "primaryForeground": "#fbfaff",
+      "link": "#4a3f9f",
+      "success": "#3f7a64",
+      "successForeground": "#2d5e4c",
+      "warning": "#c46a3c",
+      "warningForeground": "#8f4520",
+      "destructive": "#a8424f",
+      "destructiveForeground": "#8a2f3c",
+      "info": "#3f6a9a",
+      "infoForeground": "#2f5480"
+    },
+    "dark": {
+      "ink": "#e7e4f3",
+      "paper": "#121122",
+      "card": "#1b1a2f",
+      "tint": "#29263f",
+      "primary": "#aca1f2",
+      "primaryForeground": "#121122",
+      "link": "#bdb4f7",
+      "success": "#86c0a8",
+      "successForeground": "#a3d3bf",
+      "warning": "#f2a07b",
+      "warningForeground": "#f6bb9e",
+      "destructive": "#e38a96",
+      "destructiveForeground": "#eda8b1",
+      "info": "#8fb3dd",
+      "infoForeground": "#abc6e6"
+    }
+  },
+  "fonts": {
+    "sans": "\"Figtree\", ui-sans-serif, system-ui, \"Segoe UI\", Helvetica, Arial, sans-serif",
+    "serif": "\"Fraunces\", Georgia, \"Iowan Old Style\", serif",
+    "faces": [
+      { "family": "Figtree", "file": "fonts/figtree-wght-normal.woff2", "weight": "300 900" },
+      { "family": "Fraunces", "file": "fonts/fraunces-wght-normal.woff2", "weight": "100 900" },
+      {
+        "family": "Fraunces",
+        "file": "fonts/fraunces-wght-italic.woff2",
+        "weight": "100 900",
+        "style": "italic"
+      }
+    ]
+  },
+  "radius": { "control": "0.75rem", "surface": "1.25rem" },
+  "spacing": { "unit": "0.25rem", "contentWidth": "84rem", "proseWidth": "64ch" }
+}

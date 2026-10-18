@@ -1,0 +1,23 @@
+/* Twilight: a dusk sky behind the page. Colours, fonts and radii come from theme.json. */
+body {
+  background-image:
+    radial-gradient(
+      60rem 28rem at 85% -6rem,
+      color-mix(in oklab, var(--primary) 12%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      40rem 22rem at -10% 4rem,
+      color-mix(in oklab, var(--warning) 9%, transparent),
+      transparent 70%
+    );
+  background-repeat: no-repeat;
+}
+h1,
+h2 {
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
+}
+h1 {
+  font-weight: 500;
+}
