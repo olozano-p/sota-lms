@@ -13,7 +13,7 @@ export const VARIANT_WIDTHS = [400, 800, 1200, 1600] as const;
 const RESIZABLE = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /** Bumped when the encoding below changes: new copies are made and browsers drop the old ones. */
-export const VARIANT_VERSION = 1;
+export const VARIANT_VERSION = 2;
 
 export function isResizable(mime: string): boolean {
   return RESIZABLE.has(mime);
@@ -49,7 +49,7 @@ export async function imageVariant(
   const body = await sharp(original.body, { failOn: "none" })
     .rotate()
     .resize({ width, withoutEnlargement: true })
-    .webp({ quality: 80, effort: 4 })
+    .webp({ quality: 90, smartSubsample: true, effort: 4 })
     .toBuffer();
   await storage.putObject(vkey, body, "image/webp");
   return body;
