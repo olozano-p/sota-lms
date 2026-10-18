@@ -64,7 +64,7 @@ API, and a container image published on every version tag.
 - One signing secret, `WEBHOOK_HMAC_SECRET`, signs both push channels; `ENTITLEMENTS_WEBHOOK_SECRET` is a
   deprecated alias (ADR-020).
 - Brand, colours and default language moved from `lms.config.ts` to the theme directory (ADR-019).
-- Schibsted Grotesk replaces Source Sans 3; the page is white with a gold accent (ADR-009).
+- Schibsted Grotesk replaces Source Sans 3; the page is white with a gold accent.
 - A sync without `valid_from` keeps an existing enrollment's start instead of resetting it each time.
 - `docker compose` for production is `compose.yml`; the development stack is `compose.dev.yml`.
 

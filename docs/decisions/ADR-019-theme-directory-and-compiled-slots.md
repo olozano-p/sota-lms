@@ -1,6 +1,6 @@
 # ADR-019 · The theme is a directory; slots are compiled in, everything else is read at runtime
 
-**Date** 2026-10-01 · **Status** accepted · Fulfils the promise in ADR-015 that brand leaves
+**Date** 2026-10-01 · **Status** accepted · Brand leaves
 `lms.config.ts` for `theme/theme.json` when theming lands.
 
 ## Decision

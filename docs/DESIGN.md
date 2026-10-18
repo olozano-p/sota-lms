@@ -1,6 +1,6 @@
 # SOTA — visual rules
 
-SOTA is a place to read, watch and think. The interface follows the panel design of ADR-022: a
+SOTA is a place to read, watch and think. The interface is a panel design: a
 quiet off-white page, white rounded panels, a translucent sand for buttons, tags and course cards,
 serif titles and body, and small uppercase tracked labels for everything you click or scan. Light is
 the default (lessons are read); dark is a stored preference. Depth comes from fills and spacing, not

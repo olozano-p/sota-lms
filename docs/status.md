@@ -14,7 +14,7 @@
   no downgrade or re-dating, upgrade of a started row, skips, dry run, email match and conflict, local mode,
   progress moved by the merge.
 
-## 2026-10-17 · Panel design for the student interface (ADR-022)
+## 2026-10-17 · Panel design for the student interface
 
 - **Look** (`src/theme/default/theme.json`, `src/styles.css`, `docs/DESIGN.md`): off-white paper, white panels, a
   new optional `tint` colour (the sand of buttons, tags and course cards), Newsreader and DM Sans, a `label`
@@ -219,5 +219,5 @@
 
 - `docs/audit.md` compares the repo with the brief. Skeleton items (strict TS, Drizzle migrations,
   Dockerfile, compose, CI, env config) already existed.
-- ADR-013 (auth modes), ADR-014 (enrollment), ADR-015 (brief adopted, deviations).
+- ADR-013 (auth modes), ADR-014 (enrollment); the brief adopted, its deviations listed in `docs/audit.md`.
 - Next: Phase 1 — start with the `enrollment` migration and the better-auth integration.

@@ -61,7 +61,7 @@ source)` with access rules in `lms.config.ts`. Resolved by ADR-014: `enrollment`
    delayed-access rules left the repository.
 3. **Identity key.** Resolved by ADR-016: nullable `external_sub` + `external_iss` on `person`.
 4. **Forum.** The brief puts discussion forums out of scope; the repo ships one (ADR-011).
-   **Deliberate deviation**, kept (ADR-015): removing a working, tested feature helps nobody.
+   **Deliberate deviation**, kept: removing a working, tested feature helps nobody.
 5. **Roles.** Resolved by ADR-016: `student/teacher/admin` with the brief's `learner/instructor/admin`
    accepted as aliases, plus per-course teachers.
 6. **ADR location and name.** The brief says `docs/adr/0001-…`; the repo uses `docs/decisions/ADR-0NN-…`
@@ -69,7 +69,7 @@ source)` with access rules in `lms.config.ts`. Resolved by ADR-014: `enrollment`
 7. **Licence.** The brief asks for a proposal; ADR-006 had already chosen MIT. **Deliberate deviation** (a
    decision already taken).
 8. **Config source.** Brief: environment only plus `theme/`. Repo: `.env`, `lms.config.ts` (locales, time zone,
-   upload limits, notification defaults) and the theme directory. **Deliberate deviation**, kept (ADR-015):
+   upload limits, notification defaults) and the theme directory. **Deliberate deviation**, kept:
    brand, colours and language moved to the theme in Phase 3; what stays in `lms.config.ts` is typed and
    validated, and does not name an organisation.
 

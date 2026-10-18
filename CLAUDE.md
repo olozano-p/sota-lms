@@ -13,7 +13,7 @@ document and the code disagree, the code is right and the document gets fixed.
 
 Version 1.0.0: two auth modes (`AUTH_MODE=local|oidc`, ADR-013, ADR-016, ADR-017), the `enrollment` table
 (ADR-014), the service API (ADR-020), theming (ADR-019) and content export/import (ADR-021) are done;
-the forum stays (ADR-015). The gap list in `docs/audit.md` is closed; progress is in `docs/status.md`.
+the forum stays (ADR-011). The gap list in `docs/audit.md` is closed; progress is in `docs/status.md`.
 The invariants below describe the code as it is.
 
 ## Load-bearing invariants
@@ -60,7 +60,7 @@ create-admin`, `applyEnrollmentPayload` (pull and webhook) and the service API's
   file to run their fork? Then it is misplaced. Lock reasons are i18n'd from the rule _type_.
 - **Files are private.** Only `/api/files/$fileId` hands out signed GET URLs (≤ 5 min) after an
   access check; with `?w=` it serves an image's WebP display copy itself (ETag, `no-cache`, so every
-  view is re-checked; `storage/variants.ts`, ADR-024). Storage sits behind `StorageProvider` (`src/server/services/storage`): `local`
+  view is re-checked; `storage/variants.ts`: only JPEG, PNG and WebP up to 25 MB and 50 MP). Storage sits behind `StorageProvider` (`src/server/services/storage`): `local`
   (default, a directory served through `/api/storage/$token`, which only honours tokens) or `s3`.
 - **Assignments and quizzes are reached through the lesson block that embeds them**:
   `requireContainerAccess()` in `src/server/access/container.ts` is the only gate.
