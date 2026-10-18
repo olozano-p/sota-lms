@@ -1,0 +1,41 @@
+# Weekly update pull requests, grouped so a week is one or two PRs, not twenty. Each one runs CI.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "⬆️"
+    groups:
+      development:
+        dependency-type: development
+        update-types: [minor, patch]
+      production:
+        dependency-type: production
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "⬆️"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # The Node major follows engines and the docs; a new one is a deliberate change, not a bump.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "⬆️"
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
