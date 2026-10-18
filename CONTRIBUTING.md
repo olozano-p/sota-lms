@@ -42,6 +42,21 @@ Or `docker compose -f compose.dev.yml up` for everything, app included.
   The pre-commit hook runs them on staged files; CI runs them on everything plus a migration
   dry-run and the Playwright smoke suite.
 
+## What runs on a pull request
+
+| Check                     | What fails it                                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `CI / checks`             | build, types, lint, format, unit tests, theme validation, workflow lint, a migration run and schema/migration drift  |
+| `CI / e2e`                | the Playwright suite against the production image, Postgres and the mock IdP                                         |
+| `CI / commits`            | a commit subject that is not `<gitmoji> <Capitalised subject>` (the same script as the local `commit-msg` hook)      |
+| `CI / dependencies`       | a new or upgraded dependency with a high-severity advisory or a GPL/AGPL/SSPL licence                                |
+| `CodeQL`                  | a security finding in the TypeScript or in the workflows                                                             |
+| CodeRabbit (AI, advisory) | nothing: it comments against `CLAUDE.md` and `docs/DESIGN.md`; reply to it with `@coderabbitai` or resolve its notes |
+
+The unit tests also check that every relative link and every quoted repository path in the
+Markdown points at something that exists, so moving a file means fixing the docs that name it.
+External links are checked weekly (`Links` workflow, `lychee.toml`).
+
 ## Commits
 
 One line: a gitmoji, a space, a capitalised English subject — `✨ Add drip release to cohorts`.

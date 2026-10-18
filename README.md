@@ -3,6 +3,8 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/olozano-p/sota-lms/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/olozano-p/sota-lms/ci.yml?branch=main&label=ci&style=flat-square"></a>
+  <a href="https://github.com/olozano-p/sota-lms/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://img.shields.io/github/actions/workflow/status/olozano-p/sota-lms/codeql.yml?branch=main&label=codeql&style=flat-square"></a>
   <img alt="version 1.1.0" src="https://img.shields.io/badge/version-1.1.0-4b41a3?style=flat-square">
   <img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-2b2660?style=flat-square">
   <img alt="Node 24" src="https://img.shields.io/badge/node-24-3f7a64?style=flat-square">
