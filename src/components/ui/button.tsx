@@ -37,8 +37,11 @@ const buttonStyles = cva(
         "icon-sm": "size-8",
       },
     },
-    // After the size, so the merge in `buttonVariants` drops the size's height and padding.
-    compoundVariants: [{ variant: "link", class: "h-auto px-0" }],
+    // After the size, so the merge in `buttonVariants` drops the size's height and padding; a
+    // link is text, so a long one (a quiz title) wraps instead of widening a phone screen.
+    compoundVariants: [
+      { variant: "link", class: "h-auto min-w-0 shrink px-0 text-left whitespace-normal" },
+    ],
     defaultVariants: { variant: "default", size: "default" },
   },
 );

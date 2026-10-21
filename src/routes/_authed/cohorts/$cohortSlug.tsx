@@ -38,7 +38,7 @@ function CohortPage() {
                 {t(`cohort.status.${cohort.status}`)}
               </Badge>
               {cohort.startsAt ? (
-                <Badge>
+                <Badge className="whitespace-normal">
                   {cohort.endsAt
                     ? t("cohort.dates", {
                         start: fmtDate(cohort.startsAt),

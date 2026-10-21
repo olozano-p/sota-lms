@@ -78,7 +78,7 @@ export function UploadField({
               : (label ?? t("teach.block.file.upload"))}
         </Button>
         {current?.key ? (
-          <span className="truncate font-mono text-xs text-muted-foreground">
+          <span className="min-w-0 font-mono text-xs break-all text-muted-foreground">
             {current.key.split("/").at(-1)}
           </span>
         ) : null}
