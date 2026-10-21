@@ -125,7 +125,7 @@ function AssignmentsPage() {
         ))}
       </ul>
       <form
-        className="flex gap-2"
+        className="flex flex-wrap gap-2"
         onSubmit={async (e) => {
           e.preventDefault();
           if (!title.trim()) return;
@@ -139,7 +139,7 @@ function AssignmentsPage() {
           placeholder={t("teach.assignments.title")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="max-w-md"
+          className="max-w-md flex-1 basis-48"
         />
         <Button type="submit" variant="outline">
           <Plus aria-hidden="true" />

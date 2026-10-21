@@ -45,7 +45,7 @@ function QuizzesPage() {
             <Link
               to="/teach/courses/$courseSlug/quizzes/$quizId"
               params={{ courseSlug: course.slug, quizId: q.id }}
-              className="min-w-0 flex-1 truncate font-medium text-foreground"
+              className="min-w-0 flex-1 basis-40 truncate font-medium text-foreground"
             >
               {q.title}
             </Link>

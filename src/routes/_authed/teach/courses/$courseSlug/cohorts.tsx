@@ -43,7 +43,7 @@ function CohortsPage() {
             <Link
               to="/teach/cohorts/$cohortSlug"
               params={{ cohortSlug: c.slug }}
-              className="min-w-0 flex-1 truncate font-medium text-foreground"
+              className="min-w-0 flex-1 basis-40 truncate font-medium text-foreground"
             >
               {c.title}
             </Link>

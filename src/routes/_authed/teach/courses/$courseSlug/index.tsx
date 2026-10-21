@@ -103,7 +103,7 @@ function StructurePage() {
                   <Link
                     to="/teach/courses/$courseSlug/lessons/$lessonId"
                     params={{ courseSlug: course.slug, lessonId: l.id }}
-                    className="min-w-0 flex-1 truncate font-medium text-foreground"
+                    className="min-w-0 flex-1 basis-40 truncate font-medium text-foreground"
                   >
                     {l.title}
                   </Link>
@@ -134,7 +134,7 @@ function StructurePage() {
               )}
             />
             <form
-              className="flex gap-2 pl-2"
+              className="flex flex-wrap gap-2 pl-2"
               onSubmit={async (e) => {
                 e.preventDefault();
                 const title = (newLesson[ch.id] ?? "").trim();
@@ -149,7 +149,7 @@ function StructurePage() {
                 placeholder={t("teach.lesson.new")}
                 value={newLesson[ch.id] ?? ""}
                 onChange={(e) => setNewLesson({ ...newLesson, [ch.id]: e.target.value })}
-                className="max-w-sm"
+                className="max-w-sm flex-1 basis-48"
               />
               <Button type="submit" variant="outline" size="default">
                 <Plus aria-hidden="true" />
@@ -160,7 +160,7 @@ function StructurePage() {
         )}
       />
       <form
-        className="flex gap-2"
+        className="flex flex-wrap gap-2"
         onSubmit={async (e) => {
           e.preventDefault();
           const title = newChapter.trim();
@@ -175,7 +175,7 @@ function StructurePage() {
           placeholder={t("teach.chapter.title")}
           value={newChapter}
           onChange={(e) => setNewChapter(e.target.value)}
-          className="max-w-md"
+          className="max-w-md flex-1 basis-48"
         />
         <Button type="submit" variant="outline">
           <Plus aria-hidden="true" />
