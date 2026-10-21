@@ -132,11 +132,13 @@ export function Blocks({
             key={b.id}
             icon={fileIcon(b.mime)}
             preview={
+              // Phone browsers do not render a PDF in a frame (an empty box on Android, one frozen
+              // page on iOS), so there the link alone opens it in the system viewer.
               b.url && b.mime === "application/pdf" ? (
                 <iframe
                   src={`${b.url}?inline=1`}
                   title={t("lesson.file.preview", { title: b.title })}
-                  className="aspect-[3/4] max-h-[80vh] w-full max-w-3xl rounded-lg bg-card"
+                  className="aspect-[3/4] max-h-[80vh] w-full max-w-3xl rounded-lg bg-card max-sm:hidden"
                   loading="lazy"
                 />
               ) : null
