@@ -4,7 +4,7 @@ import type { HeaderProps } from "~/theme/slots";
 
 /**
  * A slim bar on the page itself: the mark on the left (with the name when there is no logo),
- * navigation and controls on the right as labels.
+ * navigation and controls on the right as labels (below the mark on a phone).
  */
 export default function Header({ brand, nav, localeSwitch, themeToggle }: HeaderProps) {
   return (
@@ -22,8 +22,10 @@ export default function Header({ brand, nav, localeSwitch, themeToggle }: Header
             )}
           </span>
         </Link>
-        <div className="flex flex-wrap items-center gap-1 sm:gap-3">
-          {nav}
+        {/* On a phone the account menu takes a row of its own below the mark and the controls; a
+            lone sign-in link stays beside them. */}
+        <div className="ml-auto max-sm:has-[>nav]:order-last max-sm:has-[>nav]:w-full">{nav}</div>
+        <div className="flex items-center gap-1 sm:gap-3">
           {localeSwitch}
           {themeToggle}
         </div>
