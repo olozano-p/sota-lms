@@ -1,7 +1,7 @@
 # Production image: build with Vite, serve with scripts/serve.mjs. Migrations run at start when
 # MIGRATE=true (default) so a single `docker compose up` gets a working instance. Operator tasks:
 # `docker compose exec app node scripts/sota.ts create-admin` (see docs/deploying.md).
-FROM node:24-alpine AS build
+FROM node:24.22.1-alpine AS build
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -15,7 +15,7 @@ RUN pnpm build
 # What the image carries as /app/theme (a bind mount over it replaces everything but the slots).
 RUN mkdir -p /out/theme && d="${THEME_DIR:-theme}"; if [ -d "$d" ]; then cp -R "$d/." /out/theme/; fi
 
-FROM node:24-alpine
+FROM node:24.22.1-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 # Local storage lives in the one directory the image makes writable (mount a volume over it).
