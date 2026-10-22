@@ -5,3 +5,5 @@ allowBuilds:
 overrides:
   # postcss pins an older range; 1.2.2 fixes GHSA-68fv-2mgg-jv7q.
   source-map-js: ">=1.2.2"
+  # isomorphic-dompurify 2.x pins an older 3.4; 3.4.17 fixes GHSA-cg2g-xh64-v4q7 and GHSA-mrv2-3pqr-j5jr.
+  dompurify: ">=3.4.17"
