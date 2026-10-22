@@ -4,7 +4,6 @@
  * Runs under plain Node too (migrate, seed): relative imports with .ts extensions.
  */
 import { drizzle as drizzlePg, type NodePgDatabase } from "drizzle-orm/node-postgres";
-import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
 import * as schema from "./schema.ts";
 
 /**
@@ -20,6 +19,8 @@ export const isPglite = url.startsWith("pglite://");
 
 async function open(): Promise<Db> {
   if (isPglite) {
+    // PGlite is a devDependency: the production image (`pnpm install --prod`) does not have it.
+    const { drizzle: drizzlePglite } = await import("drizzle-orm/pglite");
     const { PGlite } = await import("@electric-sql/pglite");
     const client = new PGlite();
     return drizzlePglite({ client, schema, casing: "snake_case" }) as unknown as Db;
